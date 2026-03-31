@@ -23,7 +23,6 @@ class Settings:
     "RERANKER_MODEL_NAME",
     "cross-encoder/ms-marco-MiniLM-L6-v2",
     )
-
     llm_model_name: str = os.getenv("LLM_MODEL_NAME", "gpt-4o-mini")
     llm_base_url: str | None = os.getenv("LLM_BASE_URL") or None
     llm_api_key: str | None = os.getenv("LLM_API_KEY") or None

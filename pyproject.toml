@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-code"
+version = "0.1.0"
+description = "Educational RAG pipeline project"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+where = ["src"]

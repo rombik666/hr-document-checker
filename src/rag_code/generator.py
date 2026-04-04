@@ -1,8 +1,13 @@
 from openai import OpenAI, DefaultHttpxClient
 
+from rag_code.logger import get_logger
+
+logger = get_logger(__name__)
+
 class OpenAIChatGenerator:
     def __init__(self, model_name: str, api_key: str | None, base_url:str | None = None,) -> None:
         if not api_key:
+            logger.error("LLM_API_KEY is not set before generator initialization")
             raise ValueError(
                 "LLM_API_KEY is not set. Add it to your .env file before generation."
             )
@@ -10,6 +15,13 @@ class OpenAIChatGenerator:
         self.model_name = model_name
         self.api_key = api_key
         self.base_url = base_url
+
+        logger.info(
+            "Initializing generator | model=%s | base_url=%s",
+            model_name,
+            base_url,
+        )
+
         self.client = OpenAI(
             api_key=api_key,
             base_url=base_url,
@@ -61,10 +73,19 @@ class OpenAIChatGenerator:
         query = query.strip()
 
         if not query:
+            logger.error("Generator received empty query")
             raise ValueError("query must not be empty")
         
         if not chunks:
+            logger.error("Generator received empty chunks for query=%r", query)
             raise ValueError("chunks must not be empty")
+        
+        logger.info(
+            "Generating answer | query=%r | chunks=%d | model=%s",
+            query,
+            len(chunks),
+            self.model_name,
+        )
         
         context = self.build_context(chunks)
         messages = self.build_messages(query, context)
@@ -75,6 +96,12 @@ class OpenAIChatGenerator:
         )
 
         answer = completion.choices[0].message.content or ""
+
+        logger.info(
+            "Generation finished | query=%r | answer_length=%d",
+            query,
+            len(answer.strip()),
+        )
 
         return {
             "query": query,

@@ -30,6 +30,9 @@ from rag_code.config import BASE_DIR, INDEX_DIR, settings
 from rag_code.generator import OpenAIChatGenerator
 from rag_code.reranker import CrossEncoderReranker
 from rag_code.retriever import FaissRetriever
+from rag_code.logger import get_logger, setup_logging
+
+logger = get_logger(__name__)
 
 INDEX_FILE_NAME = "faiss.index"
 METADATA_FILE_NAME = "chunks_metadata.json"
@@ -55,6 +58,29 @@ def load_eval_cases(file_path: Path) -> list[dict]:
 
 def extract_contexts(chunks: list[dict]) -> list[str]:
     return [chunk["text"] for chunk in chunks]
+
+def normalize_text_for_csv(text: str) -> str:
+    result = " ".join(text.split())
+    return result
+
+def unique_in_order(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    results: list[str] = []
+
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            results.append(item)
+
+    return results
+
+def build_answer_preview(answer: str, max_length: int = 160) -> str:
+    cleaned = normalize_text_for_csv(answer)
+
+    if len(cleaned) <= max_length:
+        return cleaned
+    
+    return cleaned[: max_length - 3].rstrip() + "..."
 
 
 def build_rag_pipeline() -> tuple[FaissRetriever, CrossEncoderReranker, OpenAIChatGenerator]:
@@ -167,16 +193,23 @@ def run_single_case(
         retrieved_contexts=retrieved_contexts,
     )
 
+    retrieved_files = unique_in_order([chunk["file_name"] for chunk in reranked_chunks])
+    retrieved_chunk_ids = [chunk["chunk_id"] for chunk in reranked_chunks]
+
     return {
-        "id": case_id,
-        "query": query,
-        "reference": reference,
-        "answer": answer,
-        "faithfulness": float(faithfulness_result.value),
-        "answer_relevancy": float(answer_relevancy_result.value),
-        "context_precision": float(context_precision_result.value),
-        "context_recall": float(context_recall_result.value),
-    }
+    "id": case_id,
+    "query": query,
+    "reference": reference,
+    "answer": answer,
+    "answer_preview": build_answer_preview(answer),
+    "retrieved_files": " | ".join(retrieved_files),
+    "retrieved_chunk_ids": " | ".join(retrieved_chunk_ids),
+    "retrieved_chunks_count": len(reranked_chunks),
+    "faithfulness": float(faithfulness_result.value),
+    "answer_relevancy": float(answer_relevancy_result.value),
+    "context_precision": float(context_precision_result.value),
+    "context_recall": float(context_recall_result.value),
+}
 
 
 def save_results_csv(rows: list[dict], file_path: Path) -> None:
@@ -186,17 +219,46 @@ def save_results_csv(rows: list[dict], file_path: Path) -> None:
         "id",
         "query",
         "reference",
-        "answer",
+        "answer_preview",
+        "retrieved_files",
+        "retrieved_chunk_ids",
+        "retrieved_chunks_count",
         "faithfulness",
         "answer_relevancy",
         "context_precision",
         "context_recall",
+        "answer_full",
     ]
 
-    with file_path.open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
+    prepared_rows: list[dict] = []
+
+    for row in rows:
+        prepared_rows.append(
+            {
+                "id": row["id"],
+                "query": normalize_text_for_csv(row["query"]),
+                "reference": normalize_text_for_csv(row["reference"]),
+                "answer_preview": row["answer_preview"],
+                "retrieved_files": row["retrieved_files"],
+                "retrieved_chunk_ids": row["retrieved_chunk_ids"],
+                "retrieved_chunks_count": row["retrieved_chunks_count"],
+                "faithfulness": f'{row["faithfulness"]:.4f}',
+                "answer_relevancy": f'{row["answer_relevancy"]:.4f}',
+                "context_precision": f'{row["context_precision"]:.4f}',
+                "context_recall": f'{row["context_recall"]:.4f}',
+                "answer_full": normalize_text_for_csv(row["answer"]),
+            }
+        )
+
+    with file_path.open("w", encoding="utf-8-sig", newline="") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=fieldnames,
+            delimiter=";",
+            quoting=csv.QUOTE_MINIMAL,
+        )
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(prepared_rows)
 
 
 def build_summary(rows: list[dict]) -> dict:
@@ -217,6 +279,9 @@ def save_summary_json(summary: dict, file_path: Path) -> None:
 
 
 def main() -> None:
+    setup_logging(settings.log_level)
+    logger.info("Starting RAGAS evaluation")
+
     cases = load_eval_cases(EVAL_CASES_PATH)
 
     retriever, reranker, generator = build_rag_pipeline()
@@ -243,28 +308,26 @@ def main() -> None:
         )
         rows.append(row)
 
-        print("-" * 80)
-        print(f'Case: {row["id"]}')
-        print(f'Query: {row["query"]}')
-        print(f'Faithfulness: {row["faithfulness"]:.4f}')
-        print(f'Answer Relevancy: {row["answer_relevancy"]:.4f}')
-        print(f'Context Precision: {row["context_precision"]:.4f}')
-        print(f'Context Recall: {row["context_recall"]:.4f}')
+        logger.info("Finished case %s", row["id"])
+        logger.info("Query: %s", row["query"])
+        logger.info("Faithfulness: %.4f", row["faithfulness"])
+        logger.info("Answer Relevancy: %.4f", row["answer_relevancy"])
+        logger.info("Context Precision: %.4f", row["context_precision"])
+        logger.info("Context Recall: %.4f", row["context_recall"])
 
     summary = build_summary(rows)
 
     save_results_csv(rows, RESULTS_CSV_PATH)
     save_summary_json(summary, SUMMARY_JSON_PATH)
 
-    print("=" * 80)
-    print("RAGAS summary:")
-    print(f'Cases: {summary["num_cases"]}')
-    print(f'Average Faithfulness: {summary["avg_faithfulness"]:.4f}')
-    print(f'Average Answer Relevancy: {summary["avg_answer_relevancy"]:.4f}')
-    print(f'Average Context Precision: {summary["avg_context_precision"]:.4f}')
-    print(f'Average Context Recall: {summary["avg_context_recall"]:.4f}')
-    print(f"Detailed results saved to: {RESULTS_CSV_PATH}")
-    print(f"Summary saved to: {SUMMARY_JSON_PATH}")
+    logger.info("RAGAS evaluation finished")
+    logger.info("Cases: %d", summary["num_cases"])
+    logger.info("Average Faithfulness: %.4f", summary["avg_faithfulness"])
+    logger.info("Average Answer Relevancy: %.4f", summary["avg_answer_relevancy"])
+    logger.info("Average Context Precision: %.4f", summary["avg_context_precision"])
+    logger.info("Average Context Recall: %.4f", summary["avg_context_recall"])
+    logger.info("Detailed results saved to: %s", RESULTS_CSV_PATH)
+    logger.info("Summary saved to: %s", SUMMARY_JSON_PATH)
 
 
 if __name__ == "__main__":

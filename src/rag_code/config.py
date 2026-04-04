@@ -36,4 +36,6 @@ class Settings:
     eval_llm_base_url: str | None = os.getenv("EVAL_LLM_BASE_URL") or None
     eval_llm_api_key: str | None = os.getenv("EVAL_LLM_API_KEY") or None
 
+    log_level: str = os.getenv("LOG_LEVEL", "INFO")
+
 settings = Settings()

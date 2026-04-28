@@ -17,6 +17,14 @@ from app.schemas.documents import (
     ParsedDocument,
 )
 
+from app.schemas.checks import (
+    AgentExecutionInfo,
+    CheckResult,
+    FormalCheckResponse,
+    Issue,
+    Recommendation,
+)
+
 __all__ = [
     "CheckStatus",
     "CheckType",

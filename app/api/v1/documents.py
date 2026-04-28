@@ -129,14 +129,10 @@ async def check_document_formally(
 @router.post("/report", response_model=Report)
 async def build_document_report(
     file: UploadFile = File(...),
+    vacancy_text: str | None = Form(None),
     storage_mode: StorageMode = Form(StorageMode.TEMPORARY),
     db: Session = Depends(get_db),
 ) -> Report:
-    """
-    Загружает DOCX/PDF-файл, выполняет первичную обработку,
-    запускает формальные проверки и возвращает итоговый отчёт.
-    
-    """
 
     filename = file.filename or ""
     suffix = _validate_file_suffix(filename)
@@ -153,24 +149,33 @@ async def build_document_report(
             storage_mode=storage_mode,
         )
 
-        coordinator = FormalCheckCoordinator()
-        formal_check_response = coordinator.run(parsed_document)
+        formal_coordinator = FormalCheckCoordinator()
+        formal_check_response = formal_coordinator.run(parsed_document)
+
+        semantic_coordinator = SemanticCheckCoordinator()
+        semantic_check_response = semantic_coordinator.run(
+            document=parsed_document,
+            vacancy_text=vacancy_text,
+        )
 
         report_builder = ReportBuilder()
         report = report_builder.build(
             document=parsed_document,
             formal_check_response=formal_check_response,
+            semantic_check_response=semantic_check_response,
+            vacancy_text=vacancy_text,
         )
 
         if storage_mode == StorageMode.NO_STORE:
             report.technical_info.metadata["saved_to_db"] = False
         else:
+            report.technical_info.metadata["saved_to_db"] = True
+
             storage_service = ReportStorageService(db)
             storage_service.save_report(
                 document=parsed_document,
                 report=report,
             )
-            report.technical_info.metadata["saved_to_db"] = True
 
         return report
 

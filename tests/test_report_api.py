@@ -46,6 +46,7 @@ def test_report_endpoint_returns_report_for_valid_docx(tmp_path: Path) -> None:
     assert data["minor"] == []
 
     assert data["technical_info"]["total_agents_count"] == 4
+    assert data["technical_info"]["metadata"]["document_type"] == "cv"
     assert "CompletenessAgent" in data["technical_info"]["checks_completed"]
 
 

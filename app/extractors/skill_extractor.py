@@ -44,7 +44,7 @@ class SkillExtractor:
     ]
 
     def __init__(self, skills: list[str] | None = None) -> None:
-        self.skills = skills or self.DEFAULT_SKILLS
+        self.skills = sorted(skills or self.DEFAULT_SKILLS, key=len, reverse=True)
 
     def extract(self, text: str, source_section_id: str | None = None) -> list[ExtractedEntity]:
         entities: list[ExtractedEntity] = []

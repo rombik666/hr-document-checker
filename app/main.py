@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from app.api.v1.documents import router as documents_router
 from app.db.init_db import init_db
 from app.api.v1.rag import router as rag_router
+from app.web.routes import router as web_router
 
 
 @asynccontextmanager
@@ -32,6 +33,7 @@ app = FastAPI(
 
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(rag_router, prefix="/api/v1")
+app.include_router(web_router)
 
 
 @app.get("/")

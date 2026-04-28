@@ -1,0 +1,33 @@
+<div class="issue {{ issue.severity.value | lower }}">
+    <div class="issue-type">
+        {{ issue.issue_type }} — {{ issue.severity.value }}
+    </div>
+
+    <div>
+        {{ issue.description }}
+    </div>
+
+    {% if issue.evidence_fragment %}
+        <div class="evidence">
+            {{ issue.evidence_fragment }}
+        </div>
+    {% endif %}
+
+    {% if issue.recommendation %}
+        <div class="recommendation">
+            <strong>Рекомендация:</strong>
+            {{ issue.recommendation.recommendation_text }}
+
+            {% if issue.recommendation.example_fix %}
+                <br>
+                <strong>Пример:</strong>
+                {{ issue.recommendation.example_fix }}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="technical">
+        <strong>Агент:</strong> {{ issue.source_agent }},
+        <strong>confidence:</strong> {{ issue.confidence_score }}
+    </div>
+</div>

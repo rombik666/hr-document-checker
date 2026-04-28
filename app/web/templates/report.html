@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Итоговый отчёт</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+
+        .summary {
+            background: #eff6ff;
+            border-left: 5px solid #2563eb;
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 24px;
+        }
+
+        .status-ready {
+            color: #15803d;
+            font-weight: 700;
+        }
+
+        .status-revision {
+            color: #b45309;
+            font-weight: 700;
+        }
+
+        .counts {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 24px 0;
+        }
+
+        .count-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .count-number {
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .issue {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: #ffffff;
+        }
+
+        .critical {
+            border-left: 6px solid #dc2626;
+        }
+
+        .major {
+            border-left: 6px solid #f97316;
+        }
+
+        .minor {
+            border-left: 6px solid #facc15;
+        }
+
+        .issue-type {
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .evidence {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: Consolas, monospace;
+            white-space: pre-wrap;
+        }
+
+        .recommendation {
+            margin-top: 10px;
+            color: #374151;
+        }
+
+        .technical {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 24px;
+            font-size: 14px;
+        }
+
+        .nav {
+            margin-bottom: 20px;
+        }
+
+        .nav a {
+            color: #2563eb;
+            text-decoration: none;
+            margin-right: 16px;
+        }
+
+        .nav a:hover {
+            text-decoration: underline;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #e5e7eb;
+            border-radius: 999px;
+            padding: 4px 10px;
+            margin: 3px;
+            font-size: 13px;
+        }
+
+        .empty {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="nav">
+        <a href="/web/">← Новая проверка</a>
+        <a href="/docs">Swagger</a>
+        {% if report.technical_info.metadata.saved_to_db %}
+            <a href="/api/v1/documents/reports/{{ report.report_id }}">JSON отчёта</a>
+        {% endif %}
+    </div>
+
+    <h1>Итоговый отчёт</h1>
+
+    <div class="summary">
+        <p><strong>Файл:</strong> {{ report.filename }}</p>
+        <p><strong>Report ID:</strong> {{ report.report_id }}</p>
+        <p><strong>Document ID:</strong> {{ report.document_id }}</p>
+
+        {% if report.summary_status.value == "ready" %}
+            <p><strong>Статус:</strong> <span class="status-ready">{{ report.summary_status.value }}</span></p>
+        {% else %}
+            <p><strong>Статус:</strong> <span class="status-revision">{{ report.summary_status.value }}</span></p>
+        {% endif %}
+
+        <p>{{ report.summary }}</p>
+    </div>
+
+    <div class="counts">
+        <div class="count-card">
+            <div>Всего замечаний</div>
+            <div class="count-number">{{ report.total_issues }}</div>
+        </div>
+        <div class="count-card">
+            <div>Critical</div>
+            <div class="count-number">{{ report.critical_count }}</div>
+        </div>
+        <div class="count-card">
+            <div>Major</div>
+            <div class="count-number">{{ report.major_count }}</div>
+        </div>
+        <div class="count-card">
+            <div>Minor</div>
+            <div class="count-number">{{ report.minor_count }}</div>
+        </div>
+    </div>
+
+    {% if report.vacancy_relevance %}
+        <h2>Релевантность вакансии</h2>
+        <div class="technical">
+            <p><strong>Покрытие требований:</strong> {{ report.vacancy_relevance.coverage_percent }}%</p>
+            <p><strong>Комментарий:</strong> {{ report.vacancy_relevance.comment }}</p>
+
+            <p><strong>Закрытые требования:</strong></p>
+            {% if report.vacancy_relevance.covered_requirements %}
+                {% for item in report.vacancy_relevance.covered_requirements %}
+                    <span class="tag">{{ item }}</span>
+                {% endfor %}
+            {% else %}
+                <span class="empty">Нет данных</span>
+            {% endif %}
+
+            <p><strong>Незакрытые требования:</strong></p>
+            {% if report.vacancy_relevance.missing_requirements %}
+                {% for item in report.vacancy_relevance.missing_requirements %}
+                    <span class="tag">{{ item }}</span>
+                {% endfor %}
+            {% else %}
+                <span class="empty">Явные пробелы не найдены</span>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <h2>Critical</h2>
+    {% if report.critical %}
+        {% for issue in report.critical %}
+            {% include "issue_card.html" %}
+        {% endfor %}
+    {% else %}
+        <p class="empty">Критических проблем не найдено.</p>
+    {% endif %}
+
+    <h2>Major</h2>
+    {% if report.major %}
+        {% for issue in report.major %}
+            {% include "issue_card.html" %}
+        {% endfor %}
+    {% else %}
+        <p class="empty">Значимых замечаний не найдено.</p>
+    {% endif %}
+
+    <h2>Minor</h2>
+    {% if report.minor %}
+        {% for issue in report.minor %}
+            {% include "issue_card.html" %}
+        {% endfor %}
+    {% else %}
+        <p class="empty">Незначительных замечаний не найдено.</p>
+    {% endif %}
+
+    <h2>Техническая справка</h2>
+    <div class="technical">
+        <p><strong>Дата генерации:</strong> {{ report.technical_info.generated_at }}</p>
+        <p><strong>Количество агентов:</strong> {{ report.technical_info.total_agents_count }}</p>
+        <p><strong>Успешных агентов:</strong> {{ report.technical_info.successful_agents_count }}</p>
+        <p><strong>Ошибок агентов:</strong> {{ report.technical_info.failed_agents_count }}</p>
+        <p><strong>Выполненные проверки:</strong></p>
+        {% for check in report.technical_info.checks_completed %}
+            <span class="tag">{{ check }}</span>
+        {% endfor %}
+
+        <p><strong>Метаданные:</strong></p>
+        <pre>{{ report.technical_info.metadata }}</pre>
+    </div>
+</div>
+</body>
+</html>

@@ -14,10 +14,17 @@ from app.schemas.common import StorageMode
 from app.services.document_processing_service import DocumentProcessingService
 from app.services.report_storage_service import ReportStorageService
 
+from time import perf_counter
+
+from app.core.logging import get_logger
+from app.core.metrics import metrics
+
 
 router = APIRouter(prefix="/web", tags=["web"])
 
 templates = Jinja2Templates(directory="app/web/templates")
+
+logger = get_logger(__name__)
 
 
 def _validate_file_suffix(filename: str) -> str:
@@ -61,6 +68,8 @@ async def build_report_page(
     filename = file.filename or ""
     temporary_path: Path | None = None
 
+    started_at = perf_counter()
+
     try:
         suffix = _validate_file_suffix(filename)
         temporary_path = await _save_upload_to_temp_file(file, suffix)
@@ -97,6 +106,24 @@ async def build_report_page(
                 report=report,
             )
 
+        duration_ms = round((perf_counter() - started_at) * 1000, 3)
+
+        metrics.record_document_processed(
+            duration_ms=duration_ms,
+            issues_count=report.total_issues,
+        )
+        metrics.record_report_generated()
+
+        logger.info(
+            "web_report_generated document_id=%s report_id=%s issues=%s storage_mode=%s saved_to_db=%s duration_ms=%s",
+            report.document_id,
+            report.report_id,
+            report.total_issues,
+            storage_mode.value,
+            report.technical_info.metadata.get("saved_to_db"),
+            duration_ms,
+        )
+
         return templates.TemplateResponse(
             request=request,
             name="report.html",
@@ -106,6 +133,12 @@ async def build_report_page(
         )
 
     except Exception as error:
+        metrics.record_error()
+        logger.exception(
+            "web_report_generation_failed filename_suffix=%s storage_mode=%s",
+            Path(filename).suffix.lower(),
+            storage_mode.value,
+        )
         return templates.TemplateResponse(
             request=request,
             name="error.html",

@@ -1,23 +1,24 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-
 from app.coordinator.formal_check_coordinator import FormalCheckCoordinator
 from app.coordinator.semantic_check_coordinator import SemanticCheckCoordinator
 from app.schemas.checks import FormalCheckResponse, SemanticCheckResponse
 from app.schemas.documents import ParsedDocument
 from app.schemas.common import StorageMode
 from app.services.document_processing_service import DocumentProcessingService
-
 from app.reports.report_builder import ReportBuilder
 from app.schemas.reports import Report
-
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
-
 from app.db.session import get_db
 from app.services.report_storage_service import ReportStorageService
+from time import perf_counter
+from app.core.logging import get_logger
+from app.core.metrics import metrics
+
+
+logger = get_logger(__name__)
 
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -139,6 +140,8 @@ async def build_document_report(
 
     temporary_path: Path | None = None
 
+    started_at = perf_counter()
+
     try:
         temporary_path = await _save_upload_to_temp_file(file, suffix)
 
@@ -177,12 +180,36 @@ async def build_document_report(
                 report=report,
             )
 
+        duration_ms = round((perf_counter() - started_at) * 1000, 3)
+
+        metrics.record_document_processed(
+            duration_ms=duration_ms,
+            issues_count=report.total_issues,
+        )
+        metrics.record_report_generated()
+
+        logger.info(
+            "report_generated document_id=%s report_id=%s issues=%s storage_mode=%s saved_to_db=%s duration_ms=%s",
+            report.document_id,
+            report.report_id,
+            report.total_issues,
+            storage_mode.value,
+            report.technical_info.metadata.get("saved_to_db"),
+            duration_ms,
+        )
+
         return report
 
     except HTTPException:
         raise
 
     except Exception as error:
+        metrics.record_error()
+        logger.exception(
+            "report_generation_failed filename_suffix=%s storage_mode=%s",
+            suffix,
+            storage_mode.value,
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Ошибка при формировании отчёта: {error}",

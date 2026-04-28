@@ -8,17 +8,18 @@ from app.api.v1.documents import router as documents_router
 from app.db.init_db import init_db
 from app.api.v1.rag import router as rag_router
 from app.web.routes import router as web_router
-
+from app.api.v1.metrics import router as metrics_router
+from app.core.logging import setup_logging
+from app.middleware.request_logging import RequestLoggingMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Lifespan-обработчик FastAPI.
 
-    При старте приложения создаёт таблицы БД, если их ещё нет.
-    Это современная замена устаревшего @app.on_event("startup").
     """
 
+    setup_logging()
     init_db()
     yield
 
@@ -29,6 +30,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.add_middleware(RequestLoggingMiddleware)
+app.include_router(metrics_router, prefix="/api/v1")
 
 
 app.include_router(documents_router, prefix="/api/v1")

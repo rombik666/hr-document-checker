@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: hr_doc_checker_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hr_doc_checker
+      POSTGRES_USER: hr_user
+      POSTGRES_PASSWORD: hr_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hr_user -d hr_doc_checker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hr_doc_checker_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PROJECT_NAME: "HR Document Checker"
+      APP_ENV: "docker"
+      DEBUG: "true"
+      DATABASE_URL: "postgresql+psycopg://hr_user:hr_password@postgres:5432/hr_doc_checker"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  postgres_data:

@@ -1,11 +1,12 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.coordinator.formal_check_coordinator import FormalCheckCoordinator
 from app.schemas.checks import FormalCheckResponse
 from app.schemas.documents import ParsedDocument
+from app.schemas.common import StorageMode
 from app.services.document_processing_service import DocumentProcessingService
 
 from app.reports.report_builder import ReportBuilder
@@ -41,7 +42,10 @@ async def _save_upload_to_temp_file(file: UploadFile, suffix: str) -> Path:
 
 
 @router.post("/parse", response_model=ParsedDocument)
-async def parse_document(file: UploadFile = File(...)) -> ParsedDocument:
+async def parse_document(
+    file: UploadFile = File(...),
+    storage_mode: StorageMode = Form(StorageMode.TEMPORARY),
+) -> ParsedDocument:
     """
     Загружает DOCX/PDF-файл, извлекает текст, секции и сущности.
     """
@@ -58,6 +62,7 @@ async def parse_document(file: UploadFile = File(...)) -> ParsedDocument:
         parsed_document = service.parse_and_enrich(
             file_path=temporary_path,
             original_filename=filename,
+            storage_mode=storage_mode,
         )
 
         return parsed_document
@@ -77,7 +82,10 @@ async def parse_document(file: UploadFile = File(...)) -> ParsedDocument:
 
 
 @router.post("/check-formal", response_model=FormalCheckResponse)
-async def check_document_formally(file: UploadFile = File(...)) -> FormalCheckResponse:
+async def check_document_formally(
+    file: UploadFile = File(...),
+    storage_mode: StorageMode = Form(StorageMode.TEMPORARY),
+) -> FormalCheckResponse:
     """
     Загружает DOCX/PDF-файл и выполняет формальные rule-based проверки.
 
@@ -95,6 +103,7 @@ async def check_document_formally(file: UploadFile = File(...)) -> FormalCheckRe
         parsed_document = service.parse_and_enrich(
             file_path=temporary_path,
             original_filename=filename,
+            storage_mode=storage_mode,
         )
 
         coordinator = FormalCheckCoordinator()
@@ -119,6 +128,7 @@ async def check_document_formally(file: UploadFile = File(...)) -> FormalCheckRe
 @router.post("/report", response_model=Report)
 async def build_document_report(
     file: UploadFile = File(...),
+    storage_mode: StorageMode = Form(StorageMode.TEMPORARY),
     db: Session = Depends(get_db),
 ) -> Report:
     """
@@ -139,6 +149,7 @@ async def build_document_report(
         parsed_document = service.parse_and_enrich(
             file_path=temporary_path,
             original_filename=filename,
+            storage_mode=storage_mode,
         )
 
         coordinator = FormalCheckCoordinator()
@@ -150,11 +161,15 @@ async def build_document_report(
             formal_check_response=formal_check_response,
         )
 
-        storage_service = ReportStorageService(db)
-        storage_service.save_report(
-            document=parsed_document,
-            report=report,
-        )
+        if storage_mode == StorageMode.NO_STORE:
+            report.technical_info.metadata["saved_to_db"] = False
+        else:
+            storage_service = ReportStorageService(db)
+            storage_service.save_report(
+                document=parsed_document,
+                report=report,
+            )
+            report.technical_info.metadata["saved_to_db"] = True
 
         return report
 

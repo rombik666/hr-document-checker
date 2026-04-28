@@ -3,16 +3,20 @@ from sqlalchemy.orm import Session
 from app.db.models import DocumentORM, ReportORM
 from app.schemas.documents import ParsedDocument
 from app.schemas.reports import Report
+from app.services.report_sanitizer_service import ReportSanitizerService
 
 
 class ReportStorageService:
     """
     Сервис сохранения и получения отчётов из БД.
-    
+
+    В БД сохраняется маскированная версия отчёта,
+    чтобы не хранить email/телефоны в долгосрочном хранилище.
     """
 
     def __init__(self, db: Session) -> None:
         self.db = db
+        self.sanitizer = ReportSanitizerService()
 
     def save_report(
         self,
@@ -20,8 +24,7 @@ class ReportStorageService:
         report: Report,
     ) -> Report:
         """
-        Сохраняет метаданные документа и полный JSON отчёта.
-
+        Сохраняет метаданные документа и маскированный JSON отчёта.
         """
 
         existing_document = self.db.get(DocumentORM, document.metadata.document_id)
@@ -38,6 +41,8 @@ class ReportStorageService:
 
             self.db.add(document_orm)
 
+        sanitized_report = self.sanitizer.sanitize(report)
+
         report_orm = ReportORM(
             id=report.report_id,
             document_id=document.metadata.document_id,
@@ -48,7 +53,7 @@ class ReportStorageService:
             major_count=report.major_count,
             minor_count=report.minor_count,
             summary=report.summary,
-            report_json=report.model_dump(mode="json"),
+            report_json=sanitized_report.model_dump(mode="json"),
         )
 
         self.db.add(report_orm)
@@ -59,7 +64,6 @@ class ReportStorageService:
     def get_report(self, report_id: str) -> Report | None:
         """
         Получает сохранённый отчёт по report_id.
-
         """
 
         report_orm = self.db.get(ReportORM, report_id)

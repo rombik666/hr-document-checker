@@ -4,6 +4,7 @@ from app.extractors.document_type_classifier import DocumentTypeClassifier
 from app.extractors.entity_extractor import EntityExtractor
 from app.extractors.section_classifier import SectionClassifier
 from app.parsers.parser_factory import ParserFactory
+from app.schemas.common import StorageMode
 from app.schemas.documents import ParsedDocument
 
 
@@ -17,6 +18,7 @@ class DocumentProcessingService:
     3. Определение типа документа.
     4. Классификацию секций.
     5. Извлечение сущностей.
+    6. Фиксацию режима хранения.
     """
 
     def __init__(self) -> None:
@@ -28,12 +30,15 @@ class DocumentProcessingService:
         self,
         file_path: Path,
         original_filename: str | None = None,
+        storage_mode: StorageMode = StorageMode.TEMPORARY,
     ) -> ParsedDocument:
         parser = ParserFactory.get_parser(file_path)
         parsed_document = parser.parse(file_path)
 
         if original_filename:
             parsed_document.metadata.filename = original_filename
+
+        parsed_document.metadata.storage_mode = storage_mode
 
         parsed_document = self.document_type_classifier.classify(parsed_document)
         parsed_document = self.section_classifier.classify(parsed_document)

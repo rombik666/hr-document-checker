@@ -8,6 +8,9 @@ from app.schemas.checks import FormalCheckResponse
 from app.schemas.documents import ParsedDocument
 from app.services.document_processing_service import DocumentProcessingService
 
+from app.reports.report_builder import ReportBuilder
+from app.schemas.reports import Report
+
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -100,6 +103,52 @@ async def check_document_formally(file: UploadFile = File(...)) -> FormalCheckRe
         raise HTTPException(
             status_code=500,
             detail=f"Ошибка при формальной проверке документа: {error}",
+        ) from error
+
+    finally:
+        if temporary_path and temporary_path.exists():
+            temporary_path.unlink()
+
+@router.post("/report", response_model=Report)
+async def build_document_report(file: UploadFile = File(...)) -> Report:
+    """
+    Загружает DOCX/PDF-файл, выполняет первичную обработку,
+    запускает формальные проверки и возвращает итоговый отчёт.
+    
+    """
+
+    filename = file.filename or ""
+    suffix = _validate_file_suffix(filename)
+
+    temporary_path: Path | None = None
+
+    try:
+        temporary_path = await _save_upload_to_temp_file(file, suffix)
+
+        service = DocumentProcessingService()
+        parsed_document = service.parse_and_enrich(
+            file_path=temporary_path,
+            original_filename=filename,
+        )
+
+        coordinator = FormalCheckCoordinator()
+        formal_check_response = coordinator.run(parsed_document)
+
+        report_builder = ReportBuilder()
+        report = report_builder.build(
+            document=parsed_document,
+            formal_check_response=formal_check_response,
+        )
+
+        return report
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при формировании отчёта: {error}",
         ) from error
 
     finally:

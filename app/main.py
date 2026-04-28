@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import FastAPI
@@ -6,20 +8,25 @@ from app.api.v1.documents import router as documents_router
 from app.db.init_db import init_db
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """
+    Lifespan-обработчик FastAPI.
+
+    При старте приложения создаёт таблицы БД, если их ещё нет.
+    Это современная замена устаревшего @app.on_event("startup").
+    """
+
+    init_db()
+    yield
+
+
 app = FastAPI(
     title="HR Document Checker",
     description="Prototype of HR and business document checker with AI agents",
     version="0.1.0",
+    lifespan=lifespan,
 )
-
-
-@app.on_event("startup")
-def on_startup() -> None:
-    """
-    При старте приложения создаём таблицы БД, если их ещё нет.
-    """
-
-    init_db()
 
 
 app.include_router(documents_router, prefix="/api/v1")

@@ -1,5 +1,0 @@
-FAISS is a library for efficient similarity search over dense vectors.
-
-When building a RAG system, each text chunk is converted into an embedding vector. These vectors are then stored in a FAISS index. At query time, the user question is embedded with the same model, and the nearest vectors are retrieved.
-
-For a first educational project, IndexFlatIP is a good choice because it is simple and exact. If embeddings are normalized, inner product behaves similarly to cosine similarity for ranking purposes.

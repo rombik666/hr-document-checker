@@ -1,5 +1,0 @@
-RAG (Retrieval-Augmented Generation) is an approach that combines information retrieval with text generation.
-
-In a classic language model, the answer is generated only from the model's internal parameters. In a RAG system, the model first receives external context retrieved from a document collection. This makes answers more grounded and reduces hallucinations.
-
-A typical RAG pipeline includes document loading, chunking, embedding generation, vector indexing, retrieval, reranking, prompt construction, and answer generation.

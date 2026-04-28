@@ -13,6 +13,11 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./data/app.db"
 
+    knowledge_base_dir: Path = BASE_DIR / "data" / "knowledge_base"
+    rag_chunk_size_chars: int = 800
+    rag_chunk_overlap_chars: int = 120
+    rag_top_k: int = 3
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

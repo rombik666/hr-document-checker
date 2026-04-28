@@ -5,6 +5,8 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.parsers.parser_factory import ParserFactory
 from app.schemas.documents import ParsedDocument
+from app.extractors.entity_extractor import EntityExtractor
+from app.extractors.section_classifier import SectionClassifier
 
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -38,6 +40,12 @@ async def parse_document(file: UploadFile = File(...)) -> ParsedDocument:
 
         # Возвращаем исходное имя файла, а не имя временного файла.
         parsed_document.metadata.filename = filename
+
+        section_classifier = SectionClassifier()
+        entity_extractor = EntityExtractor()
+
+        parsed_document = section_classifier.classify(parsed_document)
+        parsed_document = entity_extractor.enrich(parsed_document)
 
         return parsed_document
 

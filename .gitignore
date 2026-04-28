@@ -9,3 +9,5 @@ logs/
 *.egg-info/
 data/eval/ragas_results.csv
 data/eval/ragas_summary.json
+data/app.db
+*.db

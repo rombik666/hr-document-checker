@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI
 
 from app.api.v1.documents import router as documents_router
+from app.db.init_db import init_db
 
 
 app = FastAPI(
@@ -10,6 +11,15 @@ app = FastAPI(
     description="Prototype of HR and business document checker with AI agents",
     version="0.1.0",
 )
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    """
+    При старте приложения создаём таблицы БД, если их ещё нет.
+    """
+
+    init_db()
 
 
 app.include_router(documents_router, prefix="/api/v1")

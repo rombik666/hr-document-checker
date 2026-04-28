@@ -1,7 +1,7 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.coordinator.formal_check_coordinator import FormalCheckCoordinator
 from app.schemas.checks import FormalCheckResponse
@@ -10,6 +10,12 @@ from app.services.document_processing_service import DocumentProcessingService
 
 from app.reports.report_builder import ReportBuilder
 from app.schemas.reports import Report
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.services.report_storage_service import ReportStorageService
 
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -109,8 +115,12 @@ async def check_document_formally(file: UploadFile = File(...)) -> FormalCheckRe
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
 
+
 @router.post("/report", response_model=Report)
-async def build_document_report(file: UploadFile = File(...)) -> Report:
+async def build_document_report(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> Report:
     """
     Загружает DOCX/PDF-файл, выполняет первичную обработку,
     запускает формальные проверки и возвращает итоговый отчёт.
@@ -140,6 +150,12 @@ async def build_document_report(file: UploadFile = File(...)) -> Report:
             formal_check_response=formal_check_response,
         )
 
+        storage_service = ReportStorageService(db)
+        storage_service.save_report(
+            document=parsed_document,
+            report=report,
+        )
+
         return report
 
     except HTTPException:
@@ -154,3 +170,25 @@ async def build_document_report(file: UploadFile = File(...)) -> Report:
     finally:
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
+
+
+@router.get("/reports/{report_id}", response_model=Report)
+def get_saved_report(
+    report_id: str,
+    db: Session = Depends(get_db),
+) -> Report:
+    """
+    Возвращает сохранённый отчёт по report_id.
+    
+    """
+
+    storage_service = ReportStorageService(db)
+    report = storage_service.get_report(report_id)
+
+    if report is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Отчёт не найден",
+        )
+
+    return report

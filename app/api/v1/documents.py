@@ -4,7 +4,8 @@ from tempfile import NamedTemporaryFile
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.coordinator.formal_check_coordinator import FormalCheckCoordinator
-from app.schemas.checks import FormalCheckResponse
+from app.coordinator.semantic_check_coordinator import SemanticCheckCoordinator
+from app.schemas.checks import FormalCheckResponse, SemanticCheckResponse
 from app.schemas.documents import ParsedDocument
 from app.schemas.common import StorageMode
 from app.services.document_processing_service import DocumentProcessingService
@@ -207,3 +208,51 @@ def get_saved_report(
         )
 
     return report
+
+
+@router.post("/check-semantic", response_model=SemanticCheckResponse)
+async def check_document_semantically(
+    file: UploadFile = File(...),
+    vacancy_text: str | None = Form(None),
+    storage_mode: StorageMode = Form(StorageMode.TEMPORARY),
+) -> SemanticCheckResponse:
+    """
+    Загружает DOCX/PDF-файл и выполняет семантические проверки.
+
+    """
+
+    filename = file.filename or ""
+    suffix = _validate_file_suffix(filename)
+
+    temporary_path: Path | None = None
+
+    try:
+        temporary_path = await _save_upload_to_temp_file(file, suffix)
+
+        service = DocumentProcessingService()
+        parsed_document = service.parse_and_enrich(
+            file_path=temporary_path,
+            original_filename=filename,
+            storage_mode=storage_mode,
+        )
+
+        coordinator = SemanticCheckCoordinator()
+        result = coordinator.run(
+            document=parsed_document,
+            vacancy_text=vacancy_text,
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при семантической проверке документа: {error}",
+        ) from error
+
+    finally:
+        if temporary_path and temporary_path.exists():
+            temporary_path.unlink()

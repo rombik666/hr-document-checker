@@ -62,3 +62,18 @@ class FormalCheckResponse(BaseModel):
     major_count: int
     minor_count: int
     check_results: list[CheckResult]
+
+
+class SemanticCheckResponse(BaseModel):
+    """
+    Ответ API для семантических проверок.
+
+    """
+
+    document_id: str
+    filename: str
+    total_issues: int
+    critical_count: int
+    major_count: int
+    minor_count: int
+    check_results: list[CheckResult]

@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     rag_chunk_size_chars: int = 800
     rag_chunk_overlap_chars: int = 120
     rag_top_k: int = 3
+    rag_use_vector_search: bool = True
+    rag_embedding_dimension: int = 384
 
     model_config = SettingsConfigDict(
         env_file=".env",

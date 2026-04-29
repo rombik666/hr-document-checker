@@ -1,11 +1,15 @@
 from app.rag.chunker import TextChunker
+from app.rag.embedding_model import HashingEmbeddingModel
 from app.rag.knowledge_loader import KnowledgeLoader
 from app.rag.retriever import SimpleRagRetriever
 from app.rag.service import RagService
+from app.rag.vector_store import InMemoryVectorStore
 
 __all__ = [
-    "TextChunker",
+    "HashingEmbeddingModel",
+    "InMemoryVectorStore",
     "KnowledgeLoader",
-    "SimpleRagRetriever",
     "RagService",
+    "SimpleRagRetriever",
+    "TextChunker",
 ]

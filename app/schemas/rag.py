@@ -44,3 +44,12 @@ class RagContext(BaseModel):
 
     query: str
     results: list[RagSearchResult] = Field(default_factory=list)
+
+
+class RagStatus(BaseModel):
+
+    knowledge_base_dir: str
+    sources_count: int
+    chunks_count: int
+    retriever_type: str
+    embedding_dimension: int | None = None

@@ -12,7 +12,29 @@ from app.core.metrics import metrics
 logger = get_logger(__name__)
 
 
+NOISY_PATHS = {
+    "/api/v1/metrics/prometheus",
+}
+
+
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware for HTTP request logging.
+
+    Logs only technical data:
+    - request_id;
+    - method;
+    - path;
+    - status code;
+    - duration.
+
+    Does not log:
+    - request body;
+    - document text;
+    - vacancy text;
+    - email;
+    - phone.
+    """
 
     async def dispatch(self, request: Request, call_next) -> Response:
         request_id = str(uuid4())
@@ -51,13 +73,14 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         response.headers["X-Request-ID"] = request_id
 
-        logger.info(
-            "request_completed request_id=%s method=%s path=%s status_code=%s duration_ms=%s",
-            request_id,
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
-        )
+        if request.url.path not in NOISY_PATHS:
+            logger.info(
+                "request_completed request_id=%s method=%s path=%s status_code=%s duration_ms=%s",
+                request_id,
+                request.method,
+                request.url.path,
+                response.status_code,
+                duration_ms,
+            )
 
         return response

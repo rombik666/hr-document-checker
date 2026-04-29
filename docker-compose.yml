@@ -36,6 +36,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./backups:/app/backups
+      - ./logs:/app/logs
 
   prometheus:
     image: prom/prometheus:v2.55.1

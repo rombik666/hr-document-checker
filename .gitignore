@@ -16,3 +16,5 @@ data/samples/*
 !data/samples/.gitkeep
 backups/*
 !backups/.gitkeep
+logs/*
+!logs/.gitkeep

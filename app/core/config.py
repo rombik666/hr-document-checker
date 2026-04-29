@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/app.db"
 
     knowledge_base_dir: Path = BASE_DIR / "data" / "knowledge_base"
-    
+
     rag_chunk_size_chars: int = 800
     rag_chunk_overlap_chars: int = 120
     rag_top_k: int = 3
@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     rag_embedding_dimension: int = 384
     rag_index_dir: Path = BASE_DIR / "data" / "index"
     rag_allow_embedding_fallback: bool = True
+
+    llm_provider: str = "mock"
+    llm_base_url: str = "http://localhost:11434"
+    llm_model: str = "qwen2.5:7b"
+    llm_api_key: str | None = None
+    llm_timeout_seconds: int = 60
+    llm_enabled: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -40,6 +40,12 @@ services:
       RAG_INDEX_DIR: "/app/data/index"
       RAG_ALLOW_EMBEDDING_FALLBACK: "true"
       HF_HOME: "/app/data/hf_cache"
+      LLM_PROVIDER: "ollama"
+      LLM_BASE_URL: "http://host.docker.internal:11434"
+      LLM_MODEL: "qwen2.5:7b"
+      LLM_API_KEY: ""
+      LLM_TIMEOUT_SECONDS: "60"
+      LLM_ENABLED: "true"
     ports:
       - "8000:8000"
     volumes:

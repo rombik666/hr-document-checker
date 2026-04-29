@@ -12,3 +12,5 @@ data/eval/ragas_summary.json
 data/app.db
 *.db
 old/
+data/samples/*
+!data/samples/.gitkeep

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from docx import Document
 from fastapi.testclient import TestClient
+from tests.auth_helpers import auth_headers
 
 from app.main import app
 
@@ -22,6 +23,7 @@ def test_parse_docx_endpoint_returns_parsed_document(tmp_path: Path) -> None:
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/parse",
+            headers=auth_headers(client, "candidate"),
             files={
                 "file": (
                     "resume.docx",
@@ -75,6 +77,7 @@ def test_parse_endpoint_rejects_unsupported_file_format(tmp_path: Path) -> None:
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/parse",
+            headers=auth_headers(client, "candidate"),
             files={
                 "file": (
                     "resume.txt",

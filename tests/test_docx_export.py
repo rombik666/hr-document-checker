@@ -3,6 +3,7 @@ from pathlib import Path
 
 from docx import Document
 from fastapi.testclient import TestClient
+from tests.auth_helpers import auth_headers
 
 from app.main import app
 
@@ -27,6 +28,7 @@ def test_saved_report_can_be_exported_to_docx(tmp_path: Path) -> None:
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/report",
+            headers=auth_headers(client, "candidate"),
             data={
                 "vacancy_text": "Требования: Python, FastAPI, PostgreSQL, Docker, Git.",
                 "storage_mode": "temporary",
@@ -89,6 +91,7 @@ def test_no_store_report_cannot_be_exported_to_docx(tmp_path: Path) -> None:
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/report",
+            headers=auth_headers(client, "candidate"),
             data={
                 "storage_mode": "no_store",
             },

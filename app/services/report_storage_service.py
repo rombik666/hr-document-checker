@@ -18,10 +18,30 @@ class ReportStorageService:
         self.db = db
         self.sanitizer = ReportSanitizerService()
 
+    def user_can_access_report(
+        self,
+        report_id: str,
+        user_id: str,
+        user_role: str,
+    ) -> bool:
+        report = self.get_report_orm(report_id)
+
+        if report is None:
+            return False
+
+        if user_role == "admin":
+            return True
+
+        return report.owner_user_id == user_id
+    
+    def get_report_orm(self, report_id: str) -> ReportORM | None:
+        return self.db.get(ReportORM, report_id)
+
     def save_report(
         self,
         document: ParsedDocument,
         report: Report,
+        owner_user_id: str | None = None,
     ) -> Report:
         """
         Сохраняет метаданные документа и маскированный JSON отчёта.
@@ -32,6 +52,7 @@ class ReportStorageService:
         if existing_document is None:
             document_orm = DocumentORM(
                 id=document.metadata.document_id,
+                owner_user_id=owner_user_id,
                 filename=document.metadata.filename,
                 document_type=document.metadata.document_type.value,
                 source_format=document.metadata.source_format.value,
@@ -45,6 +66,7 @@ class ReportStorageService:
 
         report_orm = ReportORM(
             id=report.report_id,
+            owner_user_id=owner_user_id,
             document_id=document.metadata.document_id,
             filename=report.filename,
             summary_status=report.summary_status.value,
@@ -56,6 +78,7 @@ class ReportStorageService:
             report_json=sanitized_report.model_dump(mode="json"),
         )
 
+        self.db.add(document_orm)
         self.db.add(report_orm)
         self.db.commit()
 

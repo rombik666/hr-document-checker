@@ -4,6 +4,7 @@ from docx import Document
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.auth_helpers import auth_headers
 
 
 client = TestClient(app)
@@ -24,6 +25,7 @@ def test_report_endpoint_no_store_does_not_persist_report(tmp_path: Path) -> Non
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/report",
+            headers=auth_headers(client, "candidate"),
             data={
                 "storage_mode": "no_store",
             },

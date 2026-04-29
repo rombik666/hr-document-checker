@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-
+from tests.auth_helpers import auth_headers
 from app.main import app
 
 
@@ -9,6 +9,7 @@ client = TestClient(app)
 def test_register_candidate_and_get_me() -> None:
     response = client.post(
         "/api/v1/auth/register",
+        headers=auth_headers(client, "candidate"),
         json={
             "email": "candidate-auth-test@example.com",
             "full_name": "Candidate Test",
@@ -22,6 +23,7 @@ def test_register_candidate_and_get_me() -> None:
     if response.status_code == 400:
         login_response = client.post(
             "/api/v1/auth/login",
+            headers=auth_headers(client, "candidate"),
             json={
                 "email": "candidate-auth-test@example.com",
                 "password": "123456",
@@ -47,6 +49,7 @@ def test_register_candidate_and_get_me() -> None:
 def test_public_registration_cannot_create_admin() -> None:
     response = client.post(
         "/api/v1/auth/register",
+        headers=auth_headers(client, "candidate"),
         json={
             "email": "admin-registration-test@example.com",
             "full_name": "Admin Registration Test",
@@ -61,6 +64,7 @@ def test_public_registration_cannot_create_admin() -> None:
 def test_login_with_wrong_password_returns_401() -> None:
     response = client.post(
         "/api/v1/auth/login",
+        headers=auth_headers(client, "candidate"),
         json={
             "email": "candidate-auth-test@example.com",
             "password": "wrong-password",

@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-
+from tests.auth_helpers import auth_headers
 from app.main import app
 
 
@@ -7,7 +7,10 @@ client = TestClient(app)
 
 
 def test_rag_status_endpoint_returns_status() -> None:
-    response = client.get("/api/v1/rag/status")
+    response = client.get(
+        "/api/v1/rag/status",
+        headers=auth_headers(client, "hr"),
+    )
 
     assert response.status_code == 200
 

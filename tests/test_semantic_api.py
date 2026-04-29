@@ -1,5 +1,5 @@
 from pathlib import Path
-
+from tests.auth_helpers import auth_headers
 from docx import Document
 from fastapi.testclient import TestClient
 
@@ -26,6 +26,7 @@ def test_check_semantic_endpoint_returns_issues(tmp_path: Path) -> None:
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/check-semantic",
+            headers=auth_headers(client, "candidate"),
             data={
                 "vacancy_text": "Требования: Python, FastAPI, PostgreSQL, Docker, Git.",
                 "storage_mode": "temporary",

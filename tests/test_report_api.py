@@ -1,5 +1,5 @@
 from pathlib import Path
-
+from tests.auth_helpers import auth_headers
 from docx import Document
 from fastapi.testclient import TestClient
 
@@ -24,6 +24,7 @@ def test_report_endpoint_returns_report_for_valid_docx(tmp_path: Path) -> None:
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/report",
+            headers=auth_headers(client, "candidate"),
             files={
                 "file": (
                     "resume.docx",
@@ -57,6 +58,7 @@ def test_report_endpoint_rejects_unsupported_file_format(tmp_path: Path) -> None
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/report",
+            headers=auth_headers(client, "candidate"),
             files={
                 "file": (
                     "resume.txt",
@@ -90,6 +92,7 @@ def test_report_endpoint_includes_semantic_issues_and_vacancy_relevance(tmp_path
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/report",
+            headers=auth_headers(client, "candidate"),
             data={
                 "vacancy_text": "Требования: Python, FastAPI, PostgreSQL, Docker, Git.",
                 "storage_mode": "temporary",

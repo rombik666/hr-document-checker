@@ -76,6 +76,13 @@ class DocumentORM(Base):
     __tablename__ = "documents"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+
+    owner_user_id: Mapped[str | None] = mapped_column(
+    String(64),
+    nullable=True,
+    index=True,
+    )
+
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
 
     document_type: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -104,6 +111,12 @@ class ReportORM(Base):
     __tablename__ = "reports"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+
+    owner_user_id: Mapped[str | None] = mapped_column(
+    String(64),
+    nullable=True,
+    index=True,
+    )
 
     document_id: Mapped[str] = mapped_column(
         String(64),

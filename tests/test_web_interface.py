@@ -4,7 +4,7 @@ from docx import Document
 from fastapi.testclient import TestClient
 
 from app.main import app
-
+from tests.auth_helpers import auth_headers
 
 client = TestClient(app)
 
@@ -35,6 +35,7 @@ def test_web_report_page_returns_html_report(tmp_path: Path) -> None:
     with file_path.open("rb") as file:
         response = client.post(
             "/web/report",
+            headers=auth_headers(client, "candidate"),
             data={
                 "vacancy_text": "Требования: Python, FastAPI, PostgreSQL, Docker, Git.",
                 "storage_mode": "no_store",
@@ -64,6 +65,7 @@ def test_web_report_rejects_unsupported_file_format(tmp_path: Path) -> None:
     with file_path.open("rb") as file:
         response = client.post(
             "/web/report",
+            headers=auth_headers(client, "candidate"),
             data={
                 "storage_mode": "temporary",
             },

@@ -11,12 +11,17 @@ from app.schemas.admin import (
 )
 from app.services.db_inspection_service import DbInspectionService
 
+from fastapi import Depends
+
+from app.auth.dependencies import require_admin
+from app.db.models import UserORM
+
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/status", response_model=AdminStatusResponse)
-def get_admin_status() -> AdminStatusResponse:
+def get_admin_status(current_user: UserORM = Depends(require_admin),) -> AdminStatusResponse:
 
     return AdminStatusResponse(
         status="ok",
@@ -26,7 +31,7 @@ def get_admin_status() -> AdminStatusResponse:
 
 
 @router.get("/roles", response_model=RolesResponse)
-def get_roles() -> RolesResponse:
+def get_roles(current_user: UserORM = Depends(require_admin),) -> RolesResponse:
 
     return RolesResponse(
         roles=[
@@ -66,6 +71,7 @@ def get_roles() -> RolesResponse:
 @router.get("/db/status", response_model=DatabaseStatusResponse)
 def get_database_status(
     db: Session = Depends(get_db),
+    current_user: UserORM = Depends(require_admin),
 ) -> DatabaseStatusResponse:
 
     service = DbInspectionService(db)
@@ -77,6 +83,7 @@ def get_database_status(
 @router.get("/storage/privacy-check", response_model=PrivacyCheckResponse)
 def run_storage_privacy_check(
     db: Session = Depends(get_db),
+    current_user: UserORM = Depends(require_admin),
 ) -> PrivacyCheckResponse:
 
     service = DbInspectionService(db)

@@ -6,6 +6,7 @@ from docx import Document
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.auth_helpers import auth_headers
 
 
 client = TestClient(app)
@@ -33,6 +34,7 @@ def test_docx_report_generation_performance(tmp_path: Path) -> None:
     with file_path.open("rb") as file:
         response = client.post(
             "/api/v1/documents/report",
+            headers=auth_headers(client, "candidate"),
             data={
                 "storage_mode": "no_store",
                 "vacancy_text": "Требования: Python, FastAPI, PostgreSQL, Docker, Git.",

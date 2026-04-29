@@ -121,9 +121,12 @@ function Show-Links {
     Write-Host "RAG status:         http://127.0.0.1:8000/api/v1/rag/status" -ForegroundColor White
     Write-Host "Prometheus:         http://127.0.0.1:9090" -ForegroundColor White
     Write-Host "Grafana:            http://127.0.0.1:3000" -ForegroundColor White
+    Write-Host "pgAdmin:            http://127.0.0.1:5050" -ForegroundColor White
     Write-Host ""
     Write-Host "Grafana login:      admin" -ForegroundColor White
     Write-Host "Grafana password:   admin" -ForegroundColor White
+    Write-Host "pgAdmin email:      admin@example.com" -ForegroundColor White
+    Write-Host "pgAdmin password:   admin" -ForegroundColor White
     Write-Host ""
     Write-Host "Stop system:        .\stop.ps1" -ForegroundColor Yellow
     Write-Host "Reset environment:  .\reset.ps1" -ForegroundColor Yellow

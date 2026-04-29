@@ -12,6 +12,8 @@ from app.api.v1.metrics import router as metrics_router
 from app.core.logging import setup_logging
 from app.middleware.request_logging import RequestLoggingMiddleware
 
+from app.api.v1.admin import router as admin_router
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
@@ -32,12 +34,12 @@ app = FastAPI(
 )
 
 app.add_middleware(RequestLoggingMiddleware)
+
 app.include_router(metrics_router, prefix="/api/v1")
-
-
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(rag_router, prefix="/api/v1")
 app.include_router(web_router)
+app.include_router(admin_router, prefix="/api/v1")
 
 
 @app.get("/")

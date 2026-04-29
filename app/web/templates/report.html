@@ -150,6 +150,7 @@
         <a href="/docs">Swagger</a>
         {% if report.technical_info.metadata.saved_to_db %}
             <a href="/api/v1/documents/reports/{{ report.report_id }}">JSON отчёта</a>
+            <a href="/api/v1/documents/reports/{{ report.report_id }}/export/docx">Скачать DOCX</a>
         {% endif %}
     </div>
 

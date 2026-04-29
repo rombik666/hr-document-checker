@@ -17,6 +17,9 @@ from time import perf_counter
 from app.core.logging import get_logger
 from app.core.metrics import metrics
 
+from fastapi.responses import StreamingResponse
+from app.reports.docx_exporter import DocxReportExporter
+
 
 logger = get_logger(__name__)
 
@@ -288,3 +291,39 @@ async def check_document_semantically(
     finally:
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
+
+
+@router.get("/reports/{report_id}/export/docx")
+def export_saved_report_to_docx(
+    report_id: str,
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    """
+    Экспорт сохранённого отчёта в DOCX.
+
+    """
+
+    storage_service = ReportStorageService(db)
+    report = storage_service.get_report(report_id)
+
+    if report is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Отчёт не найден",
+        )
+
+    exporter = DocxReportExporter()
+    file_stream = exporter.export(report)
+
+    safe_filename = f"report_{report.report_id}.docx"
+
+    return StreamingResponse(
+        file_stream,
+        media_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "wordprocessingml.document"
+        ),
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_filename}"'
+        },
+    )

@@ -1,26 +1,26 @@
-# Monitoring
+# Мониторинг
 
-## Purpose
+## Назначение
 
-Monitoring is used to observe application health, request processing and document checking metrics.
+Мониторинг используется для наблюдения за состоянием приложения, обработкой запросов и метриками проверки документов.
 
-The project includes:
+Проект включает:
 
-- JSON metrics endpoint;
-- Prometheus metrics endpoint;
-- Prometheus service;
-- Grafana service;
-- persistent application logs.
+- JSON endpoint метрик;
+- Prometheus endpoint метрик;
+- сервис Prometheus;
+- сервис Grafana;
+- постоянные логи приложения.
 
 ## Endpoints
 
-### JSON metrics
+### JSON-метрики
 
 ```text
 GET /api/v1/metrics
 ```
 
-### Prometheus metrics
+### Prometheus-метрики
 
 ```text
 GET /api/v1/metrics/prometheus
@@ -28,13 +28,13 @@ GET /api/v1/metrics/prometheus
 
 ## Prometheus
 
-Prometheus is available at:
+Prometheus доступен по адресу:
 
 ```text
 http://127.0.0.1:9090
 ```
 
-Prometheus scrapes:
+Prometheus собирает метрики с адреса:
 
 ```text
 http://app:8000/api/v1/metrics/prometheus
@@ -42,53 +42,53 @@ http://app:8000/api/v1/metrics/prometheus
 
 ## Grafana
 
-Grafana is available at:
+Grafana доступна по адресу:
 
 ```text
 http://127.0.0.1:3000
 ```
 
-Credentials:
+Данные для входа:
 
 ```text
 login: admin
 password: admin
 ```
 
-## Application logs
+## Логи приложения
 
-Logs are written to:
+Логи записываются в файл:
 
 ```text
 logs/app.log
 ```
 
-The `logs/` folder is ignored by Git except `.gitkeep`.
+Папка `logs/` игнорируется Git, за исключением файла `.gitkeep`.
 
-## Request logging
+## Логирование запросов
 
-The application logs:
+Приложение логирует:
 
 - request ID;
-- HTTP method;
-- path;
-- status code;
-- duration.
+- HTTP-метод;
+- путь запроса;
+- HTTP-статус;
+- длительность обработки.
 
-The application does not log:
+Приложение не логирует:
 
-- raw document text;
-- uploaded file content;
-- vacancy text;
-- unmasked e-mail;
-- unmasked phone.
+- raw-текст документа;
+- содержимое загруженных файлов;
+- текст вакансии;
+- немаскированный e-mail;
+- немаскированный телефон.
 
-## Noisy endpoints
+## Шумные endpoints
 
-Prometheus polling endpoint is excluded from regular request INFO logs:
+Endpoint, который регулярно опрашивает Prometheus, исключён из обычных INFO-логов запросов:
 
 ```text
 /api/v1/metrics/prometheus
 ```
 
-This prevents log flooding.
+Это предотвращает засорение логов однотипными сообщениями.

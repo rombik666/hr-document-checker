@@ -1,82 +1,82 @@
-# Architecture
+# Архитектура
 
-## Overview
+## Общее описание
 
-HR Document Checker is a modular FastAPI application for checking HR and business documents.
+**HR Document Checker** — это модульное FastAPI-приложение для проверки HR- и бизнес-документов.
 
-Main pipeline:
+Основной pipeline обработки:
 
 ```text
-Upload DOCX/PDF
+Загрузка DOCX/PDF
 ↓
 ParserFactory
 ↓
 DOCXParser / PDFParser
 ↓
-Document classification
+Классификация документа
 ↓
-Section and entity extraction
+Извлечение секций и сущностей
 ↓
-Formal agents
+Формальные агенты
 ↓
-Semantic agents
+Семантические агенты
 ↓
-FAISS RAG context
+FAISS RAG-контекст
 ↓
 LLM semantic agent
 ↓
 ReportBuilder
 ↓
-Optional storage
+Опциональное сохранение
 ↓
 Web/API/DOCX export
 ```
 
-## Main layers
+## Основные слои приложения
 
 ```text
 app/
-├── api/              REST API routers
-├── agents/           formal and semantic checking agents
-├── coordinator/      agent orchestration
-├── db/               SQLAlchemy models and DB session
-├── extractors/       entity extraction
-├── llm/              LLM provider abstraction
-├── middleware/       request logging
-├── parsers/          DOCX/PDF parsers
-├── rag/              knowledge base, chunking, embeddings, FAISS
-├── reports/          report builder and DOCX exporter
-├── schemas/          Pydantic schemas
-├── services/         storage, backup, privacy diagnostics
-└── web/              minimal web interface
+├── api/              REST API-роутеры
+├── agents/           формальные и семантические агенты проверки
+├── coordinator/      оркестрация агентов
+├── db/               SQLAlchemy-модели и сессии БД
+├── extractors/       извлечение сущностей
+├── llm/              абстракция LLM-провайдера
+├── middleware/       логирование запросов
+├── parsers/          парсеры DOCX/PDF
+├── rag/              база знаний, чанкинг, эмбеддинги, FAISS
+├── reports/          сборка отчёта и DOCX-экспорт
+├── schemas/          Pydantic-схемы
+├── services/         хранение, backup, privacy diagnostics
+└── web/              минимальный веб-интерфейс
 ```
 
-## Agent architecture
+## Агентная архитектура
 
-The system uses a multi-agent approach.
+В системе используется мультиагентный подход: каждый агент отвечает за отдельный тип проверки документа.
 
-Formal agents:
+Формальные агенты:
 
 - `CompletenessAgent`;
 - `ContactValidationAgent`;
 - `SectionStructureAgent`;
 - `DatePresenceAgent`.
 
-Semantic agents:
+Семантические агенты:
 
 - `TextQualityAgent`;
 - `ContradictionAgent`;
 - `VacancyRelevanceAgent`;
 - `LlmSemanticAgent`.
 
-Coordinators:
+Координаторы:
 
 - `FormalCheckCoordinator`;
 - `SemanticCheckCoordinator`.
 
-## RAG architecture
+## Архитектура RAG
 
-The main Docker mode uses:
+Основной Docker-режим использует:
 
 ```text
 sentence-transformers/all-MiniLM-L6-v2
@@ -84,7 +84,7 @@ sentence-transformers/all-MiniLM-L6-v2
 FAISS
 ```
 
-RAG pipeline:
+Pipeline RAG-подсистемы:
 
 ```text
 data/knowledge_base/*.md
@@ -101,23 +101,23 @@ data/index/faiss.index
 data/index/chunks.json
 ```
 
-Fallback/test modes:
+Fallback/test-режимы:
 
 - `HashingEmbeddingModel`;
 - `InMemoryVectorStore`;
 - `SimpleRagRetriever`.
 
-## LLM architecture
+## Архитектура LLM
 
-LLM layer is provider-agnostic.
+LLM-слой реализован как провайдер-независимый интерфейс.
 
-Supported clients:
+Поддерживаемые клиенты:
 
 - `MockLlmClient`;
 - `OllamaClient`;
 - `OpenAICompatibleClient`.
 
-Docker demo uses Ollama:
+Docker-демонстрация использует Ollama:
 
 ```text
 LLM_PROVIDER=ollama
@@ -125,44 +125,44 @@ LLM_BASE_URL=http://host.docker.internal:11434
 LLM_MODEL=qwen2.5:7b
 ```
 
-Tests use mock mode for stability.
+Для стабильности автоматических тестов используется mock-режим.
 
-## Storage architecture
+## Архитектура хранения данных
 
-Database tables:
+Таблицы базы данных:
 
 - `documents`;
 - `reports`.
 
-The database stores:
+В базе данных хранятся:
 
-- document metadata;
-- sanitized reports;
-- technical report information.
+- метаданные документов;
+- очищенные/санитизированные отчёты;
+- техническая информация отчёта.
 
-The database does not store:
+В базе данных не хранятся:
 
-- original uploaded files;
-- full raw document text;
-- unmasked personal data.
+- исходные загруженные DOCX/PDF-файлы;
+- полный raw-текст документа;
+- немаскированные персональные данные.
 
-## Deployment architecture
+## Архитектура развёртывания
 
-Docker Compose services:
+Сервисы Docker Compose:
 
-- FastAPI application;
+- FastAPI-приложение;
 - PostgreSQL;
 - pgAdmin;
 - Prometheus;
 - Grafana.
 
-## Monitoring
+## Мониторинг
 
-Application exposes:
+Приложение предоставляет endpoints:
 
 ```text
 GET /api/v1/metrics
 GET /api/v1/metrics/prometheus
 ```
 
-Prometheus scrapes application metrics. Grafana visualizes them.
+Prometheus собирает метрики приложения, а Grafana используется для их визуализации.

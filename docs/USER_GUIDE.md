@@ -1,92 +1,92 @@
-# User guide
+# Руководство пользователя
 
-## Purpose
+## Назначение
 
-This guide describes how to use HR Document Checker through the web interface.
+Этот документ описывает, как пользоваться **HR Document Checker** через веб-интерфейс.
 
-## Start the system
+## Запуск системы
 
 ```powershell
 .\start.ps1 -NoBuild
 ```
 
-Open:
+Откройте в браузере:
 
 ```text
 http://127.0.0.1:8000/web/
 ```
 
-## Generate a report
+## Генерация отчёта
 
-1. Open the web interface.
-2. Upload a DOCX or PDF document.
-3. Optionally paste vacancy text.
-4. Select storage mode.
-5. Click the report generation button.
-6. Review the generated report.
+1. Откройте веб-интерфейс.
+2. Загрузите документ в формате DOCX или PDF.
+3. При необходимости вставьте текст вакансии.
+4. Выберите режим хранения данных.
+5. Нажмите кнопку генерации отчёта.
+6. Изучите сформированный отчёт.
 
-## Storage modes
+## Режимы хранения
 
-| Mode | Description |
+| Режим | Описание |
 |---|---|
-| `temporary` | Saves sanitized report and metadata |
-| `metadata_only` | Saves limited metadata/report information |
-| `no_store` | Does not persist report in DB |
+| `temporary` | Сохраняет санитизированный отчёт и метаданные |
+| `metadata_only` | Сохраняет ограниченную информацию об отчёте/метаданных |
+| `no_store` | Не сохраняет отчёт в базе данных |
 
-## Report structure
+## Структура отчёта
 
-The report includes:
+Отчёт содержит:
 
-- summary status;
-- total number of issues;
-- Critical issues;
-- Major issues;
-- Minor issues;
-- recommendations;
-- evidence fragments;
-- vacancy relevance;
-- technical information.
+- общий статус;
+- общее количество замечаний;
+- замечания уровня Critical;
+- замечания уровня Major;
+- замечания уровня Minor;
+- рекомендации;
+- evidence-фрагменты;
+- оценку релевантности вакансии;
+- техническую информацию.
 
-## DOCX export
+## Экспорт в DOCX
 
-If the report is saved, DOCX export is available through:
+Если отчёт сохранён, доступен экспорт в DOCX через endpoint:
 
 ```text
 GET /api/v1/documents/reports/{report_id}/export/docx
 ```
 
-## Privacy
+## Конфиденциальность
 
-The system masks personal data before long-term storage.
+Перед долговременным хранением система маскирует персональные данные.
 
-The database should not contain:
+В базе данных не должны храниться:
 
-- raw document text;
-- original uploaded files;
-- unmasked e-mails;
-- unmasked phones.
+- raw-текст документа;
+- исходные загруженные файлы;
+- немаскированные e-mail;
+- немаскированные телефоны.
 
-Privacy check:
+Проверка приватности:
 
 ```text
 http://127.0.0.1:8000/api/v1/admin/storage/privacy-check
 ```
 
-## RAG and LLM
+## RAG и LLM
 
-RAG status:
+Статус RAG-подсистемы:
 
 ```text
 http://127.0.0.1:8000/api/v1/rag/status
 ```
 
-LLM status:
+Статус LLM-провайдера:
 
 ```text
 http://127.0.0.1:8000/api/v1/llm/status
 ```
 
-## Stop the system
+## Остановка системы
 
 ```powershell
 .\stop.ps1

@@ -1,42 +1,42 @@
-# Demo scenario
+# Демонстрационный сценарий
 
-## Goal
+## Цель
 
-Demonstrate a full document checking cycle:
+Показать полный цикл проверки документа:
 
 ```text
-start system
+запуск системы
 ↓
-open Web UI
+открытие Web UI
 ↓
-upload DOCX
+загрузка DOCX
 ↓
-enter vacancy text
+ввод текста вакансии
 ↓
-run report generation
+генерация отчёта
 ↓
-inspect report
+просмотр отчёта
 ↓
-export DOCX
+экспорт DOCX
 ↓
-check RAG/LLM/Admin/metrics
+проверка RAG/LLM/Admin/метрик
 ```
 
-## 1. Start the system
+## 1. Запуск системы
 
 ```powershell
 .\start.ps1 -NoBuild
 ```
 
-Open:
+Откройте:
 
 ```text
 http://127.0.0.1:8000/web/
 ```
 
-## 2. Check infrastructure
+## 2. Проверка инфраструктуры
 
-Open:
+Откройте:
 
 ```text
 http://127.0.0.1:8000/docs
@@ -47,60 +47,60 @@ http://127.0.0.1:3000
 http://127.0.0.1:5050
 ```
 
-## 3. Upload document
+## 3. Загрузка документа
 
-Use a demo DOCX or create a simple resume with:
+Используйте демонстрационный DOCX-файл или создайте простое резюме со следующими блоками:
 
-- contacts;
-- skills;
-- work experience;
-- education.
+- контакты;
+- навыки;
+- опыт работы;
+- образование.
 
-## 4. Vacancy text
+## 4. Текст вакансии
 
-Example:
+Пример:
 
 ```text
 Требования: Python, FastAPI, PostgreSQL, Docker, Git, REST API, Linux.
 ```
 
-## 5. Generate report
+## 5. Генерация отчёта
 
-Select storage mode:
+Выберите режим хранения:
 
 ```text
 temporary
 ```
 
-Run the check.
+Запустите проверку.
 
-Expected result:
+Ожидаемый результат:
 
-- HTML report is displayed;
-- report status is shown;
-- Critical/Major/Minor sections are present;
-- recommendations are generated;
-- `report_id` is created;
-- JSON link is available;
-- DOCX export link is available.
+- отображается HTML-отчёт;
+- показывается статус отчёта;
+- присутствуют секции Critical/Major/Minor;
+- сформированы рекомендации;
+- создан `report_id`;
+- доступна ссылка на JSON;
+- доступна ссылка на DOCX export.
 
-## 6. Check LLM agent
+## 6. Проверка LLM-агента
 
-In raw check results, verify that the following agent appears when enabled:
+В raw check results убедитесь, что при включённом LLM-агенте появился агент:
 
 ```text
 LlmSemanticAgent
 ```
 
-## 7. Check RAG
+## 7. Проверка RAG
 
-Open:
+Откройте:
 
 ```text
 http://127.0.0.1:8000/api/v1/rag/status
 ```
 
-Expected:
+Ожидаемый результат:
 
 ```json
 {
@@ -109,21 +109,21 @@ Expected:
 }
 ```
 
-If index does not exist:
+Если индекс не существует:
 
 ```powershell
 docker exec -it -w /app hr_doc_checker_app python scripts/build_rag_index.py
 ```
 
-## 8. Check privacy
+## 8. Проверка приватности
 
-Open:
+Откройте:
 
 ```text
 http://127.0.0.1:8000/api/v1/admin/storage/privacy-check
 ```
 
-Expected:
+Ожидаемый результат:
 
 ```json
 {
@@ -133,19 +133,19 @@ Expected:
 }
 ```
 
-## 9. Run smoke test
+## 9. Запуск smoke test
 
 ```powershell
 .\scripts\smoke_test.ps1
 ```
 
-Expected:
+Ожидаемый результат:
 
 ```text
 [OK] Smoke test completed successfully.
 ```
 
-## 10. Stop the system
+## 10. Остановка системы
 
 ```powershell
 .\stop.ps1

@@ -1,53 +1,53 @@
-# Testing
+# Тестирование
 
-## Overview
+## Общее описание
 
-The project includes automated tests for:
+Проект содержит автоматизированные тесты для следующих компонентов:
 
-- parsers;
-- extractors;
-- classifiers;
-- formal agents;
-- semantic agents;
-- LLM infrastructure;
-- RAG and FAISS;
-- report building;
-- storage;
-- privacy;
+- парсеры;
+- экстракторы;
+- классификаторы;
+- формальные агенты;
+- семантические агенты;
+- LLM-инфраструктура;
+- RAG и FAISS;
+- сборка отчётов;
+- хранение данных;
+- приватность;
 - API endpoints;
-- web interface;
-- metrics;
+- веб-интерфейс;
+- метрики;
 - backup/restore;
-- performance;
+- производительность;
 - Docker smoke testing.
 
-## Run all tests
+## Запуск всех тестов
 
 ```powershell
 python -m pytest
 ```
 
-## Run tests with verbose output
+## Запуск тестов с подробным выводом
 
 ```powershell
 python -m pytest -v
 ```
 
-## Coverage
+## Покрытие тестами
 
-Generate coverage report:
+Сформировать отчёт покрытия:
 
 ```powershell
 python -m pytest --cov=app --cov-report=term-missing --cov-report=html
 ```
 
-HTML report:
+HTML-отчёт:
 
 ```text
 htmlcov/index.html
 ```
 
-Generated coverage files are ignored by Git:
+Сгенерированные файлы покрытия игнорируются Git:
 
 ```text
 htmlcov/
@@ -55,15 +55,15 @@ htmlcov/
 coverage.xml
 ```
 
-## Performance tests
+## Performance-тесты
 
-Performance tests are marked with:
+Performance-тесты отмечены маркером:
 
 ```text
 performance
 ```
 
-Run:
+Запуск:
 
 ```powershell
 python -m pytest -m performance
@@ -71,22 +71,22 @@ python -m pytest -m performance
 
 ## Docker smoke test
 
-Start the environment:
+Запустите окружение:
 
 ```powershell
 .\start.ps1 -NoBuild
 ```
 
-Run smoke test:
+Запустите smoke test:
 
 ```powershell
 .\scripts\smoke_test.ps1
 ```
 
-The smoke test checks:
+Smoke test проверяет:
 
 - FastAPI health endpoint;
-- metrics endpoint;
+- endpoint метрик;
 - Prometheus metrics endpoint;
 - RAG status;
 - LLM status;
@@ -97,11 +97,11 @@ The smoke test checks:
 - Grafana;
 - pgAdmin.
 
-## Test stability
+## Стабильность тестов
 
-Real LLM calls are not required for unit tests. Tests use mock LLM clients where needed.
+Для unit-тестов реальные вызовы LLM не требуются. Там, где необходимо, используются mock LLM-клиенты.
 
-Docker demonstration can use Ollama with:
+Docker-демонстрация может использовать Ollama с настройкой:
 
 ```text
 LLM_PROVIDER=ollama

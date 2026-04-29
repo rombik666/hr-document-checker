@@ -1,52 +1,52 @@
-# Final project summary
+# Итоговое описание проекта
 
-## Project name
+## Название проекта
 
 **HR Document Checker**
 
-Official description:
+Официальное описание:
 
 ```text
 Прототип системы проверки HR- и бизнес-документов с использованием ИИ-агентов
 ```
 
-## Purpose
+## Назначение
 
-The project implements an educational prototype for automated checking of HR and business documents.
+Проект реализует учебный прототип системы автоматизированной проверки HR- и бизнес-документов.
 
-The system helps identify:
+Система помогает выявлять:
 
-- missing information;
-- weak structure;
-- contact issues;
-- vague wording;
-- possible inconsistencies;
-- gaps between a CV and a vacancy;
-- general document quality issues.
+- отсутствующую информацию;
+- слабую структуру документа;
+- проблемы с контактными данными;
+- размытые формулировки;
+- потенциальные противоречия;
+- расхождения между резюме и вакансией;
+- общие проблемы качества документа.
 
-The system does not make hiring decisions.
+Система не принимает кадровые решения.
 
-## Implemented functionality
+## Реализованный функционал
 
-### Document processing
+### Обработка документов
 
-- DOCX parsing;
-- PDF parsing;
-- text extraction;
-- table extraction for DOCX;
-- section extraction;
-- entity extraction.
+- парсинг DOCX;
+- парсинг PDF;
+- извлечение текста;
+- извлечение таблиц из DOCX;
+- выделение секций;
+- извлечение сущностей.
 
-### Agents
+### Агенты
 
-Formal agents:
+Формальные агенты:
 
 - `CompletenessAgent`;
 - `ContactValidationAgent`;
 - `SectionStructureAgent`;
 - `DatePresenceAgent`.
 
-Semantic agents:
+Семантические агенты:
 
 - `TextQualityAgent`;
 - `ContradictionAgent`;
@@ -55,45 +55,45 @@ Semantic agents:
 
 ### RAG
 
-Implemented:
+Реализовано:
 
-- knowledge base loader;
+- загрузчик базы знаний;
 - chunker;
-- sentence-transformers embeddings;
+- эмбеддинги на базе sentence-transformers;
 - FAISS vector store;
 - RAG search API;
 - RAG status API.
 
 ### LLM
 
-Implemented:
+Реализовано:
 
-- provider-agnostic LLM interface;
+- провайдер-независимый LLM-интерфейс;
 - mock client;
 - Ollama client;
 - OpenAI-compatible client;
-- LLM status endpoint;
-- LLM generation endpoint;
+- endpoint статуса LLM;
+- endpoint генерации LLM;
 - LLM semantic agent.
 
-### Reports
+### Отчёты
 
-Report contains:
+Отчёт содержит:
 
-- status;
+- статус;
 - summary;
 - Critical issues;
 - Major issues;
 - Minor issues;
-- evidence fragments;
-- recommendations;
-- vacancy relevance;
-- technical info;
+- evidence-фрагменты;
+- рекомендации;
+- релевантность вакансии;
+- техническую информацию;
 - raw check results.
 
-### Infrastructure
+### Инфраструктура
 
-Implemented:
+Реализовано:
 
 - Dockerfile;
 - Docker Compose;
@@ -101,29 +101,29 @@ Implemented:
 - pgAdmin;
 - Prometheus;
 - Grafana;
-- logs;
+- логи;
 - backup/restore;
 - smoke tests.
 
-### Privacy
+### Приватность
 
-Implemented:
+Реализовано:
 
-- `no_store` mode;
-- masking of e-mail and phone values;
-- no raw text in long-term DB;
-- storage privacy diagnostics.
+- режим `no_store`;
+- маскирование e-mail и телефонов;
+- отсутствие raw-текста в долговременной БД;
+- диагностика приватности хранилища.
 
-## MVP limitations
+## Ограничения MVP
 
-The following items are implemented at demonstration/MVP level:
+Следующие возможности реализованы на демонстрационном/MVP-уровне:
 
-- role model is represented through admin endpoints and documentation;
-- full authentication/authorization is not implemented;
-- vacancy comparison is performed through `vacancy_text` in one request;
-- explicit `comparison_group_id` may be added in future versions;
-- production-grade backup scheduling is not implemented.
+- ролевая модель представлена через admin endpoints и документацию;
+- полноценная аутентификация/авторизация не реализована;
+- сравнение с вакансией выполняется через `vacancy_text` в рамках одного запроса;
+- явный `comparison_group_id` может быть добавлен в будущих версиях;
+- production-grade расписание резервного копирования не реализовано.
 
-## Status
+## Статус
 
-The project is ready for educational demonstration and corresponds to the main technical specification requirements.
+Проект готов к учебной демонстрации и соответствует основным требованиям технического задания.

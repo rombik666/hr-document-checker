@@ -1,83 +1,83 @@
-# Backup and restore
+# Резервное копирование и восстановление
 
-## Purpose
+## Назначение
 
-The project includes JSON-based backup and restore scripts for stored document metadata and reports.
+В проекте реализованы JSON-скрипты резервного копирования и восстановления сохранённых метаданных документов и отчётов.
 
-Backup is implemented at application level, so it can work with both PostgreSQL and SQLite-compatible test environments.
+Backup реализован на уровне приложения, поэтому может работать как с PostgreSQL, так и с SQLite-совместимыми тестовыми окружениями.
 
-## Backup script
+## Скрипт резервного копирования
 
-Run locally:
+Запуск локально:
 
 ```powershell
 python scripts\backup_db.py
 ```
 
-Run inside Docker:
+Запуск внутри Docker:
 
 ```powershell
 docker exec -it -w /app hr_doc_checker_app python scripts/backup_db.py
 ```
 
-Backup files are created in:
+Файлы backup создаются в папке:
 
 ```text
 backups/
 ```
 
-Example:
+Пример:
 
 ```text
 backups/backup_20260429_010013.json
 ```
 
-## Restore script
+## Скрипт восстановления
 
-Run locally:
+Запуск локально:
 
 ```powershell
 python scripts\restore_db.py backups\backup_20260429_010013.json
 ```
 
-Run inside Docker:
+Запуск внутри Docker:
 
 ```powershell
 docker exec -it -w /app hr_doc_checker_app python scripts/restore_db.py "backups/backup_20260429_010013.json"
 ```
 
-Inside Docker use Linux-style paths with `/`.
+Внутри Docker нужно использовать Linux-style пути через `/`.
 
-## Backup content
+## Содержимое backup
 
-Backup includes:
+Backup включает:
 
-- document metadata;
-- report metadata;
-- sanitized report JSON.
+- метаданные документов;
+- метаданные отчётов;
+- санитизированный JSON отчёта.
 
-Backup does not include:
+Backup не включает:
 
-- original DOCX/PDF files;
-- raw document text;
+- исходные DOCX/PDF-файлы;
+- raw-текст документов;
 - Hugging Face cache;
-- FAISS index files;
-- logs.
+- файлы FAISS-индекса;
+- логи.
 
-## Safety
+## Безопасность
 
-Before destructive operations such as:
+Перед разрушительными операциями, например:
 
 ```powershell
 .\reset.ps1
 ```
 
-create a backup:
+создайте резервную копию:
 
 ```powershell
 docker exec -it -w /app hr_doc_checker_app python scripts/backup_db.py
 ```
 
-## Limitations
+## Ограничения
 
-This is MVP-level backup/restore. For production PostgreSQL deployment, native `pg_dump` and scheduled backup jobs should be added.
+Это MVP-уровень backup/restore. Для production-развёртывания PostgreSQL следует добавить нативный `pg_dump` и регулярные задачи резервного копирования по расписанию.

@@ -14,11 +14,19 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/app.db"
 
     knowledge_base_dir: Path = BASE_DIR / "data" / "knowledge_base"
+    
     rag_chunk_size_chars: int = 800
     rag_chunk_overlap_chars: int = 120
     rag_top_k: int = 3
+
     rag_use_vector_search: bool = True
     rag_embedding_dimension: int = 384
+    rag_retriever_type: str = "faiss"
+    rag_embedding_backend: str = "hashing"
+    rag_embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    rag_embedding_dimension: int = 384
+    rag_index_dir: Path = BASE_DIR / "data" / "index"
+    rag_allow_embedding_fallback: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",

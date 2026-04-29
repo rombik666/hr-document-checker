@@ -47,9 +47,13 @@ class RagContext(BaseModel):
 
 
 class RagStatus(BaseModel):
-
+    
     knowledge_base_dir: str
     sources_count: int
     chunks_count: int
     retriever_type: str
     embedding_dimension: int | None = None
+    embedding_backend: str | None = None
+    embedding_model_name: str | None = None
+    index_dir: str | None = None
+    index_exists: bool = False

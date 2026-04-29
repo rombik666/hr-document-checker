@@ -31,6 +31,15 @@ services:
       APP_ENV: "docker"
       DEBUG: "true"
       DATABASE_URL: "postgresql+psycopg://hr_user:hr_password@postgres:5432/hr_doc_checker"
+      LOG_DIR: "/app/logs"
+      LOG_FILE: "app.log"
+      RAG_RETRIEVER_TYPE: "faiss"
+      RAG_EMBEDDING_BACKEND: "sentence_transformer"
+      RAG_EMBEDDING_MODEL_NAME: "sentence-transformers/all-MiniLM-L6-v2"
+      RAG_EMBEDDING_DIMENSION: "384"
+      RAG_INDEX_DIR: "/app/data/index"
+      RAG_ALLOW_EMBEDDING_FALLBACK: "true"
+      HF_HOME: "/app/data/hf_cache"
     ports:
       - "8000:8000"
     volumes:

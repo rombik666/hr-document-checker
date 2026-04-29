@@ -16,4 +16,7 @@ def test_rag_status_endpoint_returns_status() -> None:
     assert "knowledge_base_dir" in data
     assert "sources_count" in data
     assert "chunks_count" in data
-    assert data["retriever_type"] in {"vector", "simple"}
+    assert data["retriever_type"] in {"faiss", "vector", "simple"}
+    assert "index_exists" in data
+    assert "embedding_backend" in data
+    assert "index_dir" in data

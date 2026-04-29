@@ -18,3 +18,7 @@ backups/*
 !backups/.gitkeep
 logs/*
 !logs/.gitkeep
+data/index/*
+!data/index/.gitkeep
+data/hf_cache/*
+!data/hf_cache/.gitkeep

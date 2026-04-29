@@ -13,6 +13,7 @@ RUN python -m pip install -e ".[dev]"
 
 COPY app ./app
 COPY data ./data
+COPY scripts ./scripts
 
 EXPOSE 8000
 

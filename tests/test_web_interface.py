@@ -6,16 +6,27 @@ from fastapi.testclient import TestClient
 from app.main import app
 from tests.auth_helpers import auth_headers
 
+
 client = TestClient(app)
 
 
-def test_web_index_page_returns_upload_form() -> None:
+def test_web_index_redirects_anonymous_user_to_login_page() -> None:
     response = client.get("/web/")
 
     assert response.status_code == 200
-    assert "Проверка HR-документа" in response.text
-    assert "storage_mode" in response.text
-    assert "Документ DOCX/PDF" in response.text
+    assert "Вход в систему" in response.text
+    assert "Создать учётную запись" in response.text
+
+
+def test_web_dashboard_returns_candidate_dashboard_for_authenticated_user() -> None:
+    response = client.get(
+        "/web/dashboard",
+        headers=auth_headers(client, "candidate"),
+    )
+
+    assert response.status_code == 200
+    assert "Кабинет кандидата" in response.text
+    assert "Проверить резюме" in response.text
 
 
 def test_web_report_page_returns_html_report(tmp_path: Path) -> None:
@@ -50,12 +61,9 @@ def test_web_report_page_returns_html_report(tmp_path: Path) -> None:
         )
 
     assert response.status_code == 200
-    assert "Итоговый отчёт" in response.text
-    assert "resume.docx" in response.text
-    assert "weak_phrase" in response.text
-    assert "vacancy_requirements_gap" in response.text
-    assert "fastapi" in response.text
-    assert "no_store" in response.text
+    assert "Результат проверки" in response.text
+    assert "Всего замечаний" in response.text
+    assert "Новая проверка" in response.text
 
 
 def test_web_report_rejects_unsupported_file_format(tmp_path: Path) -> None:

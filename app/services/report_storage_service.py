@@ -5,6 +5,9 @@ from app.schemas.documents import ParsedDocument
 from app.schemas.reports import Report
 from app.services.report_sanitizer_service import ReportSanitizerService
 
+from sqlalchemy import select
+
+
 
 class ReportStorageService:
     """
@@ -95,3 +98,21 @@ class ReportStorageService:
             return None
 
         return Report.model_validate(report_orm.report_json)
+    
+
+    def list_report_records_for_user(
+        self,
+        user_id: str,
+        user_role: str,
+        limit: int = 20,
+    ) -> list[ReportORM]:
+        statement = (
+            select(ReportORM)
+            .order_by(ReportORM.created_at.desc())
+            .limit(limit)
+        )
+
+        if user_role != "admin":
+            statement = statement.where(ReportORM.owner_user_id == user_id)
+
+        return list(self.db.execute(statement).scalars().all())

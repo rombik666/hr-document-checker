@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1>Личный кабинет</h1>
+
+    <p><strong>ID:</strong> {{ user.id }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Имя:</strong> {{ user.full_name }}</p>
+    <p><strong>Роль:</strong> <span class="badge">{{ user.role }}</span></p>
+    <p><strong>Статус:</strong> {{ "активен" if user.is_active else "заблокирован" }}</p>
+
+    <a class="button secondary" href="/web/dashboard">Назад</a>
+    <a class="button danger" href="/web/logout">Выйти</a>
+</div>
+
+<div class="card">
+    <h2>Мои отчёты</h2>
+    {% include "_reports_table.html" %}
+</div>
+{% endblock %}

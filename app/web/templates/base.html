@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>{{ page_title or "HR Document Checker" }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 16px 32px;
+        }
+
+        header a {
+            color: white;
+            text-decoration: none;
+            margin-right: 18px;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 32px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 18px;
+        }
+
+        label {
+            display: block;
+            margin-top: 14px;
+            font-weight: 600;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 6px;
+            padding: 11px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 15px;
+        }
+
+        textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+
+        button, .button {
+            display: inline-block;
+            margin-top: 18px;
+            padding: 11px 18px;
+            background: #2563eb;
+            color: white;
+            border: 0;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 15px;
+        }
+
+        .button.secondary {
+            background: #4b5563;
+        }
+
+        .button.danger {
+            background: #dc2626;
+        }
+
+        .error {
+            padding: 12px;
+            border-radius: 10px;
+            background: #fee2e2;
+            color: #991b1b;
+            margin-bottom: 16px;
+        }
+
+        .success {
+            padding: 12px;
+            border-radius: 10px;
+            background: #dcfce7;
+            color: #166534;
+            margin-bottom: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: #e0ecff;
+            color: #1d4ed8;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .muted {
+            color: #6b7280;
+        }
+
+        .issue-critical {
+            border-left: 5px solid #dc2626;
+        }
+
+        .issue-major {
+            border-left: 5px solid #f59e0b;
+        }
+
+        .issue-minor {
+            border-left: 5px solid #2563eb;
+        }
+
+        footer {
+            text-align: center;
+            color: #6b7280;
+            padding: 30px;
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <a href="/web/dashboard"><strong>HR Document Checker</strong></a>
+
+    {% if user %}
+        <a href="/web/profile">Личный кабинет</a>
+        <a href="/web/logout">Выйти</a>
+        <span class="badge">{{ user.role }}</span>
+    {% else %}
+        <a href="/web/login">Войти</a>
+        <a href="/web/register">Регистрация</a>
+    {% endif %}
+</header>
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<footer>
+    HR Document Checker — прототип системы проверки HR- и бизнес-документов с использованием ИИ-агентов.
+</footer>
+</body>
+</html>

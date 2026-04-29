@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1>Кабинет HR-специалиста</h1>
+    <p>
+        Вы можете проверять резюме кандидатов, сопоставлять документы с вакансиями
+        и использовать RAG-контекст базы знаний.
+    </p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>Проверка резюме</h2>
+        {% include "_report_form.html" %}
+    </div>
+
+    <div class="card">
+        <h2>Инструменты HR</h2>
+        <p><a href="/api/v1/rag/status">RAG status</a></p>
+        <p><a href="/docs">Swagger API</a></p>
+        <p class="muted">
+            RAG используется для поиска релевантного контекста в базе знаний:
+            правила, шаблоны, требования и примеры сильных формулировок.
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Мои последние отчёты</h2>
+    {% include "_reports_table.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+<form method="post" action="/web/report" enctype="multipart/form-data">
+    <label>Документ DOCX/PDF</label>
+    <input type="file" name="file" accept=".docx,.pdf" required>
+
+    <label>Текст вакансии</label>
+    <textarea name="vacancy_text" placeholder="Вставьте требования вакансии..."></textarea>
+
+    <label>Режим хранения</label>
+    <select name="storage_mode">
+        <option value="temporary">temporary — сохранить отчёт в базе</option>
+        <option value="no_store">no_store — не сохранять отчёт</option>
+    </select>
+
+    <button type="submit">Проверить документ</button>
+</form>

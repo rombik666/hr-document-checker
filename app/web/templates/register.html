@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1>Регистрация</h1>
+    <p class="muted">
+        Вы можете создать учётную запись кандидата или HR-специалиста.
+        Роль администратора создаётся только владельцем системы.
+    </p>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/web/register">
+        <label>ФИО / имя</label>
+        <input type="text" name="full_name" required>
+
+        <label>Email</label>
+        <input type="email" name="email" required>
+
+        <label>Пароль</label>
+        <input type="password" name="password" minlength="6" required>
+
+        <label>Роль</label>
+        <select name="role" required>
+            <option value="candidate">Кандидат</option>
+            <option value="hr">HR-специалист</option>
+        </select>
+
+        <button type="submit">Создать аккаунт</button>
+    </form>
+
+    <p>
+        Уже есть аккаунт?
+        <a href="/web/login">Войти</a>
+    </p>
+</div>
+{% endblock %}

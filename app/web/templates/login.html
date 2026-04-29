@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1>Вход в систему</h1>
+    <p class="muted">Введите email и пароль для доступа к личному кабинету.</p>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/web/login">
+        <label>Email</label>
+        <input type="email" name="email" required>
+
+        <label>Пароль</label>
+        <input type="password" name="password" required>
+
+        <button type="submit">Войти</button>
+    </form>
+
+    <p>
+        Нет аккаунта?
+        <a href="/web/register">Создать учётную запись</a>
+    </p>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1>Панель администратора</h1>
+    <p>
+        Администратор управляет технической диагностикой, мониторингом,
+        проверкой приватности и инфраструктурными инструментами.
+    </p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>Диагностика приложения</h2>
+        <p><a href="/api/v1/admin/status">Admin status</a></p>
+        <p><a href="/api/v1/admin/roles">Roles</a></p>
+        <p><a href="/api/v1/admin/db/status">Database status</a></p>
+        <p><a href="/api/v1/admin/storage/privacy-check">Privacy check</a></p>
+    </div>
+
+    <div class="card">
+        <h2>ИИ и RAG</h2>
+        <p><a href="/api/v1/rag/status">RAG status</a></p>
+        <p><a href="/api/v1/llm/status">LLM status</a></p>
+        <p><a href="/docs">Swagger API</a></p>
+    </div>
+
+    <div class="card">
+        <h2>Мониторинг</h2>
+        <p><a href="http://127.0.0.1:9090">Prometheus</a></p>
+        <p><a href="http://127.0.0.1:3000">Grafana</a></p>
+        <p><a href="http://127.0.0.1:5050">pgAdmin</a></p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Последние отчёты в системе</h2>
+    {% include "_reports_table.html" %}
+</div>
+{% endblock %}

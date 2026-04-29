@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     llm_enabled: bool = True
     llm_semantic_agent_enabled: bool = False
 
+    auth_secret_key: str = "change-this-secret-key"
+    auth_token_ttl_minutes: int = 720
+
+    admin_email: str = "admin@example.com"
+    admin_password: str = "admin"
+    admin_full_name: str = "System Administrator"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

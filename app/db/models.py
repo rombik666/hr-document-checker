@@ -3,6 +3,9 @@ from datetime import datetime, timezone
 from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from enum import StrEnum
+from sqlalchemy import Boolean
+
 
 class Base(DeclarativeBase):
     """
@@ -11,6 +14,57 @@ class Base(DeclarativeBase):
     """
 
     pass
+
+class UserRole(StrEnum):
+    CANDIDATE = "candidate"
+    HR = "hr"
+    ADMIN = "admin"
+
+
+class UserORM(Base):
+    """
+    Таблица пользователей системы.
+
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+
+    email: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    full_name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+    )
+
+    role: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        index=True,
+    )
+
+    password_hash: Mapped[str] = mapped_column(
+        String(512),
+        nullable=False,
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
 
 class DocumentORM(Base):

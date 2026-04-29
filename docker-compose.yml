@@ -46,6 +46,7 @@ services:
       LLM_API_KEY: ""
       LLM_TIMEOUT_SECONDS: "60"
       LLM_ENABLED: "true"
+      LLM_SEMANTIC_AGENT_ENABLED: "true"
     ports:
       - "8000:8000"
     volumes:

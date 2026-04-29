@@ -6,6 +6,10 @@ from app.schemas.checks import CheckResult, Issue, SemanticCheckResponse
 from app.schemas.common import Severity
 from app.schemas.documents import ParsedDocument
 from app.schemas.rag import RagSearchRequest
+from app.agents.semantic.llm_semantic_agent import LlmSemanticAgent
+
+from app.agents.semantic.llm_semantic_agent import LlmSemanticAgent
+from app.core.config import settings
 
 
 class SemanticCheckCoordinator:
@@ -14,13 +18,27 @@ class SemanticCheckCoordinator:
 
     """
 
-    def __init__(self) -> None:
-        self.rag_service = RagService()
+    def __init__(
+        self,
+        rag_service=None,
+        enable_llm_agent: bool | None = None,
+    ) -> None:
+        self.rag_service = rag_service or RagService()
+
+        self.enable_llm_agent = (
+            settings.llm_semantic_agent_enabled
+            if enable_llm_agent is None
+            else enable_llm_agent
+        )
+
         self.agents = [
             TextQualityAgent(),
             ContradictionAgent(),
             VacancyRelevanceAgent(),
         ]
+
+        if self.enable_llm_agent:
+            self.agents.append(LlmSemanticAgent())
 
     def run(
         self,
@@ -40,6 +58,8 @@ class SemanticCheckCoordinator:
         )
 
         check_results: list[CheckResult] = []
+
+        check_results = []
 
         for agent in self.agents:
             result = agent.run(

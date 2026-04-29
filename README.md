@@ -89,7 +89,7 @@ email: admin@example.com
 password: admin
 ```
 
-PostgreSQL connection inside pgAdmin:
+PostgreSQL connection в pgAdmin:
 
 ```text
 Host: postgres

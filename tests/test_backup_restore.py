@@ -1,10 +1,19 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, func, select
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.coordinator.formal_check_coordinator import FormalCheckCoordinator
-from app.db.models import Base
+from app.db.models import (
+    Base,
+    CheckORM,
+    DocumentORM,
+    DocumentSectionORM,
+    IssueORM,
+    ProcessingSessionORM,
+    RecommendationORM,
+    ReportORM,
+)
 from app.reports.report_builder import ReportBuilder
 from app.schemas.common import DocumentType, ProcessingStatus, SourceFormat, StorageMode
 from app.schemas.documents import DocumentMetadata, DocumentSection, ParsedDocument
@@ -37,21 +46,29 @@ def make_test_document() -> ParsedDocument:
     )
 
 
-def test_backup_service_exports_and_restores_data() -> None:
-    source_engine = create_engine(
+def make_session() -> Session:
+    engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
     )
 
-    SourceSessionLocal = sessionmaker(
+    SessionLocal = sessionmaker(
         autocommit=False,
         autoflush=False,
-        bind=source_engine,
+        bind=engine,
     )
 
-    Base.metadata.create_all(bind=source_engine)
+    Base.metadata.create_all(bind=engine)
 
-    source_db = SourceSessionLocal()
+    return SessionLocal()
+
+
+def count_rows(db: Session, model: type[Base]) -> int:
+    return db.execute(select(func.count()).select_from(model)).scalar_one()
+
+
+def test_backup_service_exports_and_restores_normalized_schema() -> None:
+    source_db = make_session()
 
     try:
         document = make_test_document()
@@ -65,42 +82,103 @@ def test_backup_service_exports_and_restores_data() -> None:
         ReportStorageService(source_db).save_report(
             document=document,
             report=report,
+            owner_user_id="user-1",
         )
 
         backup_payload = BackupService(source_db).create_backup_payload()
 
+        assert backup_payload["backup_version"] == "2.0"
         assert len(backup_payload["documents"]) == 1
+        assert len(backup_payload["document_sections"]) == 1
+        assert len(backup_payload["processing_sessions"]) == 1
         assert len(backup_payload["reports"]) == 1
+        assert len(backup_payload["checks"]) > 0
+        assert len(backup_payload["issues"]) > 0
+        assert len(backup_payload["recommendations"]) > 0
+
+        assert backup_payload["documents"][0]["owner_user_id"] == "user-1"
+        assert backup_payload["reports"][0]["owner_user_id"] == "user-1"
+        assert backup_payload["processing_sessions"][0]["owner_user_id"] == "user-1"
 
     finally:
         source_db.close()
 
-    target_engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-    )
-
-    TargetSessionLocal = sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        bind=target_engine,
-    )
-
-    Base.metadata.create_all(bind=target_engine)
-
-    target_db = TargetSessionLocal()
+    target_db = make_session()
 
     try:
         result = BackupService(target_db).restore_from_payload(backup_payload)
 
         assert result["restored_documents"] == 1
+        assert result["restored_document_sections"] == 1
+        assert result["restored_processing_sessions"] == 1
         assert result["restored_reports"] == 1
+        assert result["restored_checks"] == len(backup_payload["checks"])
+        assert result["restored_issues"] == len(backup_payload["issues"])
+        assert result["restored_recommendations"] == len(backup_payload["recommendations"])
+
+        assert count_rows(target_db, DocumentORM) == 1
+        assert count_rows(target_db, DocumentSectionORM) == 1
+        assert count_rows(target_db, ProcessingSessionORM) == 1
+        assert count_rows(target_db, ReportORM) == 1
+        assert count_rows(target_db, CheckORM) == len(backup_payload["checks"])
+        assert count_rows(target_db, IssueORM) == len(backup_payload["issues"])
+        assert count_rows(target_db, RecommendationORM) == len(
+            backup_payload["recommendations"]
+        )
 
         restored_payload = BackupService(target_db).create_backup_payload()
 
-        assert len(restored_payload["documents"]) == 1
-        assert len(restored_payload["reports"]) == 1
         assert restored_payload["documents"][0]["id"] == "backup-test-doc"
+        assert restored_payload["documents"][0]["owner_user_id"] == "user-1"
+        assert restored_payload["reports"][0]["owner_user_id"] == "user-1"
+        assert restored_payload["processing_sessions"][0]["owner_user_id"] == "user-1"
+
+    finally:
+        target_db.close()
+
+
+def test_backup_restore_is_idempotent() -> None:
+    source_db = make_session()
+
+    try:
+        document = make_test_document()
+        formal_check_response = FormalCheckCoordinator().run(document)
+
+        report = ReportBuilder().build(
+            document=document,
+            formal_check_response=formal_check_response,
+        )
+
+        ReportStorageService(source_db).save_report(
+            document=document,
+            report=report,
+            owner_user_id="user-1",
+        )
+
+        backup_payload = BackupService(source_db).create_backup_payload()
+
+    finally:
+        source_db.close()
+
+    target_db = make_session()
+
+    try:
+        first_result = BackupService(target_db).restore_from_payload(backup_payload)
+        second_result = BackupService(target_db).restore_from_payload(backup_payload)
+
+        assert first_result["restored_documents"] == 1
+        assert first_result["restored_reports"] == 1
+
+        assert second_result["restored_documents"] == 0
+        assert second_result["restored_document_sections"] == 0
+        assert second_result["restored_processing_sessions"] == 0
+        assert second_result["restored_reports"] == 0
+        assert second_result["restored_checks"] == 0
+        assert second_result["restored_issues"] == 0
+        assert second_result["restored_recommendations"] == 0
+
+        assert count_rows(target_db, DocumentORM) == 1
+        assert count_rows(target_db, ReportORM) == 1
 
     finally:
         target_db.close()

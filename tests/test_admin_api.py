@@ -183,3 +183,35 @@ def test_admin_restore_endpoint_accepts_current_backup_payload() -> None:
     assert "restored_checks" in data
     assert "restored_issues" in data
     assert "restored_recommendations" in data
+
+def test_admin_restore_endpoint_rejects_swagger_placeholder_payload() -> None:
+    payload = {
+        "backup_version": "2.0",
+        "created_at": "string",
+        "documents": [
+            {
+                "id": "string",
+                "owner_user_id": "string",
+                "filename": "string",
+                "document_type": "string",
+                "source_format": "string",
+                "processing_status": "string",
+                "storage_mode": "string",
+                "created_at": "string",
+            }
+        ],
+        "document_sections": [],
+        "processing_sessions": [],
+        "reports": [],
+        "checks": [],
+        "issues": [],
+        "recommendations": [],
+    }
+
+    response = client.post(
+        "/api/v1/admin/restore",
+        json=payload,
+        headers=admin_auth_headers(client),
+    )
+
+    assert response.status_code == 422

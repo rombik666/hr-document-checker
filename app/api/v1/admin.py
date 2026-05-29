@@ -119,7 +119,11 @@ def restore_backup(
     db: Session = Depends(get_db),
     current_user: UserORM = Depends(require_admin),
 ) -> BackupRestoreResponse:
-    
+    """
+    Восстанавливает данные из JSON-backup.
+
+    Restore идемпотентен: уже существующие записи не дублируются.
+    """
     service = BackupService(db)
 
     try:
@@ -129,8 +133,14 @@ def restore_backup(
     except KeyError as error:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid backup payload: missing required field {error}",
+        ) from error
+    except (ValueError, TypeError) as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Invalid backup payload value: {error}",
         ) from error
     except SQLAlchemyError as error:
         db.rollback()

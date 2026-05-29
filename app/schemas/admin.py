@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DatabaseStatusResponse(BaseModel):
@@ -124,6 +124,22 @@ class BackupRecommendationItem(BaseModel):
 
 
 class BackupPayload(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "backup_version": "2.0",
+                "created_at": None,
+                "documents": [],
+                "document_sections": [],
+                "processing_sessions": [],
+                "reports": [],
+                "checks": [],
+                "issues": [],
+                "recommendations": [],
+            }
+        }
+    )
+
     backup_version: str = "2.0"
     created_at: str | None = None
 

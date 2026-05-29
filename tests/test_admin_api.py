@@ -132,3 +132,54 @@ def test_admin_backup_endpoint_forbids_non_admin_user() -> None:
     )
 
     assert response.status_code == 403
+
+def test_admin_restore_endpoint_rejects_invalid_backup_payload() -> None:
+    payload = {
+        "backup_version": "2.0",
+        "created_at": "string",
+        "documents": [
+            {
+                "additionalProp1": {},
+            }
+        ],
+        "document_sections": [],
+        "processing_sessions": [],
+        "reports": [],
+        "checks": [],
+        "issues": [],
+        "recommendations": [],
+    }
+
+    response = client.post(
+        "/api/v1/admin/restore",
+        json=payload,
+        headers=admin_auth_headers(client),
+    )
+
+    assert response.status_code == 422
+
+def test_admin_restore_endpoint_accepts_current_backup_payload() -> None:
+    backup_response = client.get(
+        "/api/v1/admin/backup",
+        headers=admin_auth_headers(client),
+    )
+
+    assert backup_response.status_code == 200
+
+    restore_response = client.post(
+        "/api/v1/admin/restore",
+        json=backup_response.json(),
+        headers=admin_auth_headers(client),
+    )
+
+    assert restore_response.status_code == 200
+
+    data = restore_response.json()
+
+    assert "restored_documents" in data
+    assert "restored_document_sections" in data
+    assert "restored_processing_sessions" in data
+    assert "restored_reports" in data
+    assert "restored_checks" in data
+    assert "restored_issues" in data
+    assert "restored_recommendations" in data

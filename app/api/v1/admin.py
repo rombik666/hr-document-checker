@@ -16,6 +16,9 @@ from app.schemas.admin import (
 from app.services.backup_service import BackupService
 from app.services.db_inspection_service import DbInspectionService
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
+
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -116,15 +119,24 @@ def restore_backup(
     db: Session = Depends(get_db),
     current_user: UserORM = Depends(require_admin),
 ) -> BackupRestoreResponse:
-    """
-    Восстанавливает данные из JSON-backup.
-
-    Restore идемпотентен: уже существующие записи не дублируются.
-    """
+    
     service = BackupService(db)
 
-    result = service.restore_from_payload(
-        payload.model_dump(mode="json")
-    )
+    try:
+        result = service.restore_from_payload(
+            payload.model_dump(mode="json")
+        )
+    except KeyError as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid backup payload: missing required field {error}",
+        ) from error
+    except SQLAlchemyError as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Backup restore failed because of database integrity error: {error}",
+        ) from error
 
     return BackupRestoreResponse.model_validate(result)

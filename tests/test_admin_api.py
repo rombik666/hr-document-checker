@@ -72,3 +72,63 @@ def test_admin_privacy_check_endpoint_returns_result() -> None:
     assert "unmasked_email_count" in data
     assert "unmasked_phone_count" in data
     assert data["raw_text_column_exists"] is False
+
+def test_admin_backup_endpoint_returns_normalized_payload() -> None:
+    response = client.get(
+        "/api/v1/admin/backup",
+        headers=admin_auth_headers(client),
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["backup_version"] == "2.0"
+    assert "documents" in data
+    assert "document_sections" in data
+    assert "processing_sessions" in data
+    assert "reports" in data
+    assert "checks" in data
+    assert "issues" in data
+    assert "recommendations" in data
+
+
+def test_admin_restore_endpoint_accepts_empty_backup_payload() -> None:
+    payload = {
+        "backup_version": "2.0",
+        "created_at": None,
+        "documents": [],
+        "document_sections": [],
+        "processing_sessions": [],
+        "reports": [],
+        "checks": [],
+        "issues": [],
+        "recommendations": [],
+    }
+
+    response = client.post(
+        "/api/v1/admin/restore",
+        json=payload,
+        headers=admin_auth_headers(client),
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["restored_documents"] == 0
+    assert data["restored_document_sections"] == 0
+    assert data["restored_processing_sessions"] == 0
+    assert data["restored_reports"] == 0
+    assert data["restored_checks"] == 0
+    assert data["restored_issues"] == 0
+    assert data["restored_recommendations"] == 0
+
+
+def test_admin_backup_endpoint_forbids_non_admin_user() -> None:
+    response = client.get(
+        "/api/v1/admin/backup",
+        headers=auth_headers(client, role="candidate"),
+    )
+
+    assert response.status_code == 403

@@ -14,6 +14,8 @@ RUN python -m pip install -e ".[dev]"
 COPY app ./app
 COPY data ./data
 COPY scripts ./scripts
+COPY alembic.ini ./alembic.ini
+COPY migrations ./migrations
 
 EXPOSE 8000
 

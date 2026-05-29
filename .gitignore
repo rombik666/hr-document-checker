@@ -1,28 +1,52 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
-.env
-data/indexes/
-logs/
-.vscode/
-.pytest_cache/
+*.pyo
+*.pyd
 *.egg-info/
-data/eval/ragas_results.csv
-data/eval/ragas_summary.json
+
+# Environment
+.env
+
+# IDE
+.vscode/
+
+# Tests / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Local databases
 data/app.db
 *.db
-old/
-data/samples/*
-!data/samples/.gitkeep
-backups/*
-!backups/.gitkeep
-logs/*
-!logs/.gitkeep
+*.sqlite
+*.sqlite3
+
+# RAG / generated indexes
+data/indexes/
 data/index/*
 !data/index/.gitkeep
 data/hf_cache/*
 !data/hf_cache/.gitkeep
-htmlcov/
-.coverage
-coverage.xml
+
+# Evaluation artifacts
+data/eval/ragas_results.csv
+data/eval/ragas_summary.json
+
+# Local samples
+data/samples/*
+!data/samples/.gitkeep
+
+# Backups
+backups/*
+!backups/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Old/local materials
+old/
 документация/

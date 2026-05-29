@@ -11,4 +11,3 @@ data/app.db
 old/
 tests/
 docs/
-migrations/

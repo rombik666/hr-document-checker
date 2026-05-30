@@ -14,16 +14,10 @@ from app.schemas.rag import (
     UserRagSourceDetails,
     UserRagSourceListItem,
 )
+from app.services.rag_index_service import RagIndexService
 
 
 class RagSourceService:
-    """
-    Сервис управления пользовательскими RAG-источниками.
-
-    Используется для документов, которые HR/admin явно загружает
-    в корпоративную RAG-базу знаний: вакансии, чек-листы,
-    регламенты, требования к оформлению документов.
-    """
 
     SUPPORTED_SUFFIXES = {
         ".docx",
@@ -110,6 +104,8 @@ class RagSourceService:
         self.db.commit()
         self.db.refresh(source)
 
+        self._mark_owner_index_stale(owner_user_id)
+
         return source
 
     def list_sources_for_user(
@@ -170,13 +166,20 @@ class RagSourceService:
         if source is None:
             return False
 
+        if not source.is_active:
+            return True
+
+        owner_user_id = source.owner_user_id
+
         source.is_active = False
         source.updated_at = datetime.now(timezone.utc)
 
         self.db.commit()
 
+        self._mark_owner_index_stale(owner_user_id)
+
         return True
-    
+
     def activate_source_for_user(
         self,
         source_id: str,
@@ -195,9 +198,11 @@ class RagSourceService:
         if source.is_active:
             return True
 
-        if source.owner_user_id is not None:
+        owner_user_id = source.owner_user_id
+
+        if owner_user_id is not None:
             self._validate_user_storage_quota(
-                owner_user_id=source.owner_user_id,
+                owner_user_id=owner_user_id,
                 new_file_size_bytes=source.file_size_bytes,
             )
 
@@ -205,6 +210,8 @@ class RagSourceService:
         source.updated_at = datetime.now(timezone.utc)
 
         self.db.commit()
+
+        self._mark_owner_index_stale(owner_user_id)
 
         return True
 
@@ -223,8 +230,12 @@ class RagSourceService:
         if source is None:
             return False
 
+        owner_user_id = source.owner_user_id
+
         self.db.delete(source)
         self.db.commit()
+
+        self._mark_owner_index_stale(owner_user_id)
 
         return True
 
@@ -352,6 +363,19 @@ class RagSourceService:
                 "RAG source storage quota exceeded. "
                 "Maximum total active storage per HR user is 100 MB."
             )
+
+    def _mark_owner_index_stale(self, owner_user_id: str | None) -> None:
+        """
+        Помечает персональный FAISS-индекс владельца источника устаревшим.
+
+        Если owner_user_id отсутствует, индекс не трогаем: такие источники
+        не должны участвовать в пользовательском per-user FAISS-контуре.
+        """
+
+        if owner_user_id is None:
+            return
+
+        RagIndexService(self.db).mark_index_stale(owner_user_id)
 
     @staticmethod
     def _extract_content(file_path: Path) -> str:

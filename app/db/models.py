@@ -19,6 +19,18 @@ class UserRole(StrEnum):
     ADMIN = "admin"
 
 
+class RagIndexStatus(StrEnum):
+    """
+    Состояние персонального FAISS-индекса пользователя.
+    """
+
+    MISSING = "missing"
+    STALE = "stale"
+    BUILDING = "building"
+    READY = "ready"
+    FAILED = "failed"
+
+
 class UserORM(Base):
     """
     Таблица пользователей системы.
@@ -374,7 +386,111 @@ class ReportORM(Base):
         back_populates="reports",
     )
 
+
+class RagIndexORM(Base):
+    """
+    Метаданные персонального FAISS-индекса пользователя.
+
+    Сам бинарный faiss.index и chunks.json не хранятся в PostgreSQL.
+    В БД сохраняются только статус, пути, hash активных источников
+    и технические параметры индекса.
+    """
+
+    __tablename__ = "rag_indexes"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+
+    owner_user_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default=RagIndexStatus.MISSING.value,
+        index=True,
+    )
+
+    reindex_required: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        index=True,
+    )
+
+    index_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    chunks_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+
+    sources_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+        index=True,
+    )
+
+    sources_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    chunks_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    embedding_backend: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        default="hashing",
+    )
+
+    embedding_model_name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        default="hashing",
+    )
+
+    embedding_dimension: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=384,
+    )
+
+    retriever_type: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        default="faiss",
+    )
+
+    index_metadata: Mapped[dict] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    last_reindexed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class RagSourceORM(Base):
+    """
+    Таблица пользовательских RAG-источников.
+
+    Хранит маскированное содержимое загруженных HR/admin документов,
+    из которых затем строится персональный FAISS-индекс.
+    """
 
     __tablename__ = "rag_sources"
 
@@ -412,9 +528,9 @@ class RagSourceORM(Base):
     )
 
     file_size_bytes: Mapped[int] = mapped_column(
-    Integer,
-    nullable=False,
-    default=0,
+        Integer,
+        nullable=False,
+        default=0,
     )
 
     is_active: Mapped[bool] = mapped_column(

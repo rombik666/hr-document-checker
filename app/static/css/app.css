@@ -770,3 +770,119 @@ hr {
         padding: 18px;
     }
 }
+
+.brand-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.header-check-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 1px solid rgba(37, 99, 235, 0.28);
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+    font-size: 14px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.header-check-link:hover {
+    background: #bfdbfe;
+    text-decoration: none;
+}
+
+.site-footer {
+    border-top: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 22px;
+    text-align: left;
+}
+
+.footer-grid p {
+    margin-top: 8px;
+    color: var(--text-muted);
+}
+
+.footer-separator {
+    margin: 0 8px;
+    color: var(--text-muted);
+}
+
+.checkbox-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 10px;
+    padding: 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    cursor: pointer;
+}
+
+.checkbox-card:hover {
+    border-color: var(--primary);
+    background: #eff6ff;
+}
+
+.checkbox-card input {
+    width: 20px;
+    min-height: 20px;
+    margin-top: 2px;
+    accent-color: var(--primary);
+}
+
+.checkbox-card strong {
+    display: block;
+}
+
+.checkbox-card span {
+    display: block;
+}
+
+.filename-cell {
+    max-width: 320px;
+    word-break: break-word;
+}
+
+.report-document-title {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.status-active {
+    color: var(--success);
+    background: var(--success-soft);
+}
+
+.status-inactive {
+    color: var(--text-muted);
+    background: #f1f5f9;
+}
+
+@media (max-width: 860px) {
+    .brand-group {
+        width: calc(100% - 88px);
+    }
+
+    .header-check-link {
+        width: fit-content;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+}

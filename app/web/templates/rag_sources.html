@@ -3,10 +3,10 @@
 {% block content %}
 <section class="hero">
     <span class="badge">RAG-источники</span>
-    <h1>Персональная база знаний HR-специалиста</h1>
+    <h1>База знаний HR-специалиста</h1>
     <p>
-        Загружайте вакансии, чек-листы, корпоративные правила и примеры сильных формулировок.
-        После изменения источников FAISS-индекс становится устаревшим и требует переиндексации.
+        Загружайте вакансии, чек-листы, требования и корпоративные правила.
+        После изменения источников индекс становится устаревшим и требует переиндексации.
     </p>
 
     <div class="form-actions">
@@ -29,8 +29,8 @@
         <div>
             <h2>Статус FAISS-индекса</h2>
             <p>
-                Индекс строится по активным источникам текущего HR-пользователя и используется
-                при RAG-поиске и формировании отчётов.
+                Индекс строится по активным источникам текущего HR-пользователя
+                и используется при проверке документов.
             </p>
         </div>
 
@@ -52,44 +52,40 @@
             <strong>{{ rag_status.sources_count }}</strong>
             <span>всего источников</span>
         </div>
+
         <div class="metric-card">
             <strong>{{ rag_status.active_sources_count }}</strong>
             <span>активных источников</span>
         </div>
-        <div class="metric-card">
-            <strong>{{ rag_status.chunks_count }}</strong>
-            <span>чанков в индексе</span>
-        </div>
-    </div>
 
-    <div class="grid three">
         <div class="metric-card">
             <strong>{{ rag_status.inactive_sources_count }}</strong>
             <span>неактивных источников</span>
         </div>
-        <div class="metric-card">
-            <strong>{{ rag_status.retriever_type }}</strong>
-            <span>retriever</span>
-        </div>
-        <div class="metric-card">
-            <strong>{{ rag_status.embedding_dimension }}</strong>
-            <span>embedding dimension</span>
-        </div>
     </div>
 
     <div class="grid two">
-        <div class="card compact">
-            <h3>Параметры индекса</h3>
-            <p><strong>Режим:</strong> {{ rag_status.mode }}</p>
-            <p><strong>Хранилище:</strong> {{ rag_status.source_backend }}</p>
-            <p><strong>Область доступа:</strong> {{ rag_status.user_scope }}</p>
-            <p><strong>Embedding backend:</strong> {{ rag_status.embedding_backend }}</p>
-            <p><strong>Embedding model:</strong> {{ rag_status.embedding_model_name }}</p>
-            <p><strong>Последняя индексация:</strong> {{ rag_status.last_reindexed_at or "ещё не выполнялась" }}</p>
-        </div>
+        {% if user.role == "admin" %}
+            <div class="card compact">
+                <h3>Параметры индекса</h3>
+                <p><strong>Режим:</strong> {{ rag_status.mode }}</p>
+                <p><strong>Хранилище:</strong> {{ rag_status.source_backend }}</p>
+                <p><strong>Область доступа:</strong> {{ rag_status.user_scope }}</p>
+                <p><strong>Retriever:</strong> {{ rag_status.retriever_type }}</p>
+                <p><strong>Embedding backend:</strong> {{ rag_status.embedding_backend }}</p>
+                <p><strong>Embedding model:</strong> {{ rag_status.embedding_model_name }}</p>
+                <p><strong>Embedding dimension:</strong> {{ rag_status.embedding_dimension }}</p>
+                <p><strong>Чанков в индексе:</strong> {{ rag_status.chunks_count }}</p>
+                <p>
+                    <strong>Последняя индексация:</strong>
+                    {{ rag_status.last_reindexed_at | display_datetime }}
+                </p>
+            </div>
+        {% endif %}
 
         <div class="card compact">
             <h3>Состояние</h3>
+
             <p>
                 <strong>Требуется переиндексация:</strong>
                 {% if rag_status.reindex_required %}
@@ -98,6 +94,7 @@
                     <span class="status-pill success">нет</span>
                 {% endif %}
             </p>
+
             <p>
                 <strong>Файлы индекса:</strong>
                 {% if rag_status.index_exists %}
@@ -107,13 +104,18 @@
                 {% endif %}
             </p>
 
+            <p>
+                <strong>Последняя индексация:</strong>
+                {{ rag_status.last_reindexed_at | display_datetime }}
+            </p>
+
             {% if rag_status.index_error %}
                 <div class="error">
                     <strong>Ошибка индекса:</strong> {{ rag_status.index_error }}
                 </div>
             {% else %}
                 <div class="info">
-                    Если статус stale или missing, выполните переиндексацию перед RAG-поиском.
+                    Если статус stale или missing, выполните переиндексацию перед проверкой документов.
                 </div>
             {% endif %}
 
@@ -129,7 +131,7 @@
 
     <div class="warning">
         После загрузки, включения, отключения или удаления источника индекс получает статус stale.
-        Для использования актуальной базы знаний в поиске и отчётах нажмите «Переиндексировать».
+        Чтобы система использовала актуальную базу знаний, нажмите «Переиндексировать».
     </div>
 </section>
 
@@ -139,7 +141,7 @@
             <div>
                 <h2>Загрузить источник</h2>
                 <p>
-                    Добавьте документ, который будет использоваться как контекст для RAG.
+                    Добавьте документ, который будет использоваться как контекст при проверке резюме.
                 </p>
             </div>
             <span class="badge">DOCX / PDF / TXT / MD</span>
@@ -199,10 +201,12 @@
                 <strong>{{ max_file_size_mb }} МБ</strong>
                 <span>максимальный размер файла</span>
             </div>
+
             <div class="metric-card">
                 <strong>{{ max_storage_mb }} МБ</strong>
                 <span>квота активных источников</span>
             </div>
+
             <div class="metric-card">
                 <strong>{{ active_storage_mb }} МБ</strong>
                 <span>использовано активными</span>
@@ -225,6 +229,7 @@
                 но остаются в списке до полного удаления.
             </p>
         </div>
+
         <span class="badge">{{ rag_status.sources_count }} источников</span>
     </div>
 
@@ -236,7 +241,6 @@
                     <th>Название</th>
                     <th>Файл</th>
                     <th>Тип</th>
-                    <th>Формат</th>
                     <th>Размер</th>
                     <th>Статус</th>
                     <th>Создан</th>
@@ -248,21 +252,33 @@
                 {% for source in sources %}
                     <tr>
                         <td>
-                            <strong>{{ source.title }}</strong>
-                            <div class="muted small">ID: {{ source.id }}</div>
+                            <strong>{{ source.title or source.filename }}</strong>
                         </td>
-                        <td>{{ source.filename }}</td>
-                        <td>{{ source.source_type }}</td>
-                        <td>{{ source.source_format }}</td>
-                        <td>{{ (source.file_size_bytes / 1024 / 1024) | round(2) }} МБ</td>
+
+                        <td class="filename-cell">
+                            {{ source.filename }}
+                        </td>
+
+                        <td>
+                            {{ source.source_type | source_type_label }}
+                        </td>
+
+                        <td>
+                            {{ (source.file_size_bytes / 1024 / 1024) | round(2) }} МБ
+                        </td>
+
                         <td>
                             {% if source.is_active %}
-                                <span class="status-pill success">active</span>
+                                <span class="status-pill status-active">Активен</span>
                             {% else %}
-                                <span class="status-pill danger">inactive</span>
+                                <span class="status-pill status-inactive">Неактивен</span>
                             {% endif %}
                         </td>
-                        <td>{{ source.created_at }}</td>
+
+                        <td>
+                            {{ source.created_at | display_datetime }}
+                        </td>
+
                         <td>
                             <div class="form-actions">
                                 {% if source.is_active %}
@@ -288,7 +304,7 @@
                                     method="post"
                                     onsubmit="return confirm('Полностью удалить этот RAG-источник? Это действие нельзя отменить.');"
                                 >
-                                    <button class="danger" type="submit">Удалить полностью</button>
+                                    <button class="danger" type="submit">Удалить</button>
                                 </form>
                             </div>
                         </td>

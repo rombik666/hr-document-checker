@@ -26,11 +26,83 @@ from app.services.user_service import UserService
 from app.services.rag_index_service import RagIndexService
 from app.services.rag_source_service import RagSourceService
 
+from datetime import datetime, timedelta, timezone
+
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/web", tags=["web"])
 templates = Jinja2Templates(directory="app/web/templates")
+
+def _value(value):
+    return getattr(value, "value", value)
+
+
+def _format_display_datetime(value) -> str:
+    if value is None:
+        return "—"
+
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return value
+
+    if not isinstance(value, datetime):
+        return str(value)
+
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+
+    local_value = value.astimezone()
+    now = datetime.now(local_value.tzinfo)
+
+    if local_value.date() == now.date():
+        return f"Сегодня, в {local_value:%H:%M}"
+
+    if local_value.date() == (now - timedelta(days=1)).date():
+        return f"Вчера, в {local_value:%H:%M}"
+
+    return local_value.strftime("%d.%m.%Y, %H:%M")
+
+
+def _report_status_label(value) -> str:
+    value = str(_value(value))
+
+    return {
+        "ready": "Готов",
+        "requires_revision": "Требует доработки",
+        "failed": "Ошибка проверки",
+        "draft": "Черновик",
+    }.get(value, value)
+
+
+def _source_type_label(value) -> str:
+    value = str(_value(value))
+
+    return {
+        "vacancy": "Вакансия",
+        "requirements": "Требования",
+        "checklist": "Чек-лист",
+        "policy": "Регламент",
+        "other": "Другое",
+    }.get(value, value)
+
+
+def _role_label(value) -> str:
+    value = str(_value(value))
+
+    return {
+        "candidate": "Кандидат",
+        "hr": "HR-специалист",
+        "admin": "Администратор",
+    }.get(value, value)
+
+
+templates.env.filters["display_datetime"] = _format_display_datetime
+templates.env.filters["report_status_label"] = _report_status_label
+templates.env.filters["source_type_label"] = _source_type_label
+templates.env.filters["role_label"] = _role_label
 
 
 def _template(

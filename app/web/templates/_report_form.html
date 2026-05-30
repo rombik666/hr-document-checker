@@ -29,20 +29,32 @@
         Поле можно оставить пустым. Если вакансия указана, отчёт дополнительно покажет закрытые и незакрытые требования.
     </p>
 
-    <label for="storage-mode">Режим хранения</label>
-    <select id="storage-mode" name="storage_mode">
-        <option value="temporary">temporary — сохранить отчёт в базе данных</option>
-        <option value="no_store">no_store — не сохранять отчёт после проверки</option>
-    </select>
+    <label>Сохранение результата</label>
+
+    <input
+        type="hidden"
+        name="storage_mode"
+        value="temporary"
+        data-storage-mode-input
+    >
+
+    <label class="checkbox-card">
+        <input
+            type="checkbox"
+            checked
+            data-storage-mode-toggle
+        >
+        <span>
+            <strong>Сохранить отчёт</strong>
+            <span class="muted small">
+                Отчёт появится в истории проверок. Персональные данные сохраняются только в маскированном виде.
+            </span>
+        </span>
+    </label>
 
     <div class="info">
         В режиме no_store отчёт не сохраняется в истории. В режиме temporary сохраняется маскированный отчёт,
         доступный только владельцу или администратору.
-    </div>
-
-    <div class="warning">
-        Для HR-пользователей при наличии готового RAG/FAISS-индекса система может использовать персональную базу знаний:
-        вакансии, чек-листы, правила и примеры сильных формулировок.
     </div>
 
     <div class="form-actions">

@@ -12,22 +12,25 @@
         <tbody>
         {% for item in reports %}
             <tr>
-                <td>
-                    <strong>{{ item.filename }}</strong>
-                    <div class="muted small">ID отчёта: {{ item.id }}</div>
+                <td class="filename-cell">
+                    <strong class="report-document-title">{{ item.filename }}</strong>
                 </td>
                 <td>
                     <span class="status-pill">
-                        {{ item.summary_status }}
+                        {{ item.summary_status | report_status_label }}
                     </span>
                 </td>
                 <td>
-                    <span>{{ item.created_at }}</span>
+                    {{ item.created_at | display_datetime }}
                 </td>
                 <td>
                     <div class="form-actions">
                         <a class="button ghost" href="/web/reports/{{ item.id }}">Открыть</a>
-                        <a class="button ghost" href="/api/v1/documents/reports/{{ item.id }}">JSON</a>
+
+                        {% if user and user.role == "admin" %}
+                            <a class="button ghost" href="/api/v1/documents/reports/{{ item.id }}">JSON</a>
+                        {% endif %}
+
                         <a class="button ghost" href="/api/v1/documents/reports/{{ item.id }}/export/docx">DOCX</a>
                     </div>
                 </td>
@@ -40,9 +43,8 @@
 <div class="empty-state">
     <h3>Сохранённых отчётов пока нет</h3>
     <p class="muted">
-        Здесь появятся проверки, выполненные в режиме temporary.
-        Отчёты no_store не сохраняются в истории.
+        Здесь появятся проверки, для которых включено сохранение отчёта.
     </p>
-    <a class="button" href="/web/dashboard">Создать первую проверку</a>
+    <a class="button" href="/web/dashboard#check-document">Создать первую проверку</a>
 </div>
 {% endif %}

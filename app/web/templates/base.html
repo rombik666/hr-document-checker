@@ -12,7 +12,15 @@
 <body>
 <header class="site-header">
     <nav class="site-nav">
-        <a class="brand" href="/web/dashboard">HR Document Checker</a>
+        <div class="brand-group">
+            <a class="brand" href="/web/dashboard">HR Document Checker</a>
+
+            {% if user and page_title != "Панель управления" %}
+                <a class="header-check-link" href="/web/dashboard#check-document">
+                    Проверить документ
+                </a>
+            {% endif %}
+        </div>
 
         <button
             class="nav-toggle"
@@ -52,7 +60,24 @@
 </main>
 
 <footer class="site-footer">
-    HR Document Checker — прототип системы проверки HR- и бизнес-документов с использованием ИИ-агентов.
+    <div class="footer-grid">
+        <div>
+            <strong>HR Document Checker</strong>
+            <p>
+                Прототип системы проверки HR- и бизнес-документов с использованием ИИ-агентов,
+                RAG и персональных FAISS-индексов.
+            </p>
+        </div>
+
+        <div>
+            <strong>Контакты</strong>
+            <p>
+                <a href="#" target="_blank" rel="noopener noreferrer">Email</a>
+                <span class="footer-separator">/</span>
+                <a href="#" target="_blank" rel="noopener noreferrer">Telegram</a>
+            </p>
+        </div>
+    </div>
 </footer>
 </body>
 </html>

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -53,6 +54,53 @@ class AdminStatusResponse(BaseModel):
     status: str
     service: str
     message: str
+
+
+class AdminRagIndexItem(BaseModel):
+    owner_user_id: str
+    owner_email: str | None = None
+    owner_full_name: str | None = None
+    owner_role: str | None = None
+
+    status: str
+    reindex_required: bool
+
+    sources_count: int
+    active_sources_count: int
+    inactive_sources_count: int
+    chunks_count: int
+
+    index_exists: bool
+    index_dir: str | None = None
+    index_path: str | None = None
+    chunks_path: str | None = None
+
+    sources_hash: str | None = None
+
+    embedding_backend: str | None = None
+    embedding_model_name: str | None = None
+    embedding_dimension: int | None = None
+    retriever_type: str | None = None
+
+    last_reindexed_at: datetime | None = None
+    error_message: str | None = None
+
+
+class AdminRagIndexesResponse(BaseModel):
+    indexes: list[AdminRagIndexItem] = Field(default_factory=list)
+    total: int
+    ready_count: int = 0
+    stale_count: int = 0
+    missing_count: int = 0
+    failed_count: int = 0
+    building_count: int = 0
+    reindex_required_count: int = 0
+
+
+class AdminRagIndexReindexResponse(BaseModel):
+    status: str
+    message: str
+    index: AdminRagIndexItem
 
 
 class BackupDocumentItem(BaseModel):

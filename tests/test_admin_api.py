@@ -42,6 +42,15 @@ def test_admin_roles_endpoint_returns_roles() -> None:
     assert "hr" in roles
     assert "admin" in roles
 
+    admin_permissions = next(
+        item["permissions"]
+        for item in data["roles"]
+        if item["role"] == "admin"
+    )
+
+    assert "list_rag_indexes" in admin_permissions
+    assert "reindex_any_rag_index" in admin_permissions
+
 
 def test_admin_database_status_endpoint_returns_diagnostics() -> None:
     response = client.get(

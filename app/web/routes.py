@@ -23,7 +23,7 @@ from app.services.document_processing_service import DocumentProcessingService
 from app.services.report_storage_service import ReportStorageService
 from app.services.user_service import UserService
 
-from app.rag.service import RagService
+from app.services.rag_index_service import RagIndexService
 from app.services.rag_source_service import RagSourceService
 
 
@@ -122,7 +122,7 @@ def _render_rag_sources_page(
     status_code: int = 200,
 ):
     source_service = RagSourceService(db)
-    rag_service = RagService()
+    rag_index_service = RagIndexService(db)
 
     sources = source_service.list_sources_for_user(
         user_id=user.id,
@@ -131,10 +131,8 @@ def _render_rag_sources_page(
         limit=1000,
     )
 
-    rag_status = rag_service.get_user_sources_status(
-        db=db,
-        user_id=user.id,
-        user_role=user.role,
+    rag_status = rag_index_service.get_user_status(
+        owner_user_id=user.id,
     )
 
     if user.role == "admin":
@@ -634,6 +632,51 @@ async def upload_web_rag_source(
         if temporary_path is not None and temporary_path.exists():
             temporary_path.unlink()
 
+
+@router.post("/rag/reindex")
+def reindex_web_rag_sources(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = _require_web_user(request, db)
+
+    if not _user_can_manage_rag_sources(user):
+        return _template(
+            request=request,
+            name="error.html",
+            context={
+                "page_title": "Доступ запрещён",
+                "user": user,
+                "status_code": 403,
+                "error": "RAG-источники доступны только HR-специалистам и администраторам.",
+            },
+            status_code=403,
+        )
+
+    try:
+        rag_index = RagIndexService(db).reindex_user_sources(
+            owner_user_id=user.id,
+        )
+
+    except Exception as error:
+        return _render_rag_sources_page(
+            request=request,
+            db=db,
+            user=user,
+            error=f"Ошибка переиндексации RAG: {error}",
+            status_code=500,
+        )
+
+    return _render_rag_sources_page(
+        request=request,
+        db=db,
+        user=user,
+        success=(
+            "RAG-индекс переиндексирован. "
+            f"Активных источников: {rag_index.sources_count}, "
+            f"чанков: {rag_index.chunks_count}."
+        ),
+    )
 
 @router.post("/rag/sources/{source_id}/delete")
 def delete_web_rag_source(

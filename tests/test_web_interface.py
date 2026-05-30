@@ -8,7 +8,7 @@ from tests.auth_helpers import auth_headers
 
 from sqlalchemy import delete
 
-from app.db.models import RagSourceORM
+from app.db.models import RagIndexORM, RagSourceORM
 from app.db.session import SessionLocal
 
 
@@ -169,12 +169,33 @@ def _cleanup_web_rag_sources() -> None:
     db = SessionLocal()
 
     try:
+        sources = (
+            db.query(RagSourceORM)
+            .filter(RagSourceORM.filename.like("%web_rag_ui_test%"))
+            .all()
+        )
+
+        owner_user_ids = {
+            source.owner_user_id
+            for source in sources
+            if source.owner_user_id is not None
+        }
+
         db.execute(
             delete(RagSourceORM).where(
                 RagSourceORM.filename.like("%web_rag_ui_test%")
             )
         )
+
+        for owner_user_id in owner_user_ids:
+            db.execute(
+                delete(RagIndexORM).where(
+                    RagIndexORM.owner_user_id == owner_user_id,
+                )
+            )
+
         db.commit()
+
     finally:
         db.close()
 
@@ -208,9 +229,11 @@ def test_web_rag_sources_page_returns_hr_ui() -> None:
     )
 
     assert response.status_code == 200
-    assert "RAG-источники компании" in response.text
+    assert "RAG-источники" in response.text
     assert "Загрузить источник" in response.text
     assert "Загруженные источники" in response.text
+    assert "Статус FAISS-индекса" in response.text
+    assert "Переиндексировать" in response.text
 
 
 def test_web_hr_can_upload_rag_source(tmp_path: Path) -> None:
@@ -463,6 +486,52 @@ def test_web_hr_can_permanently_delete_rag_source(tmp_path: Path) -> None:
 
         finally:
             db.close()
+
+    finally:
+        _cleanup_web_rag_sources()
+
+def test_web_hr_can_reindex_rag_sources(tmp_path: Path) -> None:
+    _cleanup_web_rag_sources()
+
+    headers = auth_headers(client, "hr")
+    file_path = tmp_path / "web_rag_ui_test_reindex.txt"
+
+    file_path.write_text(
+        "Источник для переиндексации через Web UI: Python, FastAPI, PostgreSQL.",
+        encoding="utf-8",
+    )
+
+    try:
+        with file_path.open("rb") as file:
+            upload_response = client.post(
+                "/web/rag/sources/upload",
+                headers=headers,
+                data={
+                    "title": "Web RAG UI reindex source",
+                    "source_type": "requirements",
+                },
+                files={
+                    "file": (
+                        file_path.name,
+                        file,
+                        "text/plain",
+                    )
+                },
+            )
+
+        assert upload_response.status_code == 200
+        assert "stale" in upload_response.text
+        assert "Переиндексировать" in upload_response.text
+
+        reindex_response = client.post(
+            "/web/rag/reindex",
+            headers=headers,
+        )
+
+        assert reindex_response.status_code == 200
+        assert "RAG-индекс переиндексирован" in reindex_response.text
+        assert "ready" in reindex_response.text
+        assert "Web RAG UI reindex source" in reindex_response.text
 
     finally:
         _cleanup_web_rag_sources()

@@ -15,7 +15,7 @@ from app.rag.chunker import TextChunker
 from app.rag.embedding_factory import create_embedding_model
 from app.rag.embedding_model import EmbeddingModel
 from app.rag.faiss_store import FaissVectorStore
-from app.schemas.rag import RagContext, RagSearchRequest, RagSource
+from app.schemas.rag import RagContext, RagSearchRequest, RagSource, RagStatus
 
 
 class RagIndexNotReadyError(Exception):
@@ -404,6 +404,95 @@ class RagIndexService:
             )
 
         return rag_index
+    
+    def get_user_status(self, owner_user_id: str) -> RagStatus:
+        """
+        Возвращает статус персонального FAISS-индекса пользователя.
+
+        """
+
+        all_sources = self.list_sources(
+            owner_user_id=owner_user_id,
+            include_inactive=True,
+        )
+        active_sources = [
+            source
+            for source in all_sources
+            if source.is_active
+        ]
+
+        rag_index = self.get_or_create_index(owner_user_id)
+
+        current_sources_hash = self.calculate_sources_hash(active_sources)
+
+        index_path, chunks_path = self.get_user_index_paths(owner_user_id)
+
+        if rag_index.index_path:
+            index_path = Path(rag_index.index_path)
+
+        if rag_index.chunks_path:
+            chunks_path = Path(rag_index.chunks_path)
+
+        index_exists = index_path.exists() and chunks_path.exists()
+
+        if (
+            rag_index.status == RagIndexStatus.READY.value
+            and (
+                rag_index.reindex_required
+                or rag_index.sources_hash != current_sources_hash
+                or not index_exists
+            )
+        ):
+            rag_index = self.mark_index_stale(owner_user_id)
+            index_exists = index_path.exists() and chunks_path.exists()
+
+        reindex_required = (
+            rag_index.status != RagIndexStatus.READY.value
+            or rag_index.reindex_required
+            or rag_index.sources_hash != current_sources_hash
+            or not index_exists
+        )
+
+        return RagStatus(
+            mode="per_user_faiss",
+            source_backend="database+filesystem",
+            user_scope="current_user",
+            knowledge_base_dir=str(settings.rag_index_dir),
+            sources_count=len(all_sources),
+            active_sources_count=len(active_sources),
+            inactive_sources_count=len(all_sources) - len(active_sources),
+            chunks_count=rag_index.chunks_count,
+            retriever_type=rag_index.retriever_type,
+            embedding_dimension=rag_index.embedding_dimension,
+            embedding_backend=rag_index.embedding_backend,
+            embedding_model_name=rag_index.embedding_model_name,
+            index_dir=str(self.get_user_index_dir(owner_user_id)),
+            index_exists=index_exists,
+            reindex_required=reindex_required,
+            index_status=rag_index.status,
+            index_owner_user_id=owner_user_id,
+            index_path=rag_index.index_path,
+            chunks_path=rag_index.chunks_path,
+            sources_hash=rag_index.sources_hash,
+            last_reindexed_at=rag_index.last_reindexed_at,
+            index_error=rag_index.error_message,
+        )
+
+    def list_sources(
+        self,
+        owner_user_id: str,
+        include_inactive: bool = False,
+    ) -> list[RagSourceORM]:
+        stmt = select(RagSourceORM).where(
+            RagSourceORM.owner_user_id == owner_user_id,
+        )
+
+        if not include_inactive:
+            stmt = stmt.where(RagSourceORM.is_active.is_(True))
+
+        stmt = stmt.order_by(RagSourceORM.created_at.desc())
+
+        return list(self.db.execute(stmt).scalars().all())   
 
     def list_active_sources(self, owner_user_id: str) -> list[RagSourceORM]:
         stmt = (

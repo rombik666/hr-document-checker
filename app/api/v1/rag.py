@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import require_hr_or_admin
 from app.db.models import UserORM
 from app.db.session import get_db
-from app.rag.service import RagService
 from app.schemas.rag import (
     RagContext,
     RagSearchRequest,
@@ -93,12 +92,10 @@ def get_rag_status(
     current_user: UserORM = Depends(require_hr_or_admin),
     db: Session = Depends(get_db),
 ) -> RagStatus:
-    service = RagService()
+    service = RagIndexService(db)
 
-    return service.get_user_sources_status(
-        db=db,
-        user_id=current_user.id,
-        user_role=current_user.role,
+    return service.get_user_status(
+        owner_user_id=current_user.id,
     )
 
 

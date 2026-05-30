@@ -48,9 +48,9 @@ class RagContext(BaseModel):
 
 
 class RagStatus(BaseModel):
-    mode: str = "db_sources"
-    source_backend: str = "database"
-    user_scope: str = "user"
+    mode: str = "per_user_faiss"
+    source_backend: str = "database+filesystem"
+    user_scope: str = "current_user"
 
     knowledge_base_dir: str | None = None
     sources_count: int
@@ -66,6 +66,14 @@ class RagStatus(BaseModel):
     index_dir: str | None = None
     index_exists: bool = False
     reindex_required: bool = False
+
+    index_status: str = "missing"
+    index_owner_user_id: str | None = None
+    index_path: str | None = None
+    chunks_path: str | None = None
+    sources_hash: str | None = None
+    last_reindexed_at: datetime | None = None
+    index_error: str | None = None
 
 
 class RagSourceInfo(BaseModel):

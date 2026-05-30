@@ -2,16 +2,75 @@
 
 {% block content %}
 <div class="card">
-    <h1>RAG-источники компании</h1>
+    <h2>Статус FAISS-индекса</h2>
+
     <p>
-        Здесь HR-специалист может загрузить корпоративные документы: вакансии,
-        чек-листы, регламенты и требования. Эти источники используются системой
-        как RAG-контекст при проверке резюме.
+        <strong>Статус индекса:</strong>
+        {% if rag_status.index_status == "ready" %}
+            <span class="badge">ready</span>
+        {% elif rag_status.index_status == "stale" %}
+            <span class="badge warning">stale</span>
+        {% elif rag_status.index_status == "failed" %}
+            <span class="badge danger">failed</span>
+        {% elif rag_status.index_status == "building" %}
+            <span class="badge warning">building</span>
+        {% else %}
+            <span class="muted">missing</span>
+        {% endif %}
+    </p>
+
+    <p><strong>Режим:</strong> {{ rag_status.mode }}</p>
+    <p><strong>Хранилище:</strong> {{ rag_status.source_backend }}</p>
+    <p><strong>Область доступа:</strong> {{ rag_status.user_scope }}</p>
+
+    <p><strong>Всего источников:</strong> {{ rag_status.sources_count }}</p>
+    <p><strong>Активных:</strong> {{ rag_status.active_sources_count }}</p>
+    <p><strong>Неактивных:</strong> {{ rag_status.inactive_sources_count }}</p>
+    <p><strong>Чанков в индексе:</strong> {{ rag_status.chunks_count }}</p>
+
+    <p><strong>Retriever:</strong> {{ rag_status.retriever_type }}</p>
+    <p><strong>Embedding backend:</strong> {{ rag_status.embedding_backend }}</p>
+    <p><strong>Embedding model:</strong> {{ rag_status.embedding_model_name }}</p>
+    <p><strong>Embedding dimension:</strong> {{ rag_status.embedding_dimension }}</p>
+
+    <p>
+        <strong>Требуется переиндексация:</strong>
+        {% if rag_status.reindex_required %}
+            <span class="badge warning">да</span>
+        {% else %}
+            <span class="badge">нет</span>
+        {% endif %}
     </p>
 
     <p>
-        <a class="button secondary" href="/web/dashboard">Вернуться на панель</a>
-        <a class="button secondary" href="/api/v1/rag/status">Открыть RAG status API</a>
+        <strong>Файлы индекса:</strong>
+        {% if rag_status.index_exists %}
+            <span class="badge">есть</span>
+        {% else %}
+            <span class="muted">нет</span>
+        {% endif %}
+    </p>
+
+    <p><strong>Последняя индексация:</strong> {{ rag_status.last_reindexed_at or "ещё не выполнялась" }}</p>
+
+    {% if rag_status.index_error %}
+        <p class="error">
+            <strong>Ошибка индекса:</strong> {{ rag_status.index_error }}
+        </p>
+    {% endif %}
+
+    <form
+        action="/web/rag/reindex"
+        method="post"
+        onsubmit="return confirm('Переиндексировать активные RAG-источники?');"
+    >
+        <button type="submit">Переиндексировать</button>
+    </form>
+
+    <p class="muted">
+        После загрузки, включения, отключения или удаления источника индекс получает
+        статус stale. Для использования источников в поиске и отчётах нажмите
+        «Переиндексировать».
     </p>
 </div>
 

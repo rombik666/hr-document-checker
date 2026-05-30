@@ -11,6 +11,11 @@ from app.schemas.common import Severity
 from app.schemas.documents import ParsedDocument
 from app.schemas.rag import RagContext, RagSearchRequest
 
+from time import perf_counter
+
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 class SemanticCheckCoordinator:
     """
@@ -54,6 +59,8 @@ class SemanticCheckCoordinator:
         user_id: str | None = None,
         user_role: str | None = None,
     ) -> SemanticCheckResponse:
+        rag_started_at = perf_counter()
+
         rag_context = self._build_rag_context(
             document=document,
             vacancy_text=vacancy_text,
@@ -62,14 +69,33 @@ class SemanticCheckCoordinator:
             user_role=user_role,
         )
 
+        logger.info(
+            "semantic_rag_context_built document_id=%s user_role=%s results=%s duration_ms=%.3f",
+            document.metadata.document_id,
+            user_role,
+            len(rag_context.results),
+            (perf_counter() - rag_started_at) * 1000,
+        )
+
         check_results: list[CheckResult] = []
 
         for agent in self.agents:
+            agent_started_at = perf_counter()
+
             result = agent.run(
                 document=document,
                 rag_context=rag_context,
                 vacancy_text=vacancy_text,
             )
+
+            logger.info(
+                "semantic_agent_completed document_id=%s agent=%s issues=%s duration_ms=%.3f",
+                document.metadata.document_id,
+                agent.__class__.__name__,
+                len(result.issues),
+                (perf_counter() - agent_started_at) * 1000,
+            )
+
             check_results.append(result)
 
         issues = self._collect_issues(check_results)

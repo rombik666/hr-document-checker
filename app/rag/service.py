@@ -1,17 +1,17 @@
 from pathlib import Path
 
+from sqlalchemy.orm import Session
+
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.rag.chunker import TextChunker
 from app.rag.embedding_factory import create_embedding_model
+from app.rag.embedding_model import EmbeddingModel
 from app.rag.faiss_store import FaissVectorStore
 from app.rag.knowledge_loader import KnowledgeLoader
 from app.rag.retriever import SimpleRagRetriever
 from app.rag.vector_store import InMemoryVectorStore
 from app.schemas.rag import RagContext, RagSearchRequest, RagStatus
-
-from sqlalchemy.orm import Session
-
 from app.services.rag_source_service import RagSourceService
 
 
@@ -21,10 +21,10 @@ logger = get_logger(__name__)
 class RagService:
 
     def __init__(
-    self,
-    knowledge_base_dir: Path | None = None,
-    index_dir: Path | None = None,
-    use_vector_search: bool | None = None,
+        self,
+        knowledge_base_dir: Path | None = None,
+        index_dir: Path | None = None,
+        use_vector_search: bool | None = None,
     ) -> None:
         self.knowledge_base_dir = knowledge_base_dir or settings.knowledge_base_dir
 
@@ -48,7 +48,17 @@ class RagService:
             overlap_chars=settings.rag_chunk_overlap_chars,
         )
         self.simple_retriever = SimpleRagRetriever()
-        self.embedding_model = create_embedding_model()
+
+        # Важно: не self.embedding_model.
+        # embedding_model ниже является @property без setter.
+        self._embedding_model: EmbeddingModel | None = None
+
+    @property
+    def embedding_model(self) -> EmbeddingModel:
+        if self._embedding_model is None:
+            self._embedding_model = create_embedding_model()
+
+        return self._embedding_model
 
     def search(self, request: RagSearchRequest) -> RagContext:
         retriever = self.retriever_type.lower().strip()
@@ -68,13 +78,12 @@ class RagService:
         )
 
     def search_user_sources(
-    self,
-    request: RagSearchRequest,
-    db: Session,
-    user_id: str,
-    user_role: str,
+        self,
+        request: RagSearchRequest,
+        db: Session,
+        user_id: str,
+        user_role: str,
     ) -> RagContext:
-
         source_service = RagSourceService(db)
 
         sources = source_service.load_active_rag_sources_for_user(
@@ -121,14 +130,13 @@ class RagService:
             query=request.query,
             results=results,
         )
-    
-    def get_user_sources_status(
-    self,
-    db: Session,
-    user_id: str,
-    user_role: str,
-    ) -> RagStatus:
 
+    def get_user_sources_status(
+        self,
+        db: Session,
+        user_id: str,
+        user_role: str,
+    ) -> RagStatus:
         source_service = RagSourceService(db)
 
         all_sources = source_service.list_sources_for_user(
@@ -167,7 +175,7 @@ class RagService:
             inactive_sources_count=len(all_sources) - len(active_sources),
             chunks_count=len(chunks),
             retriever_type=self.retriever_type.lower().strip(),
-            embedding_dimension=self.embedding_model.dimension,
+            embedding_dimension=settings.rag_embedding_dimension,
             embedding_backend=settings.rag_embedding_backend,
             embedding_model_name=embedding_model_name,
             index_dir=None,
@@ -200,7 +208,6 @@ class RagService:
             embedding_model=self.embedding_model,
             index_dir=self.index_dir,
         )
-
         vector_store.save()
 
     def _search_in_memory_vector(self, request: RagSearchRequest):
@@ -240,7 +247,7 @@ class RagService:
             sources_count=len(sources),
             chunks_count=len(chunks),
             retriever_type=retriever,
-            embedding_dimension=self.embedding_model.dimension,
+            embedding_dimension=settings.rag_embedding_dimension,
             embedding_backend=settings.rag_embedding_backend,
             embedding_model_name=(
                 settings.rag_embedding_model_name
@@ -249,4 +256,5 @@ class RagService:
             ),
             index_dir=str(self.index_dir),
             index_exists=index_exists,
+            reindex_required=not index_exists and retriever == "faiss",
         )

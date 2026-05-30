@@ -110,7 +110,7 @@ class SemanticCheckCoordinator:
         return self.rag_service.search_user_sources(
             request=RagSearchRequest(
                 query=rag_query,
-                top_k=3,
+                top_k=2,
             ),
             db=db,
             user_id=user_id,

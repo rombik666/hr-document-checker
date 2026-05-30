@@ -119,11 +119,11 @@ class LlmSemanticAgent:
         document_text = document.raw_text[:3000]
 
         rag_fragments = "\n\n".join(
-            f"[{index + 1}] {result.text}"
-            for index, result in enumerate(rag_context.results)
+            f"[{index + 1}] {result.text[:700]}"
+            for index, result in enumerate(rag_context.results[:2])
         )
 
-        vacancy_block = vacancy_text or "No vacancy text provided."
+        vacancy_block = (vacancy_text or "No vacancy text provided.")[:1000]
 
         return f"""
 Return only valid JSON with the following structure:

@@ -11,6 +11,7 @@ from app.db.models import (
     DocumentSectionORM,
     IssueORM,
     ProcessingSessionORM,
+    RagSourceORM,
     RecommendationORM,
     ReportORM,
 )
@@ -85,6 +86,23 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
             owner_user_id="user-1",
         )
 
+        source_db.add(
+            RagSourceORM(
+                id="backup-rag-source-1",
+                owner_user_id=None,
+                title="Backup RAG source",
+                filename="backup_rag_source.txt",
+                source_type="requirements",
+                source_format="txt",
+                content="Требования: Python, FastAPI, PostgreSQL.",
+                content_hash="hash-backup-rag-source-1",
+                file_size_bytes=128,
+                is_active=True,
+                source_metadata={"content_length": 38},
+            )
+        )
+        source_db.commit()
+
         backup_payload = BackupService(source_db).create_backup_payload()
 
         assert backup_payload["backup_version"] == "2.0"
@@ -95,10 +113,16 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
         assert len(backup_payload["checks"]) > 0
         assert len(backup_payload["issues"]) > 0
         assert len(backup_payload["recommendations"]) > 0
+        assert len(backup_payload["rag_sources"]) == 1
 
         assert backup_payload["documents"][0]["owner_user_id"] == "user-1"
         assert backup_payload["reports"][0]["owner_user_id"] == "user-1"
         assert backup_payload["processing_sessions"][0]["owner_user_id"] == "user-1"
+
+        assert backup_payload["rag_sources"][0]["id"] == "backup-rag-source-1"
+        assert backup_payload["rag_sources"][0]["owner_user_id"] is None
+        assert backup_payload["rag_sources"][0]["file_size_bytes"] == 128
+        assert backup_payload["rag_sources"][0]["is_active"] is True
 
     finally:
         source_db.close()
@@ -115,6 +139,7 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
         assert result["restored_checks"] == len(backup_payload["checks"])
         assert result["restored_issues"] == len(backup_payload["issues"])
         assert result["restored_recommendations"] == len(backup_payload["recommendations"])
+        assert result["restored_rag_sources"] == 1
 
         assert count_rows(target_db, DocumentORM) == 1
         assert count_rows(target_db, DocumentSectionORM) == 1
@@ -125,6 +150,7 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
         assert count_rows(target_db, RecommendationORM) == len(
             backup_payload["recommendations"]
         )
+        assert count_rows(target_db, RagSourceORM) == 1
 
         restored_payload = BackupService(target_db).create_backup_payload()
 
@@ -132,6 +158,10 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
         assert restored_payload["documents"][0]["owner_user_id"] == "user-1"
         assert restored_payload["reports"][0]["owner_user_id"] == "user-1"
         assert restored_payload["processing_sessions"][0]["owner_user_id"] == "user-1"
+
+        assert restored_payload["rag_sources"][0]["id"] == "backup-rag-source-1"
+        assert restored_payload["rag_sources"][0]["owner_user_id"] is None
+        assert restored_payload["rag_sources"][0]["file_size_bytes"] == 128
 
     finally:
         target_db.close()
@@ -168,6 +198,7 @@ def test_backup_restore_is_idempotent() -> None:
 
         assert first_result["restored_documents"] == 1
         assert first_result["restored_reports"] == 1
+        assert first_result["restored_rag_sources"] == 0
 
         assert second_result["restored_documents"] == 0
         assert second_result["restored_document_sections"] == 0
@@ -176,9 +207,11 @@ def test_backup_restore_is_idempotent() -> None:
         assert second_result["restored_checks"] == 0
         assert second_result["restored_issues"] == 0
         assert second_result["restored_recommendations"] == 0
+        assert second_result["restored_rag_sources"] == 0
 
         assert count_rows(target_db, DocumentORM) == 1
         assert count_rows(target_db, ReportORM) == 1
+        assert count_rows(target_db, RagSourceORM) == 0
 
     finally:
         target_db.close()

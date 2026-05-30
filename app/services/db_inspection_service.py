@@ -10,6 +10,7 @@ from app.db.models import (
     DocumentSectionORM,
     IssueORM,
     ProcessingSessionORM,
+    RagSourceORM,
     RecommendationORM,
     ReportORM,
 )
@@ -74,6 +75,16 @@ class DbInspectionService:
                 "example_fix",
             ],
         ),
+        (
+            RagSourceORM,
+            "rag_sources",
+            [
+                "title",
+                "filename",
+                "content",
+                "source_metadata",
+            ],
+        ),
     ]
 
     def __init__(self, db: Session) -> None:
@@ -82,11 +93,19 @@ class DbInspectionService:
     def get_database_status(self) -> dict[str, Any]:
         documents_count = self.db.query(DocumentORM).count()
         reports_count = self.db.query(ReportORM).count()
+        rag_sources_count = self.db.query(RagSourceORM).count()
+        active_rag_sources_count = (
+            self.db.query(RagSourceORM)
+            .filter(RagSourceORM.is_active.is_(True))
+            .count()
+        )
 
         return {
             "database_available": True,
             "documents_count": documents_count,
             "reports_count": reports_count,
+            "rag_sources_count": rag_sources_count,
+            "active_rag_sources_count": active_rag_sources_count,
             "raw_text_column_exists": self._raw_text_column_exists(),
             "pii_masking_expected": True,
             "long_term_storage_contains_source_files": False,
@@ -201,6 +220,7 @@ class DbInspectionService:
             CheckORM,
             IssueORM,
             RecommendationORM,
+            RagSourceORM,
         ]
 
         for model in inspected_models:

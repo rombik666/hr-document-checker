@@ -7,6 +7,8 @@ class DatabaseStatusResponse(BaseModel):
     database_available: bool
     documents_count: int
     reports_count: int
+    rag_sources_count: int = 0
+    active_rag_sources_count: int = 0
     raw_text_column_exists: bool
     pii_masking_expected: bool
     long_term_storage_contains_source_files: bool
@@ -138,6 +140,22 @@ class BackupRecommendationItem(BaseModel):
     priority_order: int = 0
 
 
+class BackupRagSourceItem(BaseModel):
+    id: str
+    owner_user_id: str | None = None
+    title: str
+    filename: str
+    source_type: str
+    source_format: str
+    content: str
+    content_hash: str
+    file_size_bytes: int = 0
+    is_active: bool = True
+    source_metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
 class BackupPayload(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
@@ -151,6 +169,7 @@ class BackupPayload(BaseModel):
                 "checks": [],
                 "issues": [],
                 "recommendations": [],
+                "rag_sources": [],
             }
         }
     )
@@ -165,6 +184,7 @@ class BackupPayload(BaseModel):
     checks: list[BackupCheckItem] = Field(default_factory=list)
     issues: list[BackupIssueItem] = Field(default_factory=list)
     recommendations: list[BackupRecommendationItem] = Field(default_factory=list)
+    rag_sources: list[BackupRagSourceItem] = Field(default_factory=list)
 
 
 class BackupRestoreResponse(BaseModel):
@@ -175,3 +195,4 @@ class BackupRestoreResponse(BaseModel):
     restored_checks: int
     restored_issues: int
     restored_recommendations: int
+    restored_rag_sources: int = 0

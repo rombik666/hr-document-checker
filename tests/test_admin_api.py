@@ -1,13 +1,10 @@
 from fastapi.testclient import TestClient
-
-from tests.auth_helpers import auth_headers
-from tests.auth_helpers import admin_auth_headers
-from app.main import app
-
 from sqlalchemy import delete
 
-from app.db.models import DocumentORM
+from app.db.models import DocumentORM, RagSourceORM
 from app.db.session import SessionLocal
+from app.main import app
+from tests.auth_helpers import admin_auth_headers, auth_headers
 
 
 client = TestClient(app)
@@ -15,7 +12,7 @@ client = TestClient(app)
 
 def test_admin_status_endpoint_returns_ok() -> None:
     response = client.get(
-        "/api/v1/admin/status", 
+        "/api/v1/admin/status",
         headers=admin_auth_headers(client),
     )
 
@@ -59,6 +56,8 @@ def test_admin_database_status_endpoint_returns_diagnostics() -> None:
     assert data["database_available"] is True
     assert "documents_count" in data
     assert "reports_count" in data
+    assert "rag_sources_count" in data
+    assert "active_rag_sources_count" in data
     assert data["raw_text_column_exists"] is False
 
 
@@ -78,6 +77,7 @@ def test_admin_privacy_check_endpoint_returns_result() -> None:
     assert "unmasked_phone_count" in data
     assert data["raw_text_column_exists"] is False
 
+
 def test_admin_backup_endpoint_returns_normalized_payload() -> None:
     response = client.get(
         "/api/v1/admin/backup",
@@ -96,6 +96,7 @@ def test_admin_backup_endpoint_returns_normalized_payload() -> None:
     assert "checks" in data
     assert "issues" in data
     assert "recommendations" in data
+    assert "rag_sources" in data
 
 
 def test_admin_restore_endpoint_accepts_empty_backup_payload() -> None:
@@ -109,6 +110,7 @@ def test_admin_restore_endpoint_accepts_empty_backup_payload() -> None:
         "checks": [],
         "issues": [],
         "recommendations": [],
+        "rag_sources": [],
     }
 
     response = client.post(
@@ -128,6 +130,7 @@ def test_admin_restore_endpoint_accepts_empty_backup_payload() -> None:
     assert data["restored_checks"] == 0
     assert data["restored_issues"] == 0
     assert data["restored_recommendations"] == 0
+    assert data["restored_rag_sources"] == 0
 
 
 def test_admin_backup_endpoint_forbids_non_admin_user() -> None:
@@ -137,6 +140,7 @@ def test_admin_backup_endpoint_forbids_non_admin_user() -> None:
     )
 
     assert response.status_code == 403
+
 
 def test_admin_restore_endpoint_rejects_invalid_backup_payload() -> None:
     payload = {
@@ -153,6 +157,7 @@ def test_admin_restore_endpoint_rejects_invalid_backup_payload() -> None:
         "checks": [],
         "issues": [],
         "recommendations": [],
+        "rag_sources": [],
     }
 
     response = client.post(
@@ -162,6 +167,7 @@ def test_admin_restore_endpoint_rejects_invalid_backup_payload() -> None:
     )
 
     assert response.status_code == 422
+
 
 def test_admin_restore_endpoint_accepts_current_backup_payload() -> None:
     backup_response = client.get(
@@ -188,6 +194,8 @@ def test_admin_restore_endpoint_accepts_current_backup_payload() -> None:
     assert "restored_checks" in data
     assert "restored_issues" in data
     assert "restored_recommendations" in data
+    assert "restored_rag_sources" in data
+
 
 def test_admin_restore_endpoint_rejects_swagger_placeholder_payload() -> None:
     payload = {
@@ -211,6 +219,7 @@ def test_admin_restore_endpoint_rejects_swagger_placeholder_payload() -> None:
         "checks": [],
         "issues": [],
         "recommendations": [],
+        "rag_sources": [],
     }
 
     response = client.post(
@@ -268,5 +277,68 @@ def test_admin_privacy_check_detects_unmasked_normalized_storage_value() -> None
 
     finally:
         db.execute(delete(DocumentORM).where(DocumentORM.id == document_id))
+        db.commit()
+        db.close()
+
+
+def test_admin_privacy_check_detects_unmasked_rag_source_value() -> None:
+    db = SessionLocal()
+    source_id = "privacy-check-leak-rag-source"
+
+    try:
+        db.execute(delete(RagSourceORM).where(RagSourceORM.id == source_id))
+
+        db.add(
+            RagSourceORM(
+                id=source_id,
+                owner_user_id=None,
+                title="RAG source with ivan@example.com",
+                filename="rag_source.txt",
+                source_type="requirements",
+                source_format="txt",
+                content="Контакт HR: ivan@example.com, телефон +7 999 123-45-67.",
+                content_hash="privacy-check-rag-source-hash",
+                file_size_bytes=128,
+                is_active=True,
+                source_metadata={},
+            )
+        )
+
+        db.commit()
+
+        response = client.get(
+            "/api/v1/admin/storage/privacy-check",
+            headers=admin_auth_headers(client),
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["passed"] is False
+        assert data["unmasked_email_count"] >= 1
+        assert data["unmasked_phone_count"] >= 1
+        assert "rag_sources" in data["checked_tables"]
+
+        findings = data["findings"]
+
+        assert any(
+            finding["table_name"] == "rag_sources"
+            and finding["column_name"] in {"title", "content"}
+            and finding["record_id"] == source_id
+            and finding["finding_type"] == "email"
+            for finding in findings
+        )
+
+        assert any(
+            finding["table_name"] == "rag_sources"
+            and finding["column_name"] == "content"
+            and finding["record_id"] == source_id
+            and finding["finding_type"] == "phone"
+            for finding in findings
+        )
+
+    finally:
+        db.execute(delete(RagSourceORM).where(RagSourceORM.id == source_id))
         db.commit()
         db.close()

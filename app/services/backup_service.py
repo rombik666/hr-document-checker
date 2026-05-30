@@ -9,8 +9,10 @@ from app.db.models import (
     DocumentSectionORM,
     IssueORM,
     ProcessingSessionORM,
+    RagSourceORM,
     RecommendationORM,
     ReportORM,
+    UserORM,
 )
 
 
@@ -20,7 +22,7 @@ class BackupService:
 
     Backup v2.0 сохраняет нормализованную ER-схему:
     documents, document_sections, processing_sessions,
-    reports, checks, issues, recommendations.
+    reports, checks, issues, recommendations, rag_sources.
     """
 
     def __init__(self, db: Session) -> None:
@@ -34,6 +36,7 @@ class BackupService:
         checks = self.db.query(CheckORM).all()
         issues = self.db.query(IssueORM).all()
         recommendations = self.db.query(RecommendationORM).all()
+        rag_sources = self.db.query(RagSourceORM).all()
 
         return {
             "backup_version": "2.0",
@@ -137,6 +140,24 @@ class BackupService:
                 }
                 for recommendation in recommendations
             ],
+            "rag_sources": [
+                {
+                    "id": source.id,
+                    "owner_user_id": source.owner_user_id,
+                    "title": source.title,
+                    "filename": source.filename,
+                    "source_type": source.source_type,
+                    "source_format": source.source_format,
+                    "content": source.content,
+                    "content_hash": source.content_hash,
+                    "file_size_bytes": source.file_size_bytes,
+                    "is_active": source.is_active,
+                    "source_metadata": source.source_metadata,
+                    "created_at": self._datetime_to_iso(source.created_at),
+                    "updated_at": self._datetime_to_iso(source.updated_at),
+                }
+                for source in rag_sources
+            ],
         }
 
     def restore_from_payload(self, payload: dict[str, Any]) -> dict[str, int]:
@@ -145,7 +166,7 @@ class BackupService:
 
         Порядок восстановления соответствует внешним ключам:
         documents -> document_sections -> processing_sessions -> reports
-        -> checks -> issues -> recommendations.
+        -> checks -> issues -> recommendations -> rag_sources.
         """
 
         restored_documents = self._restore_documents(payload)
@@ -167,6 +188,9 @@ class BackupService:
         self.db.flush()
 
         restored_recommendations = self._restore_recommendations(payload)
+        self.db.flush()
+
+        restored_rag_sources = self._restore_rag_sources(payload)
 
         self.db.commit()
 
@@ -178,6 +202,7 @@ class BackupService:
             "restored_checks": restored_checks,
             "restored_issues": restored_issues,
             "restored_recommendations": restored_recommendations,
+            "restored_rag_sources": restored_rag_sources,
         }
 
     def _restore_documents(self, payload: dict[str, Any]) -> int:
@@ -362,6 +387,41 @@ class BackupService:
             )
 
             self.db.add(recommendation)
+            restored += 1
+
+        return restored
+
+    def _restore_rag_sources(self, payload: dict[str, Any]) -> int:
+        restored = 0
+
+        for source_data in payload.get("rag_sources", []):
+            source_id = source_data["id"]
+
+            if self.db.get(RagSourceORM, source_id) is not None:
+                continue
+
+            owner_user_id = source_data.get("owner_user_id")
+
+            if owner_user_id is not None and self.db.get(UserORM, owner_user_id) is None:
+                owner_user_id = None
+
+            rag_source = RagSourceORM(
+                id=source_id,
+                owner_user_id=owner_user_id,
+                title=source_data["title"],
+                filename=source_data["filename"],
+                source_type=source_data.get("source_type", "other"),
+                source_format=source_data["source_format"],
+                content=source_data["content"],
+                content_hash=source_data["content_hash"],
+                file_size_bytes=source_data.get("file_size_bytes", 0),
+                is_active=source_data.get("is_active", True),
+                source_metadata=source_data.get("source_metadata") or {},
+                created_at=self._parse_datetime_or_now(source_data.get("created_at")),
+                updated_at=self._parse_datetime_or_now(source_data.get("updated_at")),
+            )
+
+            self.db.add(rag_source)
             restored += 1
 
         return restored

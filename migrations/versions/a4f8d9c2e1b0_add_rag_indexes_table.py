@@ -1,10 +1,3 @@
-"""add rag indexes table
-
-Revision ID: a4f8d9c2e1b0
-Revises: 88eb23782b4a
-Create Date: 2026-05-30 18:30:00.000000
-
-"""
 from typing import Sequence, Union
 
 from alembic import op
@@ -12,7 +5,7 @@ import sqlalchemy as sa
 
 
 revision: str = "a4f8d9c2e1b0"
-down_revision: Union[str, Sequence[str], None] = "88eb23782b4a"
+down_revision: Union[str, Sequence[str], None] = "a4c9d8e1b2f3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

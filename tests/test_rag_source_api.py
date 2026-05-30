@@ -407,3 +407,114 @@ def test_rag_source_upload_rejects_user_storage_quota_exceeded(
 
     finally:
         _cleanup_rag_sources()
+
+def test_hr_can_activate_deactivated_rag_source(tmp_path: Path) -> None:
+    _cleanup_rag_sources()
+
+    headers = auth_headers(client, "hr")
+
+    file_path = tmp_path / "rag_api_test_activate.txt"
+    file_path.write_text(
+        "Источник для повторного включения.",
+        encoding="utf-8",
+    )
+
+    try:
+        with file_path.open("rb") as file:
+            upload_response = client.post(
+                "/api/v1/rag/sources/upload",
+                headers=headers,
+                data={
+                    "title": "Activate source",
+                    "source_type": "other",
+                },
+                files={
+                    "file": (
+                        file_path.name,
+                        file,
+                        "text/plain",
+                    )
+                },
+            )
+
+        assert upload_response.status_code == 200
+        source_id = upload_response.json()["source"]["source_id"]
+
+        deactivate_response = client.delete(
+            f"/api/v1/rag/sources/{source_id}",
+            headers=headers,
+        )
+
+        assert deactivate_response.status_code == 200
+
+        activate_response = client.post(
+            f"/api/v1/rag/sources/{source_id}/activate",
+            headers=headers,
+        )
+
+        assert activate_response.status_code == 200
+        assert activate_response.json()["success"] is True
+        assert activate_response.json()["action"] == "activate"
+
+        details_response = client.get(
+            f"/api/v1/rag/sources/{source_id}",
+            headers=headers,
+        )
+
+        assert details_response.status_code == 200
+        assert details_response.json()["is_active"] is True
+
+    finally:
+        _cleanup_rag_sources()
+
+
+def test_hr_can_permanently_delete_own_rag_source(tmp_path: Path) -> None:
+    _cleanup_rag_sources()
+
+    headers = auth_headers(client, "hr")
+
+    file_path = tmp_path / "rag_api_test_permanent_delete.txt"
+    file_path.write_text(
+        "Источник для полного удаления.",
+        encoding="utf-8",
+    )
+
+    try:
+        with file_path.open("rb") as file:
+            upload_response = client.post(
+                "/api/v1/rag/sources/upload",
+                headers=headers,
+                data={
+                    "title": "Permanent delete source",
+                    "source_type": "other",
+                },
+                files={
+                    "file": (
+                        file_path.name,
+                        file,
+                        "text/plain",
+                    )
+                },
+            )
+
+        assert upload_response.status_code == 200
+        source_id = upload_response.json()["source"]["source_id"]
+
+        delete_response = client.delete(
+            f"/api/v1/rag/sources/{source_id}/permanent",
+            headers=headers,
+        )
+
+        assert delete_response.status_code == 200
+        assert delete_response.json()["success"] is True
+        assert delete_response.json()["action"] == "permanent_delete"
+
+        details_response = client.get(
+            f"/api/v1/rag/sources/{source_id}",
+            headers=headers,
+        )
+
+        assert details_response.status_code == 404
+
+    finally:
+        _cleanup_rag_sources()

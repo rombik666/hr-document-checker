@@ -334,3 +334,135 @@ def test_web_rag_source_upload_rejects_unsupported_format(tmp_path: Path) -> Non
 
     assert response.status_code == 400
     assert "Поддерживаются только RAG-источники" in response.text
+
+def test_web_hr_can_activate_deactivated_rag_source(tmp_path: Path) -> None:
+    _cleanup_web_rag_sources()
+
+    headers = auth_headers(client, "hr")
+    file_path = tmp_path / "web_rag_ui_test_activate.txt"
+
+    file_path.write_text(
+        "Источник для включения через Web UI.",
+        encoding="utf-8",
+    )
+
+    try:
+        with file_path.open("rb") as file:
+            upload_response = client.post(
+                "/web/rag/sources/upload",
+                headers=headers,
+                data={
+                    "title": "Web RAG UI activate source",
+                    "source_type": "other",
+                },
+                files={
+                    "file": (
+                        file_path.name,
+                        file,
+                        "text/plain",
+                    )
+                },
+            )
+
+        assert upload_response.status_code == 200
+
+        db = SessionLocal()
+
+        try:
+            source = (
+                db.query(RagSourceORM)
+                .filter(RagSourceORM.filename == "web_rag_ui_test_activate.txt")
+                .one()
+            )
+
+            source_id = source.id
+
+        finally:
+            db.close()
+
+        deactivate_response = client.post(
+            f"/web/rag/sources/{source_id}/delete",
+            headers=headers,
+        )
+
+        assert deactivate_response.status_code == 200
+        assert "RAG-источник отключён" in deactivate_response.text
+
+        activate_response = client.post(
+            f"/web/rag/sources/{source_id}/activate",
+            headers=headers,
+        )
+
+        assert activate_response.status_code == 200
+        assert "RAG-источник включён" in activate_response.text
+        assert "active" in activate_response.text
+
+    finally:
+        _cleanup_web_rag_sources()
+
+
+def test_web_hr_can_permanently_delete_rag_source(tmp_path: Path) -> None:
+    _cleanup_web_rag_sources()
+
+    headers = auth_headers(client, "hr")
+    file_path = tmp_path / "web_rag_ui_test_permanent_delete.txt"
+
+    file_path.write_text(
+        "Источник для полного удаления через Web UI.",
+        encoding="utf-8",
+    )
+
+    try:
+        with file_path.open("rb") as file:
+            upload_response = client.post(
+                "/web/rag/sources/upload",
+                headers=headers,
+                data={
+                    "title": "Web RAG UI permanent delete source",
+                    "source_type": "other",
+                },
+                files={
+                    "file": (
+                        file_path.name,
+                        file,
+                        "text/plain",
+                    )
+                },
+            )
+
+        assert upload_response.status_code == 200
+
+        db = SessionLocal()
+
+        try:
+            source = (
+                db.query(RagSourceORM)
+                .filter(RagSourceORM.filename == "web_rag_ui_test_permanent_delete.txt")
+                .one()
+            )
+
+            source_id = source.id
+
+        finally:
+            db.close()
+
+        delete_response = client.post(
+            f"/web/rag/sources/{source_id}/permanent-delete",
+            headers=headers,
+        )
+
+        assert delete_response.status_code == 200
+        assert "RAG-источник полностью удалён" in delete_response.text
+        assert "Web RAG UI permanent delete source" not in delete_response.text
+
+        db = SessionLocal()
+
+        try:
+            deleted_source = db.get(RagSourceORM, source_id)
+            assert deleted_source is None
+
+        finally:
+            db.close()
+
+    finally:
+        _cleanup_web_rag_sources()

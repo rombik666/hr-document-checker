@@ -134,3 +134,9 @@ class UserRagSourceDeleteResponse(BaseModel):
     source_id: str
     deleted: bool
     message: str
+
+class UserRagSourceActionResponse(BaseModel):
+    source_id: str
+    action: str
+    success: bool
+    message: str

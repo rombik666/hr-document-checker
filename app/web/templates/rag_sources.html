@@ -131,13 +131,27 @@
                             <form
                                 action="/web/rag/sources/{{ source.id }}/delete"
                                 method="post"
-                                onsubmit="return confirm('Отключить этот RAG-источник?');"
+                                onsubmit="return confirm('Отключить этот RAG-источник? Он останется в истории, но перестанет участвовать в поиске.');"
                             >
-                                <button class="button danger" type="submit">Отключить</button>
+                                <button class="button secondary" type="submit">Отключить</button>
                             </form>
                         {% else %}
-                            <span class="muted">Отключён</span>
+                            <form
+                                action="/web/rag/sources/{{ source.id }}/activate"
+                                method="post"
+                                onsubmit="return confirm('Включить этот RAG-источник снова?');"
+                            >
+                                <button type="submit">Включить</button>
+                            </form>
                         {% endif %}
+
+                        <form
+                            action="/web/rag/sources/{{ source.id }}/permanent-delete"
+                            method="post"
+                            onsubmit="return confirm('Полностью удалить этот RAG-источник? Это действие нельзя отменить.');"
+                        >
+                            <button class="button danger" type="submit">Удалить полностью</button>
+                        </form>
                     </td>
                 </tr>
             {% endfor %}

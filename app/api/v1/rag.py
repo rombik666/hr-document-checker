@@ -13,6 +13,7 @@ from app.schemas.rag import (
     RagContext,
     RagSearchRequest,
     RagStatus,
+    UserRagSourceActionResponse,
     UserRagSourceDeleteResponse,
     UserRagSourceDetails,
     UserRagSourcesListResponse,
@@ -237,4 +238,77 @@ def delete_rag_source(
         source_id=source_id,
         deleted=True,
         message="RAG source was deactivated.",
+    )
+
+@router.post("/sources/{source_id}/activate", response_model=UserRagSourceActionResponse)
+def activate_rag_source(
+    source_id: str,
+    current_user: UserORM = Depends(require_hr_or_admin),
+    db: Session = Depends(get_db),
+) -> UserRagSourceActionResponse:
+    """
+    Повторно включает ранее деактивированный RAG-источник.
+
+    При включении снова проверяется квота активных источников пользователя.
+    """
+
+    service = RagSourceService(db)
+
+    try:
+        activated = service.activate_source_for_user(
+            source_id=source_id,
+            user_id=current_user.id,
+            user_role=current_user.role,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    if not activated:
+        raise HTTPException(
+            status_code=404,
+            detail="RAG source not found.",
+        )
+
+    return UserRagSourceActionResponse(
+        source_id=source_id,
+        action="activate",
+        success=True,
+        message="RAG source was activated.",
+    )
+
+@router.delete("/sources/{source_id}/permanent", response_model=UserRagSourceActionResponse)
+def permanently_delete_rag_source(
+    source_id: str,
+    current_user: UserORM = Depends(require_hr_or_admin),
+    db: Session = Depends(get_db),
+) -> UserRagSourceActionResponse:
+    """
+    Полностью удаляет RAG-источник из БД.
+
+    Использовать осторожно: запись физически удаляется из rag_sources.
+    """
+
+    service = RagSourceService(db)
+
+    deleted = service.permanently_delete_source_for_user(
+        source_id=source_id,
+        user_id=current_user.id,
+        user_role=current_user.role,
+    )
+
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail="RAG source not found.",
+        )
+
+    return UserRagSourceActionResponse(
+        source_id=source_id,
+        action="permanent_delete",
+        success=True,
+        message="RAG source was permanently deleted.",
     )

@@ -679,6 +679,105 @@ def delete_web_rag_source(
         success="RAG-источник отключён.",
     )
 
+@router.post("/rag/sources/{source_id}/activate")
+def activate_web_rag_source(
+    source_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = _require_web_user(request, db)
+
+    if not _user_can_manage_rag_sources(user):
+        return _template(
+            request=request,
+            name="error.html",
+            context={
+                "page_title": "Доступ запрещён",
+                "user": user,
+                "status_code": 403,
+                "error": "RAG-источники доступны только HR-специалистам и администраторам.",
+            },
+            status_code=403,
+        )
+
+    source_service = RagSourceService(db)
+
+    try:
+        activated = source_service.activate_source_for_user(
+            source_id=source_id,
+            user_id=user.id,
+            user_role=user.role,
+        )
+
+    except ValueError as error:
+        return _render_rag_sources_page(
+            request=request,
+            db=db,
+            user=user,
+            error=str(error),
+            status_code=400,
+        )
+
+    if not activated:
+        return _render_rag_sources_page(
+            request=request,
+            db=db,
+            user=user,
+            error="RAG-источник не найден или недоступен.",
+            status_code=404,
+        )
+
+    return _render_rag_sources_page(
+        request=request,
+        db=db,
+        user=user,
+        success="RAG-источник включён.",
+    )
+
+@router.post("/rag/sources/{source_id}/permanent-delete")
+def permanently_delete_web_rag_source(
+    source_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = _require_web_user(request, db)
+
+    if not _user_can_manage_rag_sources(user):
+        return _template(
+            request=request,
+            name="error.html",
+            context={
+                "page_title": "Доступ запрещён",
+                "user": user,
+                "status_code": 403,
+                "error": "RAG-источники доступны только HR-специалистам и администраторам.",
+            },
+            status_code=403,
+        )
+
+    source_service = RagSourceService(db)
+    deleted = source_service.permanently_delete_source_for_user(
+        source_id=source_id,
+        user_id=user.id,
+        user_role=user.role,
+    )
+
+    if not deleted:
+        return _render_rag_sources_page(
+            request=request,
+            db=db,
+            user=user,
+            error="RAG-источник не найден или недоступен.",
+            status_code=404,
+        )
+
+    return _render_rag_sources_page(
+        request=request,
+        db=db,
+        user=user,
+        success="RAG-источник полностью удалён.",
+    )
+
 @router.post("/report")
 async def build_report_page(
     request: Request,

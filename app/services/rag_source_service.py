@@ -176,6 +176,57 @@ class RagSourceService:
         self.db.commit()
 
         return True
+    
+    def activate_source_for_user(
+        self,
+        source_id: str,
+        user_id: str,
+        user_role: str,
+    ) -> bool:
+        source = self.get_source_for_user(
+            source_id=source_id,
+            user_id=user_id,
+            user_role=user_role,
+        )
+
+        if source is None:
+            return False
+
+        if source.is_active:
+            return True
+
+        if source.owner_user_id is not None:
+            self._validate_user_storage_quota(
+                owner_user_id=source.owner_user_id,
+                new_file_size_bytes=source.file_size_bytes,
+            )
+
+        source.is_active = True
+        source.updated_at = datetime.now(timezone.utc)
+
+        self.db.commit()
+
+        return True
+
+    def permanently_delete_source_for_user(
+        self,
+        source_id: str,
+        user_id: str,
+        user_role: str,
+    ) -> bool:
+        source = self.get_source_for_user(
+            source_id=source_id,
+            user_id=user_id,
+            user_role=user_role,
+        )
+
+        if source is None:
+            return False
+
+        self.db.delete(source)
+        self.db.commit()
+
+        return True
 
     def load_active_rag_sources_for_user(
         self,

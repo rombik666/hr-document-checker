@@ -39,7 +39,6 @@
                     <a href="/web/admin">Администрирование</a>
                 {% endif %}
 
-                <a href="/web/logout">Выйти</a>
                 <span class="badge">{{ user.role }}</span>
             {% else %}
                 <a href="/web/login">Войти</a>
@@ -54,24 +53,54 @@
 </main>
 
 <footer class="site-footer">
-    <div class="footer-card">
-        <div>
-            <span class="badge">HR Document Checker</span>
-            <h2>Система проверки HR-документов</h2>
-            <p>
-                Прототип сервиса для анализа резюме, сопроводительных писем и HR-документов
-                с использованием ИИ-агентов, RAG и персональных FAISS-индексов.
-            </p>
+    <div class="site-footer-inner">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <div class="footer-logo">HR Document Checker</div>
+                <p>
+                    Сервис проверки резюме, сопроводительных писем и HR-документов
+                    с использованием ИИ-агентов, RAG и FAISS.
+                </p>
+            </div>
+
+            <div class="footer-column">
+                <h3>Сервис</h3>
+                <ul>
+                    <li><a href="/web/dashboard">Главная</a></li>
+                    <li><a href="/web/reports">История</a></li>
+                    <li><a href="/web/profile">Профиль</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h3>Разделы</h3>
+                <ul>
+                    <li><a href="/web/rag/sources">RAG-источники</a></li>
+                    <li><a href="/docs">Swagger API</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h3>Контакты</h3>
+                <ul>
+                    <li><a href="#">Email</a></li>
+                    <li><a href="#">Telegram</a></li>
+                </ul>
+            </div>
         </div>
 
-        <div class="footer-contacts">
-            <strong>Контакты</strong>
-            <p class="muted">
-                Ссылки можно заменить в шаблоне на реальные контакты проекта.
-            </p>
-            <div class="form-actions">
-                <a class="button ghost" href="#" target="_blank" rel="noopener noreferrer">Email</a>
-                <a class="button ghost" href="#" target="_blank" rel="noopener noreferrer">Telegram</a>
+        <div class="footer-bottom">
+            <div class="footer-socials">
+                <a href="#" aria-label="Email">
+                    <img src="/static/icons/envelope.svg" alt="">
+                </a>
+                <a href="#" aria-label="Telegram">
+                    <img src="/static/icons/telegram.svg" alt="">
+                </a>
+            </div>
+
+            <div class="footer-copy">
+                © 2026 HR Document Checker
             </div>
         </div>
     </div>

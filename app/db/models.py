@@ -373,3 +373,65 @@ class ReportORM(Base):
     processing_session: Mapped[ProcessingSessionORM | None] = relationship(
         back_populates="reports",
     )
+
+class RagSourceORM(Base):
+
+    __tablename__ = "rag_sources"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+
+    owner_user_id: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    source_type: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        default="other",
+        index=True,
+    )
+
+    source_format: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        index=True,
+    )
+
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+
+    content_hash: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        index=True,
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        index=True,
+    )
+
+    source_metadata: Mapped[dict] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )

@@ -220,3 +220,56 @@ def test_rag_source_service_loads_sources_as_rag_sources(
         db.execute(delete(RagSourceORM).where(RagSourceORM.owner_user_id == "hr-user-1"))
         db.commit()
         db.close()
+
+def test_rag_source_service_rejects_storage_quota_exceeded(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    db = SessionLocal()
+
+    monkeypatch.setattr(
+        RagSourceService,
+        "MAX_USER_STORAGE_BYTES",
+        100,
+    )
+
+    first_file = tmp_path / "quota_first.txt"
+    second_file = tmp_path / "quota_second.txt"
+
+    first_file.write_text("x" * 80, encoding="utf-8")
+    second_file.write_text("x" * 30, encoding="utf-8")
+
+    try:
+        service = RagSourceService(db)
+
+        first_source = service.create_source_from_file(
+            file_path=first_file,
+            original_filename="quota_first.txt",
+            owner_user_id="hr-quota-user",
+            title="Quota first",
+            source_type="other",
+        )
+
+        assert first_source.file_size_bytes == 80
+
+        try:
+            service.create_source_from_file(
+                file_path=second_file,
+                original_filename="quota_second.txt",
+                owner_user_id="hr-quota-user",
+                title="Quota second",
+                source_type="other",
+            )
+        except ValueError as error:
+            assert "storage quota exceeded" in str(error)
+        else:
+            raise AssertionError("Expected quota exceeded error.")
+
+    finally:
+        db.execute(
+            delete(RagSourceORM).where(
+                RagSourceORM.owner_user_id == "hr-quota-user"
+            )
+        )
+        db.commit()
+        db.close()

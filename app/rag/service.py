@@ -121,6 +121,59 @@ class RagService:
             query=request.query,
             results=results,
         )
+    
+    def get_user_sources_status(
+    self,
+    db: Session,
+    user_id: str,
+    user_role: str,
+    ) -> RagStatus:
+
+        source_service = RagSourceService(db)
+
+        all_sources = source_service.list_sources_for_user(
+            user_id=user_id,
+            user_role=user_role,
+            include_inactive=True,
+            limit=1000,
+        )
+
+        active_sources = [
+            source
+            for source in all_sources
+            if source.is_active
+        ]
+
+        rag_sources = [
+            source_service.to_rag_source(source)
+            for source in active_sources
+        ]
+
+        chunks = self.chunker.chunk_sources(rag_sources)
+
+        embedding_model_name = (
+            settings.rag_embedding_model_name
+            if settings.rag_embedding_backend == "sentence_transformer"
+            else "hashing"
+        )
+
+        return RagStatus(
+            mode="db_sources",
+            source_backend="database",
+            user_scope="all" if user_role == "admin" else "own",
+            knowledge_base_dir=None,
+            sources_count=len(all_sources),
+            active_sources_count=len(active_sources),
+            inactive_sources_count=len(all_sources) - len(active_sources),
+            chunks_count=len(chunks),
+            retriever_type=self.retriever_type.lower().strip(),
+            embedding_dimension=self.embedding_model.dimension,
+            embedding_backend=settings.rag_embedding_backend,
+            embedding_model_name=embedding_model_name,
+            index_dir=None,
+            index_exists=False,
+            reindex_required=False,
+        )
 
     def _search_faiss(self, request: RagSearchRequest):
         if not FaissVectorStore.index_exists(self.index_dir):

@@ -4,9 +4,6 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import require_admin
 from app.db.models import UserORM
 from app.db.session import get_db
-from app.core.config import settings
-from app.rag.index_builder import RagIndexBuilder
-from app.rag.knowledge_loader import KnowledgeLoader
 from app.rag.service import RagService
 from app.schemas.rag import (
     RagReindexResponse,
@@ -29,6 +26,7 @@ from app.services.db_inspection_service import DbInspectionService
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.services.rag_source_service import RagSourceService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -110,35 +108,41 @@ def run_storage_privacy_check(
 
 @router.get("/rag/status", response_model=RagStatus)
 def get_admin_rag_status(
+    db: Session = Depends(get_db),
     current_user: UserORM = Depends(require_admin),
 ) -> RagStatus:
-    """
-    Возвращает технический статус RAG-подсистемы для администратора.
-    """
-
     service = RagService()
-    return service.get_status()
+
+    return service.get_user_sources_status(
+        db=db,
+        user_id=current_user.id,
+        user_role=current_user.role,
+    )
 
 
 @router.get("/rag/sources", response_model=RagSourcesResponse)
 def list_admin_rag_sources(
+    db: Session = Depends(get_db),
     current_user: UserORM = Depends(require_admin),
 ) -> RagSourcesResponse:
-    """
-    Возвращает список источников базы знаний без полного текста источников.
-    """
 
-    loader = KnowledgeLoader()
-    sources = loader.load_sources(settings.knowledge_base_dir)
+    service = RagSourceService(db)
+
+    sources = service.list_sources_for_user(
+        user_id=current_user.id,
+        user_role=current_user.role,
+        include_inactive=True,
+        limit=1000,
+    )
 
     return RagSourcesResponse(
-        knowledge_base_dir=str(settings.knowledge_base_dir),
+        knowledge_base_dir="database://rag_sources",
         sources_count=len(sources),
         sources=[
             RagSourceInfo(
-                source_id=source.source_id,
+                source_id=source.id,
                 title=source.title,
-                path=source.path,
+                path=f"db://rag_sources/{source.id}",
                 content_length=len(source.content),
             )
             for source in sources
@@ -148,23 +152,47 @@ def list_admin_rag_sources(
 
 @router.post("/rag/reindex", response_model=RagReindexResponse)
 def reindex_admin_rag(
+    db: Session = Depends(get_db),
     current_user: UserORM = Depends(require_admin),
 ) -> RagReindexResponse:
-    """
-    Перестраивает FAISS-индекс RAG-базы знаний.
-    """
 
-    result = RagIndexBuilder().build()
+    rag_service = RagService()
+    source_service = RagSourceService(db)
+
+    sources = source_service.list_sources_for_user(
+        user_id=current_user.id,
+        user_role=current_user.role,
+        include_inactive=True,
+        limit=1000,
+    )
+
+    active_sources = [
+        source
+        for source in sources
+        if source.is_active
+    ]
+
+    rag_sources = [
+        source_service.to_rag_source(source)
+        for source in active_sources
+    ]
+
+    chunks = rag_service.chunker.chunk_sources(rag_sources)
 
     return RagReindexResponse(
-        status="completed",
-        knowledge_base_dir=result["knowledge_base_dir"],
-        index_dir=result["index_dir"],
-        sources_count=result["sources_count"],
-        chunks_count=result["chunks_count"],
-        embedding_dimension=result.get("embedding_dimension"),
-        index_path=result["index_path"],
-        chunks_path=result["chunks_path"],
+        status="not_required",
+        message=(
+            "DB-backed RAG uses dynamic in-memory retrieval; "
+            "FAISS reindex is not required."
+        ),
+        mode="db_sources",
+        source_backend="database",
+        sources_count=len(sources),
+        active_sources_count=len(active_sources),
+        chunks_count=len(chunks),
+        embedding_dimension=rag_service.embedding_model.dimension,
+        index_path=None,
+        chunks_path=None,
     )
 
 

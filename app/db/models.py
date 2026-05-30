@@ -411,6 +411,12 @@ class RagSourceORM(Base):
         index=True,
     )
 
+    file_size_bytes: Mapped[int] = mapped_column(
+    Integer,
+    nullable=False,
+    default=0,
+    )
+
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,

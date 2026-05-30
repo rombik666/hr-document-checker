@@ -8,6 +8,8 @@ from app.db.session import SessionLocal
 from app.main import app
 from tests.auth_helpers import admin_auth_headers, auth_headers
 
+from io import BytesIO
+
 
 client = TestClient(app)
 
@@ -317,3 +319,91 @@ def test_rag_source_upload_rejects_unsupported_format(tmp_path: Path) -> None:
 
     assert response.status_code == 400
     assert "Unsupported RAG source format" in response.json()["detail"]
+
+def test_rag_source_upload_rejects_file_larger_than_15_mb() -> None:
+    headers = auth_headers(client, "hr")
+
+    oversized_content = b"x" * (15 * 1024 * 1024 + 1)
+
+    response = client.post(
+        "/api/v1/rag/sources/upload",
+        headers=headers,
+        data={
+            "title": "Oversized source",
+            "source_type": "other",
+        },
+        files={
+            "file": (
+                "oversized_rag_source.txt",
+                BytesIO(oversized_content),
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 413
+    assert "Maximum allowed file size is 15 MB" in response.json()["detail"]
+
+
+def test_rag_source_upload_rejects_user_storage_quota_exceeded(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    _cleanup_rag_sources()
+
+    monkeypatch.setattr(
+        "app.services.rag_source_service.RagSourceService.MAX_USER_STORAGE_BYTES",
+        100,
+    )
+
+    headers = auth_headers(client, "hr")
+
+    first_file = tmp_path / "rag_api_test_quota_first.txt"
+    first_file.write_text("x" * 80, encoding="utf-8")
+
+    second_file = tmp_path / "rag_api_test_quota_second.txt"
+    second_file.write_text("x" * 30, encoding="utf-8")
+
+    try:
+        with first_file.open("rb") as file:
+            first_response = client.post(
+                "/api/v1/rag/sources/upload",
+                headers=headers,
+                data={
+                    "title": "Quota first source",
+                    "source_type": "other",
+                },
+                files={
+                    "file": (
+                        first_file.name,
+                        file,
+                        "text/plain",
+                    )
+                },
+            )
+
+        assert first_response.status_code == 200
+        assert first_response.json()["source"]["file_size_bytes"] == 80
+
+        with second_file.open("rb") as file:
+            second_response = client.post(
+                "/api/v1/rag/sources/upload",
+                headers=headers,
+                data={
+                    "title": "Quota second source",
+                    "source_type": "other",
+                },
+                files={
+                    "file": (
+                        second_file.name,
+                        file,
+                        "text/plain",
+                    )
+                },
+            )
+
+        assert second_response.status_code == 400
+        assert "storage quota exceeded" in second_response.json()["detail"]
+
+    finally:
+        _cleanup_rag_sources()

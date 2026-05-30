@@ -3,7 +3,7 @@ from hashlib import sha256
 from pathlib import Path
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.privacy import mask_text
@@ -20,6 +20,9 @@ class RagSourceService:
     """
     Сервис управления пользовательскими RAG-источниками.
 
+    Используется для документов, которые HR/admin явно загружает
+    в корпоративную RAG-базу знаний: вакансии, чек-листы,
+    регламенты, требования к оформлению документов.
     """
 
     SUPPORTED_SUFFIXES = {
@@ -37,6 +40,9 @@ class RagSourceService:
         "other",
     }
 
+    MAX_SINGLE_FILE_SIZE_BYTES = 15 * 1024 * 1024
+    MAX_USER_STORAGE_BYTES = 100 * 1024 * 1024
+
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -47,8 +53,22 @@ class RagSourceService:
         owner_user_id: str,
         title: str | None = None,
         source_type: str = "other",
+        file_size_bytes: int | None = None,
     ) -> RagSourceORM:
         suffix = self._validate_suffix(file_path)
+
+        actual_file_size_bytes = (
+            file_size_bytes
+            if file_size_bytes is not None
+            else file_path.stat().st_size
+        )
+
+        self._validate_single_file_size(actual_file_size_bytes)
+        self._validate_user_storage_quota(
+            owner_user_id=owner_user_id,
+            new_file_size_bytes=actual_file_size_bytes,
+        )
+
         normalized_source_type = self._normalize_source_type(source_type)
 
         extracted_content = self._extract_content(file_path)
@@ -75,10 +95,12 @@ class RagSourceService:
             source_format=suffix.lstrip("."),
             content=sanitized_content,
             content_hash=content_hash,
+            file_size_bytes=actual_file_size_bytes,
             is_active=True,
             source_metadata={
                 "original_suffix": suffix,
                 "content_length": len(sanitized_content),
+                "file_size_bytes": actual_file_size_bytes,
             },
             created_at=now,
             updated_at=now,
@@ -172,6 +194,15 @@ class RagSourceService:
             for source in sources
         ]
 
+    def get_active_storage_usage_bytes(self, owner_user_id: str) -> int:
+        value = self.db.execute(
+            select(func.coalesce(func.sum(RagSourceORM.file_size_bytes), 0))
+            .where(RagSourceORM.owner_user_id == owner_user_id)
+            .where(RagSourceORM.is_active.is_(True))
+        ).scalar_one()
+
+        return int(value or 0)
+
     @staticmethod
     def user_can_access_source(
         source: RagSourceORM,
@@ -192,6 +223,7 @@ class RagSourceService:
             source_type=source.source_type,
             source_format=source.source_format,
             content_length=len(source.content),
+            file_size_bytes=source.file_size_bytes,
             is_active=source.is_active,
             created_at=source.created_at,
             updated_at=source.updated_at,
@@ -207,6 +239,7 @@ class RagSourceService:
             source_format=source.source_format,
             content=source.content,
             content_length=len(source.content),
+            file_size_bytes=source.file_size_bytes,
             content_hash=source.content_hash,
             is_active=source.is_active,
             metadata=source.source_metadata,
@@ -246,6 +279,28 @@ class RagSourceService:
             )
 
         return normalized
+
+    @classmethod
+    def _validate_single_file_size(cls, file_size_bytes: int) -> None:
+        if file_size_bytes > cls.MAX_SINGLE_FILE_SIZE_BYTES:
+            raise ValueError(
+                "RAG source file is too large. "
+                "Maximum allowed file size is 15 MB."
+            )
+
+    def _validate_user_storage_quota(
+        self,
+        owner_user_id: str,
+        new_file_size_bytes: int,
+    ) -> None:
+        current_usage_bytes = self.get_active_storage_usage_bytes(owner_user_id)
+        projected_usage_bytes = current_usage_bytes + new_file_size_bytes
+
+        if projected_usage_bytes > self.MAX_USER_STORAGE_BYTES:
+            raise ValueError(
+                "RAG source storage quota exceeded. "
+                "Maximum total active storage per HR user is 100 MB."
+            )
 
     @staticmethod
     def _extract_content(file_path: Path) -> str:

@@ -24,12 +24,23 @@ from app.services.rag_source_service import RagSourceService
 router = APIRouter(prefix="/rag", tags=["rag"])
 
 
-async def _save_upload_to_temp_file(file: UploadFile, suffix: str) -> Path:
+async def _save_upload_to_temp_file(file: UploadFile, suffix: str) -> tuple[Path, int]:
+    content = await file.read()
+    file_size_bytes = len(content)
+
+    if file_size_bytes > RagSourceService.MAX_SINGLE_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                "RAG source file is too large. "
+                "Maximum allowed file size is 15 MB."
+            ),
+        )
+
     with NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
-        content = await file.read()
         temporary_file.write(content)
 
-        return Path(temporary_file.name)
+        return Path(temporary_file.name), file_size_bytes
 
 
 def _validate_rag_source_filename(filename: str) -> str:
@@ -66,9 +77,15 @@ def search_rag_context(
 @router.get("/status", response_model=RagStatus)
 def get_rag_status(
     current_user: UserORM = Depends(require_hr_or_admin),
+    db: Session = Depends(get_db),
 ) -> RagStatus:
     service = RagService()
-    return service.get_status()
+
+    return service.get_user_sources_status(
+        db=db,
+        user_id=current_user.id,
+        user_role=current_user.role,
+    )
 
 
 @router.post("/sources/upload", response_model=UserRagSourceUploadResponse)
@@ -98,7 +115,10 @@ async def upload_rag_source(
     temporary_path: Path | None = None
 
     try:
-        temporary_path = await _save_upload_to_temp_file(file, suffix)
+        temporary_path, file_size_bytes = await _save_upload_to_temp_file(
+            file,
+            suffix,
+        )
 
         service = RagSourceService(db)
         source = service.create_source_from_file(
@@ -107,6 +127,7 @@ async def upload_rag_source(
             owner_user_id=current_user.id,
             title=title,
             source_type=source_type,
+            file_size_bytes=file_size_bytes,
         )
 
         return UserRagSourceUploadResponse(
@@ -120,7 +141,7 @@ async def upload_rag_source(
         ) from error
 
     finally:
-        if temporary_path and temporary_path.exists():
+        if temporary_path is not None and temporary_path.exists():
             temporary_path.unlink()
 
 

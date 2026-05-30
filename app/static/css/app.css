@@ -647,3 +647,126 @@ summary {
         font-size: 30px;
     }
 }
+
+.nav-toggle[aria-expanded="true"] {
+    color: var(--primary-dark);
+    background: var(--primary-soft);
+    border-color: rgba(37, 99, 235, 0.32);
+}
+
+.file-drop.has-file {
+    border-color: var(--success);
+    background: var(--success-soft);
+}
+
+.file-drop-name {
+    margin-top: 10px;
+    padding: 9px 11px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+}
+
+button.is-loading,
+.button.is-loading {
+    opacity: 0.78;
+    cursor: wait;
+    transform: none;
+}
+
+button.is-loading:hover,
+.button.is-loading:hover {
+    transform: none;
+}
+
+.card .card {
+    box-shadow: none;
+}
+
+.card.compact + .card.compact {
+    margin-top: 12px;
+}
+
+ul {
+    margin-top: 8px;
+    padding-left: 22px;
+}
+
+li + li {
+    margin-top: 6px;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 18px 0;
+}
+
+.table-wrap .form-actions {
+    gap: 8px;
+    margin-top: 0;
+}
+
+.table-wrap .form-actions form,
+.table-wrap .form-actions button,
+.table-wrap .form-actions .button {
+    margin-top: 0;
+}
+
+.table-wrap button,
+.table-wrap .button {
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+@media (max-width: 720px) {
+    .hero {
+        padding: 24px;
+    }
+
+    .metric-card strong,
+    .metric-value {
+        font-size: 22px;
+        word-break: break-word;
+    }
+
+    .table-wrap {
+        border-radius: 14px;
+    }
+
+    .table-wrap table {
+        min-width: 760px;
+    }
+
+    .file-drop {
+        padding: 18px;
+    }
+}
+
+@media (max-width: 420px) {
+    .brand {
+        font-size: 15px;
+    }
+
+    .brand::before {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+    }
+
+    .nav-toggle {
+        min-height: 36px;
+        padding: 7px 10px;
+        font-size: 14px;
+    }
+
+    .page-shell {
+        margin-top: 20px;
+    }
+
+    .hero,
+    .card {
+        padding: 18px;
+    }
+}

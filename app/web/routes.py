@@ -328,6 +328,90 @@ def show_profile(
         },
     )
 
+@router.get("/reports")
+def show_reports_history(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = _get_current_web_user(request, db)
+
+    if user is None:
+        return _redirect("/web/login")
+
+    storage_service = ReportStorageService(db)
+    reports = storage_service.list_report_records_for_user(
+        user_id=user.id,
+        user_role=user.role,
+        limit=100,
+    )
+
+    return _template(
+        request=request,
+        name="reports_history.html",
+        context={
+            "page_title": "История проверок",
+            "user": user,
+            "reports": reports,
+        },
+    )
+
+
+@router.get("/reports/{report_id}")
+def show_saved_report(
+    report_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = _get_current_web_user(request, db)
+
+    if user is None:
+        return _redirect("/web/login")
+
+    storage_service = ReportStorageService(db)
+
+    if not storage_service.user_can_access_report(
+        report_id=report_id,
+        user_id=user.id,
+        user_role=user.role,
+    ):
+        return _template(
+            request=request,
+            name="error.html",
+            context={
+                "page_title": "Доступ запрещён",
+                "user": user,
+                "status_code": 403,
+                "error": "Недостаточно прав для просмотра этого отчёта.",
+            },
+            status_code=403,
+        )
+
+    report = storage_service.get_report(report_id)
+
+    if report is None:
+        return _template(
+            request=request,
+            name="error.html",
+            context={
+                "page_title": "Отчёт не найден",
+                "user": user,
+                "status_code": 404,
+                "error": "Отчёт не найден.",
+            },
+            status_code=404,
+        )
+
+    report.technical_info.metadata["saved_to_db"] = True
+
+    return _template(
+        request=request,
+        name="report.html",
+        context={
+            "page_title": "Сохранённый отчёт",
+            "user": user,
+            "report": report,
+        },
+    )
 
 @router.post("/report")
 async def build_report_page(

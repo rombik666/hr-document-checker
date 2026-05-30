@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1>История проверок</h1>
+    <p>
+        Здесь отображаются сохранённые отчёты. Кандидат и HR видят только свои проверки,
+        администратор видит отчёты всех пользователей.
+    </p>
+
+    <a class="button secondary" href="/web/dashboard">Вернуться на панель</a>
+</div>
+
+<div class="card">
+    {% include "_reports_table.html" %}
+</div>
+{% endblock %}

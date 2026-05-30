@@ -88,3 +88,74 @@ def test_web_report_rejects_unsupported_file_format(tmp_path: Path) -> None:
 
     assert response.status_code == 400
     assert "Поддерживаются только файлы .docx и .pdf" in response.text
+
+def test_web_reports_history_requires_authentication() -> None:
+    anonymous_client = TestClient(app)
+
+    response = anonymous_client.get(
+        "/web/reports",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/web/login"
+
+
+def test_web_reports_history_returns_authenticated_user_reports() -> None:
+    response = client.get(
+        "/web/reports",
+        headers=auth_headers(client, "candidate"),
+    )
+
+    assert response.status_code == 200
+    assert "История проверок" in response.text
+
+
+def test_web_saved_report_page_returns_html_report(tmp_path: Path) -> None:
+    file_path = tmp_path / "saved_resume.docx"
+
+    document = Document()
+    document.add_paragraph("Контакты:")
+    document.add_paragraph("Email: ivan@example.com")
+    document.add_paragraph("Телефон: +7 999 123-45-67")
+    document.add_paragraph("Навыки: Python, Git")
+    document.add_paragraph("Опыт работы: Backend developer, 2023-2024")
+    document.add_paragraph("Образование: Южный федеральный университет")
+    document.save(file_path)
+
+    headers = auth_headers(client, "candidate")
+
+    with file_path.open("rb") as file:
+        create_response = client.post(
+            "/web/report",
+            headers=headers,
+            data={
+                "vacancy_text": "Требования: Python, FastAPI, PostgreSQL, Docker, Git.",
+                "storage_mode": "temporary",
+            },
+            files={
+                "file": (
+                    "saved_resume.docx",
+                    file,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+            },
+        )
+
+    assert create_response.status_code == 200
+
+    # report_id есть в ссылках HTML-страницы результата.
+    marker = "/web/reports/"
+    assert marker in create_response.text
+
+    report_id = create_response.text.split(marker, maxsplit=1)[1].split('"', maxsplit=1)[0]
+
+    saved_response = client.get(
+        f"/web/reports/{report_id}",
+        headers=headers,
+    )
+
+    assert saved_response.status_code == 200
+    assert "Результат проверки" in saved_response.text
+    assert "Скачать DOCX" in saved_response.text
+    assert "Релевантность вакансии" in saved_response.text

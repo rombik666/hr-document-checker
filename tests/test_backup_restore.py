@@ -11,9 +11,11 @@ from app.db.models import (
     DocumentSectionORM,
     IssueORM,
     ProcessingSessionORM,
+    RagIndexORM,
     RagSourceORM,
     RecommendationORM,
     ReportORM,
+    UserORM,
 )
 from app.reports.report_builder import ReportBuilder
 from app.schemas.common import DocumentType, ProcessingStatus, SourceFormat, StorageMode
@@ -101,6 +103,40 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
                 source_metadata={"content_length": 38},
             )
         )
+
+        source_db.add(
+            UserORM(
+                id="backup-rag-index-user",
+                email="backup-rag-index-user@example.test",
+                full_name="Backup RAG Index User",
+                role="hr",
+                password_hash="test-password-hash",
+                is_active=True,
+            )
+        )
+
+        source_db.add(
+            RagIndexORM(
+                id="backup-rag-index-1",
+                owner_user_id="backup-rag-index-user",
+                status="ready",
+                reindex_required=False,
+                index_path="/app/data/index/users/backup-rag-index-user/faiss.index",
+                chunks_path="/app/data/index/users/backup-rag-index-user/chunks.json",
+                sources_hash="backup-rag-index-sources-hash",
+                sources_count=1,
+                chunks_count=3,
+                embedding_backend="hashing",
+                embedding_model_name="hashing",
+                embedding_dimension=384,
+                retriever_type="faiss",
+                index_metadata={
+                    "backup_test": True,
+                },
+                error_message=None,
+            )
+        )
+
         source_db.commit()
 
         backup_payload = BackupService(source_db).create_backup_payload()
@@ -114,6 +150,7 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
         assert len(backup_payload["issues"]) > 0
         assert len(backup_payload["recommendations"]) > 0
         assert len(backup_payload["rag_sources"]) == 1
+        assert len(backup_payload["rag_indexes"]) == 1
 
         assert backup_payload["documents"][0]["owner_user_id"] == "user-1"
         assert backup_payload["reports"][0]["owner_user_id"] == "user-1"
@@ -123,6 +160,11 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
         assert backup_payload["rag_sources"][0]["owner_user_id"] is None
         assert backup_payload["rag_sources"][0]["file_size_bytes"] == 128
         assert backup_payload["rag_sources"][0]["is_active"] is True
+        assert backup_payload["rag_indexes"][0]["id"] == "backup-rag-index-1"
+        assert backup_payload["rag_indexes"][0]["owner_user_id"] == "backup-rag-index-user"
+        assert backup_payload["rag_indexes"][0]["status"] == "ready"
+        assert backup_payload["rag_indexes"][0]["reindex_required"] is False
+        assert backup_payload["rag_indexes"][0]["chunks_count"] == 3
 
     finally:
         source_db.close()
@@ -130,6 +172,18 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
     target_db = make_session()
 
     try:
+        target_db.add(
+            UserORM(
+                id="backup-rag-index-user",
+                email="backup-rag-index-user@example.test",
+                full_name="Backup RAG Index User",
+                role="hr",
+                password_hash="test-password-hash",
+                is_active=True,
+            )
+        )
+        target_db.commit()
+
         result = BackupService(target_db).restore_from_payload(backup_payload)
 
         assert result["restored_documents"] == 1
@@ -140,6 +194,7 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
         assert result["restored_issues"] == len(backup_payload["issues"])
         assert result["restored_recommendations"] == len(backup_payload["recommendations"])
         assert result["restored_rag_sources"] == 1
+        assert result["restored_rag_indexes"] == 1
 
         assert count_rows(target_db, DocumentORM) == 1
         assert count_rows(target_db, DocumentSectionORM) == 1
@@ -151,6 +206,7 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
             backup_payload["recommendations"]
         )
         assert count_rows(target_db, RagSourceORM) == 1
+        assert count_rows(target_db, RagIndexORM) == 1
 
         restored_payload = BackupService(target_db).create_backup_payload()
 
@@ -162,6 +218,12 @@ def test_backup_service_exports_and_restores_normalized_schema() -> None:
         assert restored_payload["rag_sources"][0]["id"] == "backup-rag-source-1"
         assert restored_payload["rag_sources"][0]["owner_user_id"] is None
         assert restored_payload["rag_sources"][0]["file_size_bytes"] == 128
+
+        assert restored_payload["rag_indexes"][0]["id"] == "backup-rag-index-1"
+        assert restored_payload["rag_indexes"][0]["owner_user_id"] == "backup-rag-index-user"
+        assert restored_payload["rag_indexes"][0]["status"] == "stale"
+        assert restored_payload["rag_indexes"][0]["reindex_required"] is True
+        assert restored_payload["rag_indexes"][0]["index_metadata"]["restored_from_backup"] is True
 
     finally:
         target_db.close()
@@ -212,6 +274,9 @@ def test_backup_restore_is_idempotent() -> None:
         assert count_rows(target_db, DocumentORM) == 1
         assert count_rows(target_db, ReportORM) == 1
         assert count_rows(target_db, RagSourceORM) == 0
+
+        assert first_result["restored_rag_indexes"] == 0
+        assert second_result["restored_rag_indexes"] == 0
 
     finally:
         target_db.close()

@@ -13,6 +13,13 @@ class DatabaseStatusResponse(BaseModel):
     raw_text_column_exists: bool
     pii_masking_expected: bool
     long_term_storage_contains_source_files: bool
+    rag_indexes_count: int = 0
+    ready_rag_indexes_count: int = 0
+    stale_rag_indexes_count: int = 0
+    missing_rag_indexes_count: int = 0
+    failed_rag_indexes_count: int = 0
+    building_rag_indexes_count: int = 0
+    rag_indexes_reindex_required_count: int = 0
 
 
 class PrivacyFinding(BaseModel):
@@ -203,8 +210,35 @@ class BackupRagSourceItem(BaseModel):
     created_at: str | None = None
     updated_at: str | None = None
 
+class BackupRagIndexItem(BaseModel):
+    id: str
+    owner_user_id: str
+
+    status: str
+    reindex_required: bool
+
+    index_path: str | None = None
+    chunks_path: str | None = None
+    sources_hash: str | None = None
+
+    sources_count: int = 0
+    chunks_count: int = 0
+
+    embedding_backend: str = "hashing"
+    embedding_model_name: str = "hashing"
+    embedding_dimension: int = 384
+    retriever_type: str = "faiss"
+
+    index_metadata: dict[str, Any] = Field(default_factory=dict)
+    error_message: str | None = None
+
+    last_reindexed_at: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
 
 class BackupPayload(BaseModel):
+    rag_indexes: list[BackupRagIndexItem] = Field(default_factory=list)
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -218,8 +252,10 @@ class BackupPayload(BaseModel):
                 "issues": [],
                 "recommendations": [],
                 "rag_sources": [],
+                "rag_indexes": [],
             }
         }
+        
     )
 
     backup_version: str = "2.0"
@@ -244,3 +280,4 @@ class BackupRestoreResponse(BaseModel):
     restored_issues: int
     restored_recommendations: int
     restored_rag_sources: int = 0
+    restored_rag_indexes: int = 0

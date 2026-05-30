@@ -9,6 +9,7 @@ from app.db.models import (
     DocumentSectionORM,
     IssueORM,
     ProcessingSessionORM,
+    RagIndexORM,
     RagSourceORM,
     RecommendationORM,
     ReportORM,
@@ -22,7 +23,7 @@ class BackupService:
 
     Backup v2.0 сохраняет нормализованную ER-схему:
     documents, document_sections, processing_sessions,
-    reports, checks, issues, recommendations, rag_sources.
+    reports, checks, issues, recommendations, rag_sources, rag_indexes.
     """
 
     def __init__(self, db: Session) -> None:
@@ -37,6 +38,7 @@ class BackupService:
         issues = self.db.query(IssueORM).all()
         recommendations = self.db.query(RecommendationORM).all()
         rag_sources = self.db.query(RagSourceORM).all()
+        rag_indexes = self.db.query(RagIndexORM).all()
 
         return {
             "backup_version": "2.0",
@@ -158,6 +160,31 @@ class BackupService:
                 }
                 for source in rag_sources
             ],
+            "rag_indexes": [
+                {
+                    "id": rag_index.id,
+                    "owner_user_id": rag_index.owner_user_id,
+                    "status": rag_index.status,
+                    "reindex_required": rag_index.reindex_required,
+                    "index_path": rag_index.index_path,
+                    "chunks_path": rag_index.chunks_path,
+                    "sources_hash": rag_index.sources_hash,
+                    "sources_count": rag_index.sources_count,
+                    "chunks_count": rag_index.chunks_count,
+                    "embedding_backend": rag_index.embedding_backend,
+                    "embedding_model_name": rag_index.embedding_model_name,
+                    "embedding_dimension": rag_index.embedding_dimension,
+                    "retriever_type": rag_index.retriever_type,
+                    "index_metadata": rag_index.index_metadata or {},
+                    "error_message": rag_index.error_message,
+                    "last_reindexed_at": self._datetime_to_iso(
+                        rag_index.last_reindexed_at
+                    ),
+                    "created_at": self._datetime_to_iso(rag_index.created_at),
+                    "updated_at": self._datetime_to_iso(rag_index.updated_at),
+                }
+                for rag_index in rag_indexes
+            ],
         }
 
     def restore_from_payload(self, payload: dict[str, Any]) -> dict[str, int]:
@@ -166,7 +193,7 @@ class BackupService:
 
         Порядок восстановления соответствует внешним ключам:
         documents -> document_sections -> processing_sessions -> reports
-        -> checks -> issues -> recommendations -> rag_sources.
+        -> checks -> issues -> recommendations -> rag_sources -> rag_indexes.
         """
 
         restored_documents = self._restore_documents(payload)
@@ -191,6 +218,9 @@ class BackupService:
         self.db.flush()
 
         restored_rag_sources = self._restore_rag_sources(payload)
+        self.db.flush()
+
+        restored_rag_indexes = self._restore_rag_indexes(payload)
 
         self.db.commit()
 
@@ -203,6 +233,7 @@ class BackupService:
             "restored_issues": restored_issues,
             "restored_recommendations": restored_recommendations,
             "restored_rag_sources": restored_rag_sources,
+            "restored_rag_indexes": restored_rag_indexes,
         }
 
     def _restore_documents(self, payload: dict[str, Any]) -> int:
@@ -222,7 +253,9 @@ class BackupService:
                 source_format=document_data["source_format"],
                 processing_status=document_data["processing_status"],
                 storage_mode=document_data["storage_mode"],
-                created_at=self._parse_datetime_or_now(document_data.get("created_at")),
+                created_at=self._parse_datetime_or_now(
+                    document_data.get("created_at")
+                ),
             )
 
             self.db.add(document)
@@ -268,7 +301,9 @@ class BackupService:
                 document_id=session_data["document_id"],
                 owner_user_id=session_data.get("owner_user_id"),
                 status=session_data.get("status", "completed"),
-                started_at=self._parse_datetime_or_now(session_data.get("started_at")),
+                started_at=self._parse_datetime_or_now(
+                    session_data.get("started_at")
+                ),
                 ended_at=self._parse_datetime(session_data.get("ended_at")),
                 duration_ms=session_data.get("duration_ms"),
                 session_metadata=session_data.get("session_metadata") or {},
@@ -301,7 +336,9 @@ class BackupService:
                 minor_count=report_data["minor_count"],
                 summary=report_data["summary"],
                 report_json=report_data["report_json"],
-                created_at=self._parse_datetime_or_now(report_data.get("created_at")),
+                created_at=self._parse_datetime_or_now(
+                    report_data.get("created_at")
+                ),
             )
 
             self.db.add(report)
@@ -326,8 +363,12 @@ class BackupService:
                 agent_name=check_data["agent_name"],
                 check_type=check_data["check_type"],
                 status=check_data["status"],
-                started_at=self._parse_datetime_or_now(check_data.get("started_at")),
-                ended_at=self._parse_datetime_or_now(check_data.get("ended_at")),
+                started_at=self._parse_datetime_or_now(
+                    check_data.get("started_at")
+                ),
+                ended_at=self._parse_datetime_or_now(
+                    check_data.get("ended_at")
+                ),
                 duration_ms=check_data.get("duration_ms", 0.0),
                 model_or_ruleset_version=check_data.get(
                     "model_or_ruleset_version",
@@ -417,11 +458,86 @@ class BackupService:
                 file_size_bytes=source_data.get("file_size_bytes", 0),
                 is_active=source_data.get("is_active", True),
                 source_metadata=source_data.get("source_metadata") or {},
-                created_at=self._parse_datetime_or_now(source_data.get("created_at")),
-                updated_at=self._parse_datetime_or_now(source_data.get("updated_at")),
+                created_at=self._parse_datetime_or_now(
+                    source_data.get("created_at")
+                ),
+                updated_at=self._parse_datetime_or_now(
+                    source_data.get("updated_at")
+                ),
             )
 
             self.db.add(rag_source)
+            restored += 1
+
+        return restored
+
+    def _restore_rag_indexes(self, payload: dict[str, Any]) -> int:
+        """
+        Восстанавливает метаданные персональных RAG-индексов.
+
+        Бинарные faiss.index/chunks.json в backup не входят, поэтому после restore
+        индекс принудительно помечается как stale и reindex_required=True.
+        Это защищает систему от ситуации, когда БД считает индекс ready,
+        но файлов индекса на диске нет.
+        """
+
+        restored = 0
+
+        for index_data in payload.get("rag_indexes", []):
+            index_id = index_data["id"]
+            owner_user_id = index_data["owner_user_id"]
+
+            if self.db.get(RagIndexORM, index_id) is not None:
+                continue
+
+            if self.db.get(UserORM, owner_user_id) is None:
+                continue
+
+            existing_owner_index = (
+                self.db.query(RagIndexORM)
+                .filter(RagIndexORM.owner_user_id == owner_user_id)
+                .one_or_none()
+            )
+
+            if existing_owner_index is not None:
+                continue
+
+            rag_index = RagIndexORM(
+                id=index_id,
+                owner_user_id=owner_user_id,
+                status="stale",
+                reindex_required=True,
+                index_path=index_data.get("index_path"),
+                chunks_path=index_data.get("chunks_path"),
+                sources_hash=index_data.get("sources_hash"),
+                sources_count=index_data.get("sources_count", 0),
+                chunks_count=index_data.get("chunks_count", 0),
+                embedding_backend=index_data.get("embedding_backend", "hashing"),
+                embedding_model_name=index_data.get(
+                    "embedding_model_name",
+                    "hashing",
+                ),
+                embedding_dimension=index_data.get("embedding_dimension", 384),
+                retriever_type=index_data.get("retriever_type", "faiss"),
+                index_metadata={
+                    **(index_data.get("index_metadata") or {}),
+                    "restored_from_backup": True,
+                    "restore_note": (
+                        "FAISS binary files are not included in backup; "
+                        "run reindex before search."
+                    ),
+                },
+                error_message=index_data.get("error_message"),
+                last_reindexed_at=self._parse_datetime(
+                    index_data.get("last_reindexed_at")
+                ),
+                created_at=self._parse_datetime_or_now(
+                    index_data.get("created_at")
+                ),
+                updated_at=datetime.now(timezone.utc),
+            )
+
+            self.db.add(rag_index)
             restored += 1
 
         return restored

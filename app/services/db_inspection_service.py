@@ -10,6 +10,7 @@ from app.db.models import (
     DocumentSectionORM,
     IssueORM,
     ProcessingSessionORM,
+    RagIndexORM,
     RagSourceORM,
     RecommendationORM,
     ReportORM,
@@ -85,6 +86,17 @@ class DbInspectionService:
                 "source_metadata",
             ],
         ),
+        (
+            RagIndexORM,
+            "rag_indexes",
+            [
+                "index_path",
+                "chunks_path",
+                "sources_hash",
+                "index_metadata",
+                "error_message",
+            ],
+        ),
     ]
 
     def __init__(self, db: Session) -> None:
@@ -93,10 +105,23 @@ class DbInspectionService:
     def get_database_status(self) -> dict[str, Any]:
         documents_count = self.db.query(DocumentORM).count()
         reports_count = self.db.query(ReportORM).count()
+
         rag_sources_count = self.db.query(RagSourceORM).count()
         active_rag_sources_count = (
             self.db.query(RagSourceORM)
             .filter(RagSourceORM.is_active.is_(True))
+            .count()
+        )
+
+        rag_indexes_count = self.db.query(RagIndexORM).count()
+        ready_rag_indexes_count = self._count_rag_indexes_by_status("ready")
+        stale_rag_indexes_count = self._count_rag_indexes_by_status("stale")
+        missing_rag_indexes_count = self._count_rag_indexes_by_status("missing")
+        failed_rag_indexes_count = self._count_rag_indexes_by_status("failed")
+        building_rag_indexes_count = self._count_rag_indexes_by_status("building")
+        rag_indexes_reindex_required_count = (
+            self.db.query(RagIndexORM)
+            .filter(RagIndexORM.reindex_required.is_(True))
             .count()
         )
 
@@ -106,6 +131,13 @@ class DbInspectionService:
             "reports_count": reports_count,
             "rag_sources_count": rag_sources_count,
             "active_rag_sources_count": active_rag_sources_count,
+            "rag_indexes_count": rag_indexes_count,
+            "ready_rag_indexes_count": ready_rag_indexes_count,
+            "stale_rag_indexes_count": stale_rag_indexes_count,
+            "missing_rag_indexes_count": missing_rag_indexes_count,
+            "failed_rag_indexes_count": failed_rag_indexes_count,
+            "building_rag_indexes_count": building_rag_indexes_count,
+            "rag_indexes_reindex_required_count": rag_indexes_reindex_required_count,
             "raw_text_column_exists": self._raw_text_column_exists(),
             "pii_masking_expected": True,
             "long_term_storage_contains_source_files": False,
@@ -196,6 +228,13 @@ class DbInspectionService:
             "findings": findings,
         }
 
+    def _count_rag_indexes_by_status(self, status: str) -> int:
+        return (
+            self.db.query(RagIndexORM)
+            .filter(RagIndexORM.status == status)
+            .count()
+        )
+
     @staticmethod
     def _value_to_text(value: Any) -> str:
         if value is None:
@@ -221,6 +260,7 @@ class DbInspectionService:
             IssueORM,
             RecommendationORM,
             RagSourceORM,
+            RagIndexORM,
         ]
 
         for model in inspected_models:

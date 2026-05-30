@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import delete
 
-from app.db.models import DocumentORM, RagSourceORM
+from app.db.models import DocumentORM, RagIndexORM, RagSourceORM, UserORM
 from app.db.session import SessionLocal
 from app.main import app
 from tests.auth_helpers import admin_auth_headers, auth_headers
@@ -68,6 +68,13 @@ def test_admin_database_status_endpoint_returns_diagnostics() -> None:
     assert "rag_sources_count" in data
     assert "active_rag_sources_count" in data
     assert data["raw_text_column_exists"] is False
+    assert "rag_indexes_count" in data
+    assert "ready_rag_indexes_count" in data
+    assert "stale_rag_indexes_count" in data
+    assert "missing_rag_indexes_count" in data
+    assert "failed_rag_indexes_count" in data
+    assert "building_rag_indexes_count" in data
+    assert "rag_indexes_reindex_required_count" in data
 
 
 def test_admin_privacy_check_endpoint_returns_result() -> None:
@@ -106,6 +113,7 @@ def test_admin_backup_endpoint_returns_normalized_payload() -> None:
     assert "issues" in data
     assert "recommendations" in data
     assert "rag_sources" in data
+    assert "rag_indexes" in data
 
 
 def test_admin_restore_endpoint_accepts_empty_backup_payload() -> None:
@@ -120,6 +128,7 @@ def test_admin_restore_endpoint_accepts_empty_backup_payload() -> None:
         "issues": [],
         "recommendations": [],
         "rag_sources": [],
+        "rag_indexes": [],
     }
 
     response = client.post(
@@ -140,6 +149,7 @@ def test_admin_restore_endpoint_accepts_empty_backup_payload() -> None:
     assert data["restored_issues"] == 0
     assert data["restored_recommendations"] == 0
     assert data["restored_rag_sources"] == 0
+    assert data["restored_rag_indexes"] == 0
 
 
 def test_admin_backup_endpoint_forbids_non_admin_user() -> None:
@@ -204,6 +214,7 @@ def test_admin_restore_endpoint_accepts_current_backup_payload() -> None:
     assert "restored_issues" in data
     assert "restored_recommendations" in data
     assert "restored_rag_sources" in data
+    assert "restored_rag_indexes" in data
 
 
 def test_admin_restore_endpoint_rejects_swagger_placeholder_payload() -> None:
@@ -229,6 +240,7 @@ def test_admin_restore_endpoint_rejects_swagger_placeholder_payload() -> None:
         "issues": [],
         "recommendations": [],
         "rag_sources": [],
+        "rag_indexes": [],
     }
 
     response = client.post(
@@ -349,5 +361,88 @@ def test_admin_privacy_check_detects_unmasked_rag_source_value() -> None:
 
     finally:
         db.execute(delete(RagSourceORM).where(RagSourceORM.id == source_id))
+        db.commit()
+        db.close()
+
+def test_admin_privacy_check_detects_unmasked_rag_index_metadata() -> None:
+    db = SessionLocal()
+
+    user_id = "privacy-check-rag-index-user"
+    index_id = "privacy-check-leak-rag-index"
+
+    try:
+        db.execute(delete(RagIndexORM).where(RagIndexORM.id == index_id))
+        db.execute(delete(UserORM).where(UserORM.id == user_id))
+
+        db.add(
+            UserORM(
+                id=user_id,
+                email="privacy-rag-index-user@example.test",
+                full_name="Privacy RAG Index User",
+                role="hr",
+                password_hash="test-password-hash",
+                is_active=True,
+            )
+        )
+
+        db.add(
+            RagIndexORM(
+                id=index_id,
+                owner_user_id=user_id,
+                status="failed",
+                reindex_required=True,
+                index_path="/app/data/index/users/privacy-check/faiss.index",
+                chunks_path="/app/data/index/users/privacy-check/chunks.json",
+                sources_hash="privacy-check-rag-index-hash",
+                sources_count=1,
+                chunks_count=0,
+                embedding_backend="hashing",
+                embedding_model_name="hashing",
+                embedding_dimension=384,
+                retriever_type="faiss",
+                index_metadata={
+                    "debug_contact": "ivan@example.com",
+                },
+                error_message="Ошибка обработки источника, телефон +7 999 123-45-67.",
+            )
+        )
+
+        db.commit()
+
+        response = client.get(
+            "/api/v1/admin/storage/privacy-check",
+            headers=admin_auth_headers(client),
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["passed"] is False
+        assert data["unmasked_email_count"] >= 1
+        assert data["unmasked_phone_count"] >= 1
+        assert "rag_indexes" in data["checked_tables"]
+
+        findings = data["findings"]
+
+        assert any(
+            finding["table_name"] == "rag_indexes"
+            and finding["column_name"] == "index_metadata"
+            and finding["record_id"] == index_id
+            and finding["finding_type"] == "email"
+            for finding in findings
+        )
+
+        assert any(
+            finding["table_name"] == "rag_indexes"
+            and finding["column_name"] == "error_message"
+            and finding["record_id"] == index_id
+            and finding["finding_type"] == "phone"
+            for finding in findings
+        )
+
+    finally:
+        db.execute(delete(RagIndexORM).where(RagIndexORM.id == index_id))
+        db.execute(delete(UserORM).where(UserORM.id == user_id))
         db.commit()
         db.close()

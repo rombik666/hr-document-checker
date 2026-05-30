@@ -1,27 +1,56 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="card">
-    <h1>Вход в систему</h1>
-    <p class="muted">Введите email и пароль для доступа к личному кабинету.</p>
+<div class="grid two">
+    <section class="hero">
+        <span class="badge">HR Document Checker</span>
+        <h1>Вход в систему проверки документов</h1>
+        <p>
+            Авторизуйтесь, чтобы загружать HR-документы, запускать проверки,
+            просматривать историю отчётов и работать с доступными инструментами по своей роли.
+        </p>
 
-    {% if error %}
-        <div class="error">{{ error }}</div>
-    {% endif %}
+        <div class="grid">
+            <div class="metric-card">
+                <strong>DOCX/PDF</strong>
+                <span>поддерживаемые форматы</span>
+            </div>
+            <div class="metric-card">
+                <strong>RAG</strong>
+                <span>контекст для HR</span>
+            </div>
+        </div>
+    </section>
 
-    <form method="post" action="/web/login">
-        <label>Email</label>
-        <input type="email" name="email" required>
+    <section class="card">
+        <div class="section-header">
+            <div>
+                <h2>Вход</h2>
+                <p>Введите email и пароль для доступа к личному кабинету.</p>
+            </div>
+            <span class="badge">secure</span>
+        </div>
 
-        <label>Пароль</label>
-        <input type="password" name="password" required>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
 
-        <button type="submit">Войти</button>
-    </form>
+        <form method="post" action="/web/login">
+            <label for="email">Email</label>
+            <input id="email" type="email" name="email" autocomplete="email" required>
 
-    <p>
-        Нет аккаунта?
-        <a href="/web/register">Создать учётную запись</a>
-    </p>
+            <label for="password">Пароль</label>
+            <input id="password" type="password" name="password" autocomplete="current-password" required>
+
+            <div class="form-actions">
+                <button type="submit">Войти</button>
+                <a class="button ghost" href="/web/register">Создать аккаунт</a>
+            </div>
+        </form>
+
+        <p class="muted small">
+            Роли candidate, HR и admin определяют доступ к отчётам, RAG-источникам и административным функциям.
+        </p>
+    </section>
 </div>
 {% endblock %}

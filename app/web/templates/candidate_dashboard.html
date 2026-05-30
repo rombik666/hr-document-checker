@@ -1,27 +1,76 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="card">
-    <h1>Кабинет кандидата</h1>
+<section class="hero">
+    <span class="badge">Кабинет кандидата</span>
+    <h1>Проверка резюме перед отправкой работодателю</h1>
     <p>
-        Вы можете проверить своё резюме на полноту, качество формулировок
-        и соответствие конкретной вакансии.
+        Загрузите резюме, сопроводительное письмо или анкету. Система найдёт
+        формальные ошибки, слабые формулировки, возможные противоречия и подготовит
+        рекомендации по улучшению документа.
     </p>
-    <p class="muted">
-        Прямой доступ к базе знаний и административным инструментам для кандидата закрыт.
-    </p>
-    <p>
-    <a class="button secondary" href="/web/reports">Открыть историю проверок</a>
-    </p>
+
+    <div class="form-actions">
+        <a class="button" href="#check-document">Проверить документ</a>
+        <a class="button ghost" href="/web/reports">История проверок</a>
+    </div>
+</section>
+
+<div class="grid three">
+    <div class="metric-card">
+        <strong>Critical</strong>
+        <span>ошибки, мешающие использовать документ</span>
+    </div>
+    <div class="metric-card">
+        <strong>Major</strong>
+        <span>существенные замечания к качеству</span>
+    </div>
+    <div class="metric-card">
+        <strong>Minor</strong>
+        <span>стиль, повторы и мелкие недочёты</span>
+    </div>
 </div>
 
-<div class="card">
-    <h2>Проверить резюме</h2>
+<section id="check-document">
     {% include "_report_form.html" %}
-</div>
+</section>
 
-<div class="card">
-    <h2>Мои последние отчёты</h2>
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h2>Мои последние отчёты</h2>
+            <p>
+                Здесь отображаются сохранённые проверки. Отчёты в режиме no_store
+                не попадают в историю.
+            </p>
+        </div>
+        <a class="button ghost" href="/web/reports">Открыть всё</a>
+    </div>
+
     {% include "_reports_table.html" %}
-</div>
+</section>
+
+<section class="card">
+    <h2>Что проверяет система</h2>
+    <div class="grid three">
+        <div>
+            <span class="badge">Структура</span>
+            <p class="muted">
+                Контакты, опыт, навыки, образование и обязательные разделы документа.
+            </p>
+        </div>
+        <div>
+            <span class="badge">Смысл</span>
+            <p class="muted">
+                Слабые формулировки, шаблонность, вода и противоречия в тексте.
+            </p>
+        </div>
+        <div>
+            <span class="badge">Вакансия</span>
+            <p class="muted">
+                При наличии описания вакансии система покажет незакрытые требования.
+            </p>
+        </div>
+    </div>
+</section>
 {% endblock %}

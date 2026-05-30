@@ -1,38 +1,81 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="card">
-    <h1>Кабинет HR-специалиста</h1>
+<section class="hero">
+    <span class="badge">Кабинет HR-специалиста</span>
+    <h1>Проверка документов кандидатов с учётом базы знаний</h1>
     <p>
-        Вы можете проверять резюме кандидатов, сопоставлять документы с вакансиями
-        и использовать корпоративные RAG-источники.
+        Проверяйте резюме, сопоставляйте документы с вакансиями и используйте
+        персональные RAG-источники: вакансии, чек-листы, политики и примеры сильных формулировок.
     </p>
-    <p>
-        <a class="button secondary" href="/web/reports">Открыть историю проверок</a>
-        <a class="button secondary" href="/web/rag/sources">Управлять RAG-источниками</a>
-    </p>
+
+    <div class="form-actions">
+        <a class="button" href="#check-document">Проверить документ</a>
+        <a class="button ghost" href="/web/rag/sources">Управлять RAG-источниками</a>
+        <a class="button ghost" href="/web/reports">История проверок</a>
+    </div>
+</section>
+
+<div class="grid three">
+    <div class="metric-card">
+        <strong>FAISS</strong>
+        <span>персональный индекс HR</span>
+    </div>
+    <div class="metric-card">
+        <strong>RAG</strong>
+        <span>контекст из активных источников</span>
+    </div>
+    <div class="metric-card">
+        <strong>DOCX</strong>
+        <span>экспорт итогового отчёта</span>
+    </div>
 </div>
 
-<div class="grid">
-    <div class="card">
-        <h2>Проверка резюме</h2>
+<div class="grid two">
+    <section id="check-document">
         {% include "_report_form.html" %}
-    </div>
+    </section>
 
-    <div class="card">
-        <h2>Инструменты HR</h2>
-        <p><a href="/web/rag/sources">RAG-источники компании</a></p>
-        <p><a href="/api/v1/rag/status">RAG status API</a></p>
-        <p><a href="/docs">Swagger API</a></p>
-        <p class="muted">
-            RAG использует только документы, явно загруженные HR-специалистом:
-            вакансии, чек-листы, регламенты и требования компании.
-        </p>
-    </div>
+    <section class="card">
+        <div class="section-header">
+            <div>
+                <h2>Инструменты HR</h2>
+                <p>
+                    Управляйте базой знаний и контролируйте состояние RAG-подсистемы.
+                </p>
+            </div>
+            <span class="badge">RAG</span>
+        </div>
+
+        <div class="grid">
+            <a class="button ghost" href="/web/rag/sources">RAG-источники</a>
+            <a class="button ghost" href="/api/v1/rag/status">RAG status API</a>
+            <a class="button ghost" href="/docs">Swagger API</a>
+        </div>
+
+        <div class="info">
+            RAG использует только источники, загруженные текущим HR-пользователем.
+            При добавлении, удалении или активации источников индекс становится устаревшим
+            и требует переиндексации.
+        </div>
+
+        <div class="warning">
+            Кандидаты не имеют доступа к корпоративной базе знаний и RAG-инструментам.
+        </div>
+    </section>
 </div>
 
-<div class="card">
-    <h2>Мои последние отчёты</h2>
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h2>Мои последние отчёты</h2>
+            <p>
+                Сохранённые результаты проверок документов кандидатов.
+            </p>
+        </div>
+        <a class="button ghost" href="/web/reports">Открыть всё</a>
+    </div>
+
     {% include "_reports_table.html" %}
-</div>
+</section>
 {% endblock %}

@@ -19,8 +19,11 @@ def test_web_index_redirects_anonymous_user_to_login_page() -> None:
     response = client.get("/web/")
 
     assert response.status_code == 200
-    assert "Вход в систему" in response.text
-    assert "Создать учётную запись" in response.text
+    assert "Вход" in response.text
+    assert 'action="/web/login"' in response.text
+    assert 'name="email"' in response.text
+    assert 'name="password"' in response.text
+    assert 'href="/web/register"' in response.text
 
 
 def test_web_dashboard_returns_candidate_dashboard_for_authenticated_user() -> None:
@@ -31,7 +34,14 @@ def test_web_dashboard_returns_candidate_dashboard_for_authenticated_user() -> N
 
     assert response.status_code == 200
     assert "Кабинет кандидата" in response.text
-    assert "Проверить резюме" in response.text
+    assert 'href="#check-document"' in response.text
+    assert 'action="/web/report"' in response.text
+    assert 'name="file"' in response.text
+    assert 'name="vacancy_text"' in response.text
+    assert 'name="storage_mode"' in response.text
+    assert 'href="/web/reports"' in response.text
+    assert "/web/rag/sources" not in response.text
+    assert "/web/admin" not in response.text
 
 
 def test_web_report_page_returns_html_report(tmp_path: Path) -> None:

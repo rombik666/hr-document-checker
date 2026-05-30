@@ -1,39 +1,69 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="card">
-    <h1>Регистрация</h1>
-    <p class="muted">
-        Вы можете создать учётную запись кандидата или HR-специалиста.
-        Роль администратора создаётся только владельцем системы.
-    </p>
+<div class="grid two">
+    <section class="hero">
+        <span class="badge">Новая учётная запись</span>
+        <h1>Создание профиля пользователя</h1>
+        <p>
+            Зарегистрируйтесь как кандидат или HR-специалист. После входа система
+            откроет личный кабинет с инструментами, соответствующими выбранной роли.
+        </p>
 
-    {% if error %}
-        <div class="error">{{ error }}</div>
-    {% endif %}
+        <div class="grid">
+            <div class="metric-card">
+                <strong>candidate</strong>
+                <span>самопроверка документов</span>
+            </div>
+            <div class="metric-card">
+                <strong>hr</strong>
+                <span>проверка и база знаний</span>
+            </div>
+        </div>
+    </section>
 
-    <form method="post" action="/web/register">
-        <label>ФИО / имя</label>
-        <input type="text" name="full_name" required>
+    <section class="card">
+        <div class="section-header">
+            <div>
+                <h2>Регистрация</h2>
+                <p>
+                    Создайте учётную запись кандидата или HR-специалиста.
+                    Роль администратора назначается владельцем системы.
+                </p>
+            </div>
+            <span class="badge">account</span>
+        </div>
 
-        <label>Email</label>
-        <input type="email" name="email" required>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
 
-        <label>Пароль</label>
-        <input type="password" name="password" minlength="6" required>
+        <form method="post" action="/web/register">
+            <label for="full-name">ФИО / имя</label>
+            <input id="full-name" type="text" name="full_name" autocomplete="name" required>
 
-        <label>Роль</label>
-        <select name="role" required>
-            <option value="candidate">Кандидат</option>
-            <option value="hr">HR-специалист</option>
-        </select>
+            <label for="email">Email</label>
+            <input id="email" type="email" name="email" autocomplete="email" required>
 
-        <button type="submit">Создать аккаунт</button>
-    </form>
+            <label for="password">Пароль</label>
+            <input id="password" type="password" name="password" minlength="6" autocomplete="new-password" required>
 
-    <p>
-        Уже есть аккаунт?
-        <a href="/web/login">Войти</a>
-    </p>
+            <label for="role">Роль</label>
+            <select id="role" name="role" required>
+                <option value="candidate">Кандидат</option>
+                <option value="hr">HR-специалист</option>
+            </select>
+
+            <div class="info">
+                Кандидат может проверять свои документы и смотреть историю.
+                HR дополнительно получает доступ к персональным RAG-источникам.
+            </div>
+
+            <div class="form-actions">
+                <button type="submit">Создать аккаунт</button>
+                <a class="button ghost" href="/web/login">Уже есть аккаунт</a>
+            </div>
+        </form>
+    </section>
 </div>
 {% endblock %}

@@ -91,8 +91,8 @@ class LlmSemanticAgent:
         response = client.generate(
             system_prompt=self._system_prompt(),
             prompt=prompt,
-            temperature=0.1,
-            max_tokens=900,
+            temperature=0.15,
+            max_tokens=350,
         )
 
         parsed = extract_json_from_text(response.text)
@@ -116,7 +116,7 @@ class LlmSemanticAgent:
         rag_context: RagContext,
         vacancy_text: str | None,
     ) -> str:
-        document_text = document.raw_text[:4000]
+        document_text = document.raw_text[:3000]
 
         rag_fragments = "\n\n".join(
             f"[{index + 1}] {result.text}"

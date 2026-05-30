@@ -28,3 +28,8 @@ def test_contains_personal_data() -> None:
     assert contains_personal_data("Email: ivan@example.com")
     assert contains_personal_data("Телефон: +7 999 123-45-67")
     assert not contains_personal_data("Просто текст без контактов")
+
+def test_mask_text_does_not_mask_uuid_values() -> None:
+    uuid_value = "58053897-0190-40a9-afa0-46d30046d995"
+
+    assert mask_text(uuid_value) == uuid_value

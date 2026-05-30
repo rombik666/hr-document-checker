@@ -8,9 +8,11 @@ EMAIL_PATTERN = re.compile(
 )
 
 PHONE_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9-])"
     r"(?:(?:\+7|8)[\s\-()]*)"
     r"(?:\(?\d{3}\)?[\s\-()]*)"
     r"\d{3}[\s\-]*\d{2}[\s\-]*\d{2}"
+    r"(?![A-Za-z0-9-])"
 )
 
 

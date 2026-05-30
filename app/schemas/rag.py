@@ -1,4 +1,5 @@
 from typing import Any
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -80,3 +81,44 @@ class RagReindexResponse(BaseModel):
     embedding_dimension: int | None = None
     index_path: str
     chunks_path: str
+
+class UserRagSourceListItem(BaseModel):
+    source_id: str
+    title: str
+    filename: str
+    source_type: str
+    source_format: str
+    content_length: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class UserRagSourcesListResponse(BaseModel):
+    sources_count: int
+    sources: list[UserRagSourceListItem] = Field(default_factory=list)
+
+
+class UserRagSourceDetails(BaseModel):
+    source_id: str
+    title: str
+    filename: str
+    source_type: str
+    source_format: str
+    content: str
+    content_length: int
+    content_hash: str
+    is_active: bool
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+    updated_at: datetime
+
+
+class UserRagSourceUploadResponse(BaseModel):
+    source: UserRagSourceDetails
+
+
+class UserRagSourceDeleteResponse(BaseModel):
+    source_id: str
+    deleted: bool
+    message: str

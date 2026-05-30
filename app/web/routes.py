@@ -23,6 +23,9 @@ from app.services.document_processing_service import DocumentProcessingService
 from app.services.report_storage_service import ReportStorageService
 from app.services.user_service import UserService
 
+from app.rag.service import RagService
+from app.services.rag_source_service import RagSourceService
+
 
 logger = get_logger(__name__)
 
@@ -70,6 +73,107 @@ async def _save_upload_to_temp_file(file: UploadFile, suffix: str) -> Path:
         content = await file.read()
         temporary_file.write(content)
         return Path(temporary_file.name)
+    
+def _validate_rag_source_suffix(filename: str) -> str:
+    suffix = Path(filename).suffix.lower()
+
+    if suffix not in RagSourceService.SUPPORTED_SUFFIXES:
+        raise HTTPException(
+            status_code=400,
+            detail="Поддерживаются только RAG-источники .docx, .pdf, .txt и .md",
+        )
+
+    return suffix
+
+
+async def _save_rag_source_upload_to_temp_file(
+    file: UploadFile,
+    suffix: str,
+) -> tuple[Path, int]:
+    content = await file.read()
+    file_size_bytes = len(content)
+
+    if file_size_bytes > RagSourceService.MAX_SINGLE_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail="Файл RAG-источника слишком большой. Максимальный размер — 15 МБ.",
+        )
+
+    with NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
+        temporary_file.write(content)
+
+        return Path(temporary_file.name), file_size_bytes
+
+
+def _user_can_manage_rag_sources(user: UserORM) -> bool:
+    return user.role in {"hr", "admin"}
+
+
+def _bytes_to_mb(value: int) -> float:
+    return round(value / 1024 / 1024, 2)
+
+
+def _render_rag_sources_page(
+    request: Request,
+    db: Session,
+    user: UserORM,
+    error: str | None = None,
+    success: str | None = None,
+    status_code: int = 200,
+):
+    source_service = RagSourceService(db)
+    rag_service = RagService()
+
+    sources = source_service.list_sources_for_user(
+        user_id=user.id,
+        user_role=user.role,
+        include_inactive=True,
+        limit=1000,
+    )
+
+    rag_status = rag_service.get_user_sources_status(
+        db=db,
+        user_id=user.id,
+        user_role=user.role,
+    )
+
+    if user.role == "admin":
+        active_storage_bytes = sum(
+            source.file_size_bytes
+            for source in sources
+            if source.is_active
+        )
+    else:
+        active_storage_bytes = source_service.get_active_storage_usage_bytes(user.id)
+
+    return _template(
+        request=request,
+        name="rag_sources.html",
+        context={
+            "page_title": "RAG-источники",
+            "user": user,
+            "sources": sources,
+            "rag_status": rag_status,
+            "error": error,
+            "success": success,
+            "active_storage_bytes": active_storage_bytes,
+            "active_storage_mb": _bytes_to_mb(active_storage_bytes),
+            "max_file_size_mb": _bytes_to_mb(
+                RagSourceService.MAX_SINGLE_FILE_SIZE_BYTES
+            ),
+            "max_storage_mb": _bytes_to_mb(
+                RagSourceService.MAX_USER_STORAGE_BYTES
+            ),
+            "source_type_options": [
+                ("vacancy", "Вакансия"),
+                ("requirements", "Требования"),
+                ("checklist", "Чек-лист"),
+                ("policy", "Регламент"),
+                ("other", "Другое"),
+            ],
+        },
+        status_code=status_code,
+    )
 
 
 def _extract_token_from_request(request: Request) -> str | None:
@@ -413,6 +517,168 @@ def show_saved_report(
         },
     )
 
+@router.get("/rag/sources")
+def show_rag_sources_page(
+    request: Request,
+    error: str | None = None,
+    success: str | None = None,
+    db: Session = Depends(get_db),
+):
+    user = _get_current_web_user(request, db)
+
+    if user is None:
+        return _redirect("/web/login")
+
+    if not _user_can_manage_rag_sources(user):
+        return _template(
+            request=request,
+            name="error.html",
+            context={
+                "page_title": "Доступ запрещён",
+                "user": user,
+                "status_code": 403,
+                "error": "RAG-источники доступны только HR-специалистам и администраторам.",
+            },
+            status_code=403,
+        )
+
+    return _render_rag_sources_page(
+        request=request,
+        db=db,
+        user=user,
+        error=error,
+        success=success,
+    )
+
+
+@router.post("/rag/sources/upload")
+async def upload_web_rag_source(
+    request: Request,
+    file: UploadFile = File(...),
+    title: str | None = Form(None),
+    source_type: str = Form("other"),
+    db: Session = Depends(get_db),
+):
+    user = _require_web_user(request, db)
+
+    if not _user_can_manage_rag_sources(user):
+        return _template(
+            request=request,
+            name="error.html",
+            context={
+                "page_title": "Доступ запрещён",
+                "user": user,
+                "status_code": 403,
+                "error": "RAG-источники доступны только HR-специалистам и администраторам.",
+            },
+            status_code=403,
+        )
+
+    original_filename = file.filename or ""
+
+    if not original_filename:
+        return _render_rag_sources_page(
+            request=request,
+            db=db,
+            user=user,
+            error="Не указано имя файла.",
+            status_code=400,
+        )
+
+    temporary_path: Path | None = None
+
+    try:
+        suffix = _validate_rag_source_suffix(original_filename)
+
+        temporary_path, file_size_bytes = await _save_rag_source_upload_to_temp_file(
+            file=file,
+            suffix=suffix,
+        )
+
+        source_service = RagSourceService(db)
+        source_service.create_source_from_file(
+            file_path=temporary_path,
+            original_filename=original_filename,
+            owner_user_id=user.id,
+            title=title,
+            source_type=source_type,
+            file_size_bytes=file_size_bytes,
+        )
+
+        return _render_rag_sources_page(
+            request=request,
+            db=db,
+            user=user,
+            success="RAG-источник успешно загружен.",
+        )
+
+    except HTTPException as error:
+        return _render_rag_sources_page(
+            request=request,
+            db=db,
+            user=user,
+            error=str(error.detail),
+            status_code=error.status_code,
+        )
+
+    except ValueError as error:
+        return _render_rag_sources_page(
+            request=request,
+            db=db,
+            user=user,
+            error=str(error),
+            status_code=400,
+        )
+
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
+
+
+@router.post("/rag/sources/{source_id}/delete")
+def delete_web_rag_source(
+    source_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = _require_web_user(request, db)
+
+    if not _user_can_manage_rag_sources(user):
+        return _template(
+            request=request,
+            name="error.html",
+            context={
+                "page_title": "Доступ запрещён",
+                "user": user,
+                "status_code": 403,
+                "error": "RAG-источники доступны только HR-специалистам и администраторам.",
+            },
+            status_code=403,
+        )
+
+    source_service = RagSourceService(db)
+    deleted = source_service.deactivate_source_for_user(
+        source_id=source_id,
+        user_id=user.id,
+        user_role=user.role,
+    )
+
+    if not deleted:
+        return _render_rag_sources_page(
+            request=request,
+            db=db,
+            user=user,
+            error="RAG-источник не найден или недоступен.",
+            status_code=404,
+        )
+
+    return _render_rag_sources_page(
+        request=request,
+        db=db,
+        user=user,
+        success="RAG-источник отключён.",
+    )
+
 @router.post("/report")
 async def build_report_page(
     request: Request,
@@ -444,6 +710,9 @@ async def build_report_page(
         semantic_check_response = SemanticCheckCoordinator().run(
             document=parsed_document,
             vacancy_text=vacancy_text,
+            db=db,
+            user_id=current_user.id,
+            user_role=current_user.role,
         )
 
         report = ReportBuilder().build(

@@ -5,10 +5,11 @@
     <h1>Кабинет HR-специалиста</h1>
     <p>
         Вы можете проверять резюме кандидатов, сопоставлять документы с вакансиями
-        и использовать RAG-контекст базы знаний.
+        и использовать корпоративные RAG-источники.
     </p>
     <p>
-    <a class="button secondary" href="/web/reports">Открыть историю проверок</a>
+        <a class="button secondary" href="/web/reports">Открыть историю проверок</a>
+        <a class="button secondary" href="/web/rag/sources">Управлять RAG-источниками</a>
     </p>
 </div>
 
@@ -20,11 +21,12 @@
 
     <div class="card">
         <h2>Инструменты HR</h2>
-        <p><a href="/api/v1/rag/status">RAG status</a></p>
+        <p><a href="/web/rag/sources">RAG-источники компании</a></p>
+        <p><a href="/api/v1/rag/status">RAG status API</a></p>
         <p><a href="/docs">Swagger API</a></p>
         <p class="muted">
-            RAG используется для поиска релевантного контекста в базе знаний:
-            правила, шаблоны, требования и примеры сильных формулировок.
+            RAG использует только документы, явно загруженные HR-специалистом:
+            вакансии, чек-листы, регламенты и требования компании.
         </p>
     </div>
 </div>

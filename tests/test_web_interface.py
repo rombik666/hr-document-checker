@@ -6,6 +6,11 @@ from fastapi.testclient import TestClient
 from app.main import app
 from tests.auth_helpers import auth_headers
 
+from sqlalchemy import delete
+
+from app.db.models import RagSourceORM
+from app.db.session import SessionLocal
+
 
 client = TestClient(app)
 
@@ -159,3 +164,173 @@ def test_web_saved_report_page_returns_html_report(tmp_path: Path) -> None:
     assert "Результат проверки" in saved_response.text
     assert "Скачать DOCX" in saved_response.text
     assert "Релевантность вакансии" in saved_response.text
+
+def _cleanup_web_rag_sources() -> None:
+    db = SessionLocal()
+
+    try:
+        db.execute(
+            delete(RagSourceORM).where(
+                RagSourceORM.filename.like("%web_rag_ui_test%")
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_web_rag_sources_requires_authentication() -> None:
+    anonymous_client = TestClient(app)
+
+    response = anonymous_client.get(
+        "/web/rag/sources",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/web/login"
+
+
+def test_web_rag_sources_forbids_candidate() -> None:
+    response = client.get(
+        "/web/rag/sources",
+        headers=auth_headers(client, "candidate"),
+    )
+
+    assert response.status_code == 403
+    assert "RAG-источники доступны только HR-специалистам" in response.text
+
+
+def test_web_rag_sources_page_returns_hr_ui() -> None:
+    response = client.get(
+        "/web/rag/sources",
+        headers=auth_headers(client, "hr"),
+    )
+
+    assert response.status_code == 200
+    assert "RAG-источники компании" in response.text
+    assert "Загрузить источник" in response.text
+    assert "Загруженные источники" in response.text
+
+
+def test_web_hr_can_upload_rag_source(tmp_path: Path) -> None:
+    _cleanup_web_rag_sources()
+
+    headers = auth_headers(client, "hr")
+    file_path = tmp_path / "web_rag_ui_test_requirements.txt"
+
+    file_path.write_text(
+        "Требования компании: Python, FastAPI, PostgreSQL, Docker.",
+        encoding="utf-8",
+    )
+
+    try:
+        with file_path.open("rb") as file:
+            response = client.post(
+                "/web/rag/sources/upload",
+                headers=headers,
+                data={
+                    "title": "Web RAG UI source",
+                    "source_type": "requirements",
+                },
+                files={
+                    "file": (
+                        file_path.name,
+                        file,
+                        "text/plain",
+                    )
+                },
+            )
+
+        assert response.status_code == 200
+        assert "RAG-источник успешно загружен" in response.text
+        assert "Web RAG UI source" in response.text
+        assert "web_rag_ui_test_requirements.txt" in response.text
+
+    finally:
+        _cleanup_web_rag_sources()
+
+
+def test_web_hr_can_deactivate_rag_source(tmp_path: Path) -> None:
+    _cleanup_web_rag_sources()
+
+    headers = auth_headers(client, "hr")
+    file_path = tmp_path / "web_rag_ui_test_delete.txt"
+
+    file_path.write_text(
+        "Источник для отключения через Web UI.",
+        encoding="utf-8",
+    )
+
+    try:
+        with file_path.open("rb") as file:
+            upload_response = client.post(
+                "/web/rag/sources/upload",
+                headers=headers,
+                data={
+                    "title": "Web RAG UI delete source",
+                    "source_type": "other",
+                },
+                files={
+                    "file": (
+                        file_path.name,
+                        file,
+                        "text/plain",
+                    )
+                },
+            )
+
+        assert upload_response.status_code == 200
+
+        db = SessionLocal()
+
+        try:
+            source = (
+                db.query(RagSourceORM)
+                .filter(RagSourceORM.filename == "web_rag_ui_test_delete.txt")
+                .one()
+            )
+
+            source_id = source.id
+
+        finally:
+            db.close()
+
+        delete_response = client.post(
+            f"/web/rag/sources/{source_id}/delete",
+            headers=headers,
+        )
+
+        assert delete_response.status_code == 200
+        assert "RAG-источник отключён" in delete_response.text
+        assert "inactive" in delete_response.text
+
+    finally:
+        _cleanup_web_rag_sources()
+
+
+def test_web_rag_source_upload_rejects_unsupported_format(tmp_path: Path) -> None:
+    headers = auth_headers(client, "hr")
+    file_path = tmp_path / "web_rag_ui_test_bad.exe"
+
+    file_path.write_text("bad file", encoding="utf-8")
+
+    with file_path.open("rb") as file:
+        response = client.post(
+            "/web/rag/sources/upload",
+            headers=headers,
+            data={
+                "title": "Bad source",
+                "source_type": "other",
+            },
+            files={
+                "file": (
+                    file_path.name,
+                    file,
+                    "application/octet-stream",
+                )
+            },
+        )
+
+    assert response.status_code == 400
+    assert "Поддерживаются только RAG-источники" in response.text

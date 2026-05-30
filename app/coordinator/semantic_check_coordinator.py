@@ -1,21 +1,27 @@
+from sqlalchemy.orm import Session
+
 from app.agents.semantic.contradiction_agent import ContradictionAgent
+from app.agents.semantic.llm_semantic_agent import LlmSemanticAgent
 from app.agents.semantic.text_quality_agent import TextQualityAgent
 from app.agents.semantic.vacancy_relevance_agent import VacancyRelevanceAgent
+from app.core.config import settings
 from app.rag.service import RagService
 from app.schemas.checks import CheckResult, Issue, SemanticCheckResponse
 from app.schemas.common import Severity
 from app.schemas.documents import ParsedDocument
-from app.schemas.rag import RagSearchRequest
-from app.agents.semantic.llm_semantic_agent import LlmSemanticAgent
-
-from app.agents.semantic.llm_semantic_agent import LlmSemanticAgent
-from app.core.config import settings
+from app.schemas.rag import RagContext, RagSearchRequest
 
 
 class SemanticCheckCoordinator:
     """
     Координатор семантических проверок.
 
+    RAG-контекст строится только на основе DB-backed источников,
+    загруженных HR/admin-пользователем в rag_sources.
+
+    Candidate не получает корпоративный RAG-контекст.
+    Если у HR/admin нет активных источников, проверка выполняется
+    с пустым RagContext.
     """
 
     def __init__(
@@ -44,22 +50,19 @@ class SemanticCheckCoordinator:
         self,
         document: ParsedDocument,
         vacancy_text: str | None = None,
+        db: Session | None = None,
+        user_id: str | None = None,
+        user_role: str | None = None,
     ) -> SemanticCheckResponse:
-        rag_query = self._build_rag_query(
+        rag_context = self._build_rag_context(
             document=document,
             vacancy_text=vacancy_text,
-        )
-
-        rag_context = self.rag_service.search(
-            RagSearchRequest(
-                query=rag_query,
-                top_k=3,
-            )
+            db=db,
+            user_id=user_id,
+            user_role=user_role,
         )
 
         check_results: list[CheckResult] = []
-
-        check_results = []
 
         for agent in self.agents:
             result = agent.run(
@@ -79,6 +82,39 @@ class SemanticCheckCoordinator:
             major_count=self._count_by_severity(issues, Severity.MAJOR),
             minor_count=self._count_by_severity(issues, Severity.MINOR),
             check_results=check_results,
+        )
+
+    def _build_rag_context(
+        self,
+        document: ParsedDocument,
+        vacancy_text: str | None = None,
+        db: Session | None = None,
+        user_id: str | None = None,
+        user_role: str | None = None,
+    ) -> RagContext:
+        rag_query = self._build_rag_query(
+            document=document,
+            vacancy_text=vacancy_text,
+        )
+
+        if (
+            db is None
+            or user_id is None
+            or user_role not in {"hr", "admin"}
+        ):
+            return RagContext(
+                query=rag_query,
+                results=[],
+            )
+
+        return self.rag_service.search_user_sources(
+            request=RagSearchRequest(
+                query=rag_query,
+                top_k=3,
+            ),
+            db=db,
+            user_id=user_id,
+            user_role=user_role,
         )
 
     @staticmethod
@@ -108,4 +144,8 @@ class SemanticCheckCoordinator:
 
     @staticmethod
     def _count_by_severity(issues: list[Issue], severity: Severity) -> int:
-        return sum(1 for issue in issues if issue.severity == severity)
+        return sum(
+            1
+            for issue in issues
+            if issue.severity == severity
+        )

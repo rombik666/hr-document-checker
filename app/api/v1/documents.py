@@ -158,6 +158,7 @@ async def check_document_semantically(
     vacancy_text: str | None = Form(None),
     storage_mode: StorageMode = Form(StorageMode.TEMPORARY),
     current_user: UserORM = Depends(require_candidate_or_hr_or_admin),
+    db: Session = Depends(get_db),
 ) -> SemanticCheckResponse:
     """
     Загружает DOCX/PDF-файл и выполняет семантические проверки.
@@ -183,6 +184,9 @@ async def check_document_semantically(
         result = coordinator.run(
             document=parsed_document,
             vacancy_text=vacancy_text,
+            db=db,
+            user_id=current_user.id,
+            user_role=current_user.role,
         )
 
         return result
@@ -239,6 +243,9 @@ async def build_document_report(
         semantic_check_response = semantic_coordinator.run(
             document=parsed_document,
             vacancy_text=vacancy_text,
+            db=db,
+            user_id=current_user.id,
+            user_role=current_user.role,
         )
 
         report_builder = ReportBuilder()

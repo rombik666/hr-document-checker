@@ -461,7 +461,7 @@ def show_dashboard(
     reports = storage_service.list_report_records_for_user(
         user_id=user.id,
         user_role=user.role,
-        limit=20,
+        limit=5,
     )
 
     return _template(
@@ -489,7 +489,7 @@ def show_profile(
     reports = storage_service.list_report_records_for_user(
         user_id=user.id,
         user_role=user.role,
-        limit=20,
+        limit=5,
     )
 
     return _template(

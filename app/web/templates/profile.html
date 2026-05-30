@@ -11,7 +11,6 @@
     <div class="form-actions">
         <a class="button" href="/web/dashboard">Панель управления</a>
         <a class="button ghost" href="/web/reports">История проверок</a>
-        <a class="button danger" href="/web/logout">Выйти</a>
     </div>
 </section>
 
@@ -27,17 +26,17 @@
     </div>
 
     <div class="grid three">
-        <div class="metric-card">
+        <div class="metric-card profile-field">
             <strong>{{ user.full_name }}</strong>
             <span>имя пользователя</span>
         </div>
 
-        <div class="metric-card">
+        <div class="metric-card profile-field">
             <strong>{{ user.email }}</strong>
             <span>email</span>
         </div>
 
-        <div class="metric-card">
+        <div class="metric-card profile-field">
             <strong>{{ user.role | role_label }}</strong>
             <span>роль</span>
         </div>
@@ -51,14 +50,24 @@
 <section class="card">
     <div class="section-header">
         <div>
-            <h2>Мои отчёты</h2>
-            <p>
-                Последние сохранённые проверки текущего пользователя.
-            </p>
+            <h2>Последние отчёты</h2>
         </div>
         <a class="button ghost" href="/web/reports">Открыть всё</a>
     </div>
 
     {% include "_reports_table.html" %}
+</section>
+
+<section class="card logout-card">
+    <div class="section-header">
+        <div>
+            <h2>Выход из системы</h2>
+            <p class="muted">
+                Завершите текущую сессию, если работаете на общем устройстве.
+            </p>
+        </div>
+    </div>
+
+    <a class="button danger full-width" href="/web/logout">Выйти из аккаунта</a>
 </section>
 {% endblock %}

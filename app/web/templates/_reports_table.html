@@ -1,5 +1,11 @@
 {% if reports %}
-<div class="table-wrap">
+<div
+    class="table-wrap"
+    {% if reports_table_paginated %}
+        data-paginated-table
+        data-page-size="10"
+    {% endif %}
+>
     <table>
         <thead>
             <tr>
@@ -38,6 +44,14 @@
         {% endfor %}
         </tbody>
     </table>
+
+    {% if reports_table_paginated %}
+        <div class="table-pagination" data-pagination-controls>
+            <button class="button ghost" type="button" data-page-prev>Назад</button>
+            <span class="muted" data-page-info>Страница 1</span>
+            <button class="button ghost" type="button" data-page-next>Вперёд</button>
+        </div>
+    {% endif %}
 </div>
 {% else %}
 <div class="empty-state">

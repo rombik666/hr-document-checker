@@ -159,11 +159,17 @@ def test_web_saved_report_page_returns_html_report(tmp_path: Path) -> None:
 
     assert create_response.status_code == 200
 
-    # report_id есть в ссылках HTML-страницы результата.
-    marker = "/web/reports/"
+    # report_id есть в ссылке DOCX-экспорта сохранённого отчёта.
+    marker = "/api/v1/documents/reports/"
     assert marker in create_response.text
 
-    report_id = create_response.text.split(marker, maxsplit=1)[1].split('"', maxsplit=1)[0]
+    report_id = (
+        create_response.text
+        .split(marker, 1)[1]
+        .split("/export/docx", 1)[0]
+    )
+
+    assert report_id
 
     saved_response = client.get(
         f"/web/reports/{report_id}",

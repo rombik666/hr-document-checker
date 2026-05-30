@@ -76,6 +76,56 @@ document.addEventListener("DOMContentLoaded", () => {
     syncStorageMode();
     });
 
+    document.querySelectorAll("[data-paginated-table]").forEach((tableWrap) => {
+        const rows = Array.from(tableWrap.querySelectorAll("tbody tr"));
+        const pageSize = Number(tableWrap.dataset.pageSize || "10");
+        const controls = tableWrap.querySelector("[data-pagination-controls]");
+        const prevButton = tableWrap.querySelector("[data-page-prev]");
+        const nextButton = tableWrap.querySelector("[data-page-next]");
+        const pageInfo = tableWrap.querySelector("[data-page-info]");
+
+        if (!rows.length || !controls || !prevButton || !nextButton || !pageInfo) {
+            return;
+        }
+
+        const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+        let currentPage = 1;
+
+        const renderPage = () => {
+            tableWrap.classList.add("is-switching");
+
+            window.setTimeout(() => {
+                rows.forEach((row, index) => {
+                    const start = (currentPage - 1) * pageSize;
+                    const end = start + pageSize;
+                    row.hidden = index < start || index >= end;
+                });
+
+                pageInfo.textContent = `Страница ${currentPage} из ${totalPages}`;
+                prevButton.disabled = currentPage === 1;
+                nextButton.disabled = currentPage === totalPages;
+
+                tableWrap.classList.remove("is-switching");
+            }, 120);
+        };
+
+        prevButton.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                renderPage();
+            }
+        });
+
+        nextButton.addEventListener("click", () => {
+            if (currentPage < totalPages) {
+                currentPage += 1;
+                renderPage();
+            }
+        });
+
+        renderPage();
+    });
+
     document.querySelectorAll("form").forEach((form) => {
         form.addEventListener("submit", () => {
             const submitButton = form.querySelector('button[type="submit"]');

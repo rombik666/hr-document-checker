@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -19,19 +20,19 @@ from app.services.report_sanitizer_service import ReportSanitizerService
 
 
 class ReportStorageService:
-    """
-    Сервис сохранения и получения отчётов из БД.
-
-    В БД сохраняется маскированная версия отчёта,
-    чтобы не хранить email/телефоны в долгосрочном хранилище.
-
-    Дополнительно данные отчёта раскладываются по нормализованным
-    таблицам: processing_sessions, checks, issues, recommendations.
-    """
 
     def __init__(self, db: Session) -> None:
         self.db = db
         self.sanitizer = ReportSanitizerService()
+
+    def _sanitize_value(self, value: Any) -> Any:
+        return self.sanitizer.sanitize_value(value)
+
+    def _sanitize_text(self, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        return str(self._sanitize_value(value))
 
     def user_can_access_report(
         self,
@@ -58,10 +59,8 @@ class ReportStorageService:
         report: Report,
         owner_user_id: str | None = None,
     ) -> Report:
-        """
-        Сохраняет метаданные документа, маскированный JSON отчёта
-        и нормализованные результаты проверок.
-        """
+
+        sanitized_report = self.sanitizer.sanitize(report)
 
         document_orm = self._upsert_document(
             document=document,
@@ -70,26 +69,24 @@ class ReportStorageService:
 
         self._replace_document_sections(document)
 
-        sanitized_report = self.sanitizer.sanitize(report)
-
         processing_session = self._create_processing_session(
             document=document,
-            report=report,
+            report=sanitized_report,
             owner_user_id=owner_user_id,
         )
 
         report_orm = ReportORM(
-            id=report.report_id,
+            id=sanitized_report.report_id,
             owner_user_id=owner_user_id,
             document_id=document_orm.id,
             processing_session_id=processing_session.id,
-            filename=report.filename,
-            summary_status=report.summary_status.value,
-            total_issues=report.total_issues,
-            critical_count=report.critical_count,
-            major_count=report.major_count,
-            minor_count=report.minor_count,
-            summary=report.summary,
+            filename=sanitized_report.filename,
+            summary_status=sanitized_report.summary_status.value,
+            total_issues=sanitized_report.total_issues,
+            critical_count=sanitized_report.critical_count,
+            major_count=sanitized_report.major_count,
+            minor_count=sanitized_report.minor_count,
+            summary=sanitized_report.summary,
             report_json=sanitized_report.model_dump(mode="json"),
         )
 
@@ -99,7 +96,7 @@ class ReportStorageService:
 
             self._save_check_results(
                 document=document,
-                report=report,
+                report=sanitized_report,
                 processing_session_id=processing_session.id,
             )
 
@@ -117,11 +114,13 @@ class ReportStorageService:
         owner_user_id: str | None,
     ) -> DocumentORM:
         existing_document = self.db.get(DocumentORM, document.metadata.document_id)
+        safe_filename = self._sanitize_text(document.metadata.filename) or "document"
 
         if existing_document is not None:
             if existing_document.owner_user_id is None and owner_user_id is not None:
                 existing_document.owner_user_id = owner_user_id
-
+                
+            existing_document.filename = safe_filename
             existing_document.filename = document.metadata.filename
             existing_document.document_type = document.metadata.document_type.value
             existing_document.source_format = document.metadata.source_format.value
@@ -133,7 +132,7 @@ class ReportStorageService:
         document_orm = DocumentORM(
             id=document.metadata.document_id,
             owner_user_id=owner_user_id,
-            filename=document.metadata.filename,
+            filename=safe_filename,
             document_type=document.metadata.document_type.value,
             source_format=document.metadata.source_format.value,
             processing_status=document.metadata.processing_status.value,
@@ -165,14 +164,16 @@ class ReportStorageService:
                     id=section_id,
                     document_id=document.metadata.document_id,
                     section_type=section.section_type,
-                    title=section.title,
-                    text=section.text,
+                    title=self._sanitize_text(section.title),
+                    text=self._sanitize_text(section.text) or "",
                     position_in_document=section.position_in_document,
-                    section_metadata={
-                        **section.metadata,
-                        "original_section_id": section.section_id,
-                    },
-                )
+                    section_metadata=self._sanitize_value(
+                        {
+                            **section.metadata,
+                            "original_section_id": section.section_id,
+                        }
+                    ),
+                )                
             )
 
     def _create_processing_session(
@@ -191,14 +192,16 @@ class ReportStorageService:
             started_at=report.technical_info.generated_at,
             ended_at=now,
             duration_ms=None,
-            session_metadata={
-                "report_id": report.report_id,
-                "filename": report.filename,
-                "vacancy_relevance_present": report.vacancy_relevance is not None,
-                "total_agents_count": report.technical_info.total_agents_count,
-                "successful_agents_count": report.technical_info.successful_agents_count,
-                "failed_agents_count": report.technical_info.failed_agents_count,
-            },
+            session_metadata=self._sanitize_value(
+                {
+                    "report_id": report.report_id,
+                    "filename": report.filename,
+                    "vacancy_relevance_present": report.vacancy_relevance is not None,
+                    "total_agents_count": report.technical_info.total_agents_count,
+                    "successful_agents_count": report.technical_info.successful_agents_count,
+                    "failed_agents_count": report.technical_info.failed_agents_count,
+                }
+            ),
         )
 
         self.db.add(processing_session)
@@ -252,7 +255,7 @@ class ReportStorageService:
             ended_at=execution.ended_at,
             duration_ms=execution.duration_ms,
             model_or_ruleset_version=execution.model_or_ruleset_version,
-            error_message=execution.error_message,
+            error_message=self._sanitize_text(execution.error_message),
         )
 
         self.db.add(check_orm)
@@ -323,14 +326,16 @@ class ReportStorageService:
             report_id=report.report_id,
             severity=issue.severity.value,
             issue_type=issue.issue_type,
-            description=issue.description,
-            evidence_fragment=issue.evidence_fragment,
+            description=self._sanitize_text(issue.description) or "",
+            evidence_fragment=self._sanitize_text(issue.evidence_fragment),
             source_agent=issue.source_agent,
             confidence_score=issue.confidence_score,
-            issue_metadata={
-                **issue.metadata,
-                "original_issue_id": issue.issue_id,
-            },
+            issue_metadata=self._sanitize_value(
+                {
+                    **issue.metadata,
+                    "original_issue_id": issue.issue_id,
+                }
+            ),
         )
 
         self.db.add(issue_orm)
@@ -346,8 +351,10 @@ class ReportStorageService:
             RecommendationORM(
                 id=recommendation_id,
                 issue_id=issue_id,
-                recommendation_text=recommendation.recommendation_text,
-                example_fix=recommendation.example_fix,
+                recommendation_text=self._sanitize_text(
+                    recommendation.recommendation_text
+                ) or "",
+                example_fix=self._sanitize_text(recommendation.example_fix),
                 priority_order=recommendation.priority_order,
             )
         )

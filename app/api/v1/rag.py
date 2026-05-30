@@ -1,6 +1,5 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from app.db.session import get_db
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
@@ -13,12 +12,14 @@ from app.schemas.rag import (
     RagContext,
     RagSearchRequest,
     RagStatus,
+    UserRagReindexResponse,
     UserRagSourceActionResponse,
     UserRagSourceDeleteResponse,
     UserRagSourceDetails,
     UserRagSourcesListResponse,
     UserRagSourceUploadResponse,
 )
+from app.services.rag_index_service import RagIndexService
 from app.services.rag_source_service import RagSourceService
 
 
@@ -89,6 +90,49 @@ def get_rag_status(
     )
 
 
+@router.post("/reindex", response_model=UserRagReindexResponse)
+def reindex_current_user_rag(
+    current_user: UserORM = Depends(require_hr_or_admin),
+    db: Session = Depends(get_db),
+) -> UserRagReindexResponse:
+    """
+    Строит или перестраивает персональный FAISS-индекс текущего HR/admin.
+
+    Индекс строится только по активным rag_sources текущего пользователя.
+    Candidate не имеет доступа к этому endpoint.
+    """
+
+    service = RagIndexService(db)
+
+    try:
+        rag_index = service.reindex_user_sources(
+            owner_user_id=current_user.id,
+        )
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"RAG reindex failed: {error}",
+        ) from error
+
+    return UserRagReindexResponse(
+        status="completed",
+        message="Personal RAG FAISS index was rebuilt successfully.",
+        owner_user_id=rag_index.owner_user_id,
+        sources_count=rag_index.sources_count,
+        chunks_count=rag_index.chunks_count,
+        index_path=rag_index.index_path,
+        chunks_path=rag_index.chunks_path,
+        sources_hash=rag_index.sources_hash,
+        reindex_required=rag_index.reindex_required,
+        embedding_backend=rag_index.embedding_backend,
+        embedding_model_name=rag_index.embedding_model_name,
+        embedding_dimension=rag_index.embedding_dimension,
+        retriever_type=rag_index.retriever_type,
+        last_reindexed_at=rag_index.last_reindexed_at,
+    )
+
+
 @router.post("/sources/upload", response_model=UserRagSourceUploadResponse)
 async def upload_rag_source(
     file: UploadFile = File(...),
@@ -100,8 +144,6 @@ async def upload_rag_source(
     """
     Загружает пользовательский RAG-источник.
 
-    HR может загружать документы своей компании: вакансии, чек-листы,
-    регламенты и требования. Admin также может загружать источники.
     """
 
     original_filename = file.filename or ""
@@ -240,6 +282,7 @@ def delete_rag_source(
         message="RAG source was deactivated.",
     )
 
+
 @router.post("/sources/{source_id}/activate", response_model=UserRagSourceActionResponse)
 def activate_rag_source(
     source_id: str,
@@ -279,6 +322,7 @@ def activate_rag_source(
         success=True,
         message="RAG source was activated.",
     )
+
 
 @router.delete("/sources/{source_id}/permanent", response_model=UserRagSourceActionResponse)
 def permanently_delete_rag_source(

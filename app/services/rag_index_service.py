@@ -11,17 +11,36 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.models import RagIndexORM, RagIndexStatus, RagSourceORM
+from app.rag.chunker import TextChunker
+from app.rag.embedding_factory import create_embedding_model
+from app.rag.embedding_model import EmbeddingModel
 from app.rag.faiss_store import FaissVectorStore
+from app.schemas.rag import RagSource
 
 
 class RagIndexService:
     """
-    Сервис управления метаданными персональных FAISS-индексов.
+    Сервис управления персональными FAISS-индексами пользователей.
 
+    rag_sources хранят исходные маскированные RAG-источники в PostgreSQL.
+    rag_indexes хранит состояние и метаданные индекса.
+    faiss.index и chunks.json хранятся в файловом persistent volume.
     """
 
     def __init__(self, db: Session) -> None:
         self.db = db
+        self.chunker = TextChunker(
+            chunk_size_chars=settings.rag_chunk_size_chars,
+            overlap_chars=settings.rag_chunk_overlap_chars,
+        )
+        self._embedding_model: EmbeddingModel | None = None
+
+    @property
+    def embedding_model(self) -> EmbeddingModel:
+        if self._embedding_model is None:
+            self._embedding_model = create_embedding_model()
+
+        return self._embedding_model
 
     def get_index(self, owner_user_id: str) -> RagIndexORM | None:
         stmt = select(RagIndexORM).where(
@@ -99,8 +118,6 @@ class RagIndexService:
     def mark_index_building(self, owner_user_id: str) -> RagIndexORM:
         """
         Переводит индекс в состояние building.
-
-        Будет использоваться на этапе реального reindex.
         """
 
         rag_index = self.get_or_create_index(owner_user_id)
@@ -192,6 +209,76 @@ class RagIndexService:
 
         return rag_index
 
+    def reindex_user_sources(self, owner_user_id: str) -> RagIndexORM:
+        """
+        Полностью перестраивает персональный FAISS-индекс пользователя.
+
+        Последовательность:
+        1. помечает индекс как building;
+        2. загружает активные rag_sources пользователя;
+        3. строит chunks;
+        4. строит FAISS index;
+        5. сохраняет faiss.index и chunks.json;
+        6. обновляет rag_indexes в ready.
+
+        Если активных источников нет, создаётся пустой FAISS-индекс.
+        Это нормальное состояние: индекс ready, но chunks_count = 0.
+        """
+
+        self.mark_index_building(owner_user_id)
+
+        try:
+            active_sources = self.list_active_sources(owner_user_id)
+            sources_hash = self.calculate_sources_hash(active_sources)
+
+            rag_sources = [
+                self._to_rag_source(source)
+                for source in active_sources
+            ]
+
+            chunks = self.chunker.chunk_sources(rag_sources)
+
+            index_dir = self.get_user_index_dir(owner_user_id)
+
+            vector_store = FaissVectorStore.from_chunks(
+                chunks=chunks,
+                embedding_model=self.embedding_model,
+                index_dir=index_dir,
+            )
+            vector_store.save()
+
+            index_path, chunks_path = self.get_user_index_paths(owner_user_id)
+
+            return self.mark_index_ready(
+                owner_user_id=owner_user_id,
+                sources_hash=sources_hash,
+                sources_count=len(active_sources),
+                chunks_count=len(chunks),
+                index_path=index_path,
+                chunks_path=chunks_path,
+                embedding_backend=settings.rag_embedding_backend,
+                embedding_model_name=self._get_embedding_model_name(),
+                embedding_dimension=self.embedding_model.dimension,
+                retriever_type="faiss",
+                index_metadata={
+                    "active_source_ids": [
+                        source.id
+                        for source in active_sources
+                    ],
+                    "chunk_size_chars": settings.rag_chunk_size_chars,
+                    "chunk_overlap_chars": settings.rag_chunk_overlap_chars,
+                    "index_filename": FaissVectorStore.INDEX_FILENAME,
+                    "chunks_filename": FaissVectorStore.CHUNKS_FILENAME,
+                },
+            )
+
+        except Exception as error:
+            self.mark_index_failed(
+                owner_user_id=owner_user_id,
+                error_message=str(error),
+            )
+            raise
+
     def list_active_sources(self, owner_user_id: str) -> list[RagSourceORM]:
         stmt = (
             select(RagSourceORM)
@@ -211,7 +298,7 @@ class RagIndexService:
         """
         Считает стабильный hash активных RAG-источников.
 
-        Hash должен меняться при изменении состава активных источников,
+        Hash меняется при изменении состава активных источников,
         content_hash, типа источника или даты обновления.
         """
 
@@ -286,6 +373,15 @@ class RagIndexService:
         return (
             index_dir / FaissVectorStore.INDEX_FILENAME,
             index_dir / FaissVectorStore.CHUNKS_FILENAME,
+        )
+
+    @staticmethod
+    def _to_rag_source(source: RagSourceORM) -> RagSource:
+        return RagSource(
+            source_id=source.id,
+            title=source.title,
+            path=f"db://rag_sources/{source.id}",
+            content=source.content,
         )
 
     @staticmethod

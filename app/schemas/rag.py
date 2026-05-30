@@ -1,5 +1,5 @@
-from typing import Any
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -67,6 +67,7 @@ class RagStatus(BaseModel):
     index_exists: bool = False
     reindex_required: bool = False
 
+
 class RagSourceInfo(BaseModel):
     source_id: str
     title: str
@@ -91,6 +92,30 @@ class RagReindexResponse(BaseModel):
     embedding_dimension: int | None = None
     index_path: str | None = None
     chunks_path: str | None = None
+
+
+class UserRagReindexResponse(BaseModel):
+    status: str
+    message: str
+
+    owner_user_id: str
+
+    sources_count: int
+    chunks_count: int
+
+    index_path: str | None = None
+    chunks_path: str | None = None
+    sources_hash: str | None = None
+
+    reindex_required: bool
+
+    embedding_backend: str
+    embedding_model_name: str
+    embedding_dimension: int
+    retriever_type: str
+
+    last_reindexed_at: datetime | None = None
+
 
 class UserRagSourceListItem(BaseModel):
     source_id: str
@@ -134,6 +159,7 @@ class UserRagSourceDeleteResponse(BaseModel):
     source_id: str
     deleted: bool
     message: str
+
 
 class UserRagSourceActionResponse(BaseModel):
     source_id: str

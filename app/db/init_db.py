@@ -1,11 +1,15 @@
 from app.core.config import settings
-from app.db.models import Base
-from app.db.session import SessionLocal, engine
+from app.db.session import SessionLocal
 from app.services.user_service import UserService
 
 
 def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
+    """
+    Инициализирует системные данные.
+
+    Физическая схема БД создаётся и обновляется миграциями Alembic.
+    На старте Docker-контейнера выполняется alembic upgrade head.
+    """
 
     db = SessionLocal()
 

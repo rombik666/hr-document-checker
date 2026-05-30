@@ -17,6 +17,9 @@ COPY scripts ./scripts
 COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
 
+RUN chmod +x /app/scripts/docker-entrypoint.sh
+
 EXPOSE 8000
 
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

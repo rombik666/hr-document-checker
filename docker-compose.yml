@@ -42,9 +42,9 @@ services:
       HF_HOME: "/app/data/hf_cache"
       LLM_PROVIDER: "ollama"
       LLM_BASE_URL: "http://host.docker.internal:11434"
-      LLM_MODEL: "qwen2.5:7b"
+      LLM_MODEL: "qwen2.5:3b"
       LLM_API_KEY: ""
-      LLM_TIMEOUT_SECONDS: "180"
+      LLM_TIMEOUT_SECONDS: "30"
       LLM_ENABLED: "true"
       LLM_SEMANTIC_AGENT_ENABLED: "true"
     ports:

@@ -19,7 +19,7 @@ from app.schemas.rag import (
     UserRagSourcesListResponse,
     UserRagSourceUploadResponse,
 )
-from app.services.rag_index_service import RagIndexService
+from app.services.rag_index_service import RagIndexNotReadyError, RagIndexService
 from app.services.rag_source_service import RagSourceService
 
 
@@ -66,14 +66,26 @@ def search_rag_context(
     current_user: UserORM = Depends(require_hr_or_admin),
     db: Session = Depends(get_db),
 ) -> RagContext:
-    service = RagService()
+    """
+    Ищет RAG-контекст только по готовому персональному FAISS-индексу.
 
-    return service.search_user_sources(
-        request=request,
-        db=db,
-        user_id=current_user.id,
-        user_role=current_user.role,
-    )
+    Если индекс отсутствует или устарел, возвращает HTTP 409
+    с требованием выполнить POST /api/v1/rag/reindex.
+    """
+
+    service = RagIndexService(db)
+
+    try:
+        return service.search_user_index(
+            owner_user_id=current_user.id,
+            request=request,
+        )
+
+    except RagIndexNotReadyError as error:
+        raise HTTPException(
+            status_code=409,
+            detail=error.to_detail(),
+        ) from error
 
 
 @router.get("/status", response_model=RagStatus)
@@ -141,11 +153,6 @@ async def upload_rag_source(
     current_user: UserORM = Depends(require_hr_or_admin),
     db: Session = Depends(get_db),
 ) -> UserRagSourceUploadResponse:
-    """
-    Загружает пользовательский RAG-источник.
-
-    """
-
     original_filename = file.filename or ""
 
     if not original_filename:
@@ -195,13 +202,6 @@ def list_rag_sources(
     current_user: UserORM = Depends(require_hr_or_admin),
     db: Session = Depends(get_db),
 ) -> UserRagSourcesListResponse:
-    """
-    Возвращает список RAG-источников пользователя.
-
-    HR видит только свои источники.
-    Admin видит все источники.
-    """
-
     service = RagSourceService(db)
 
     sources = service.list_sources_for_user(
@@ -226,13 +226,6 @@ def get_rag_source(
     current_user: UserORM = Depends(require_hr_or_admin),
     db: Session = Depends(get_db),
 ) -> UserRagSourceDetails:
-    """
-    Возвращает RAG-источник по ID.
-
-    HR может открыть только свой источник.
-    Admin может открыть любой источник.
-    """
-
     service = RagSourceService(db)
 
     source = service.get_source_for_user(
@@ -256,12 +249,6 @@ def delete_rag_source(
     current_user: UserORM = Depends(require_hr_or_admin),
     db: Session = Depends(get_db),
 ) -> UserRagSourceDeleteResponse:
-    """
-    Деактивирует RAG-источник.
-
-    Физически запись не удаляется, чтобы сохранить историю и возможность аудита.
-    """
-
     service = RagSourceService(db)
 
     deleted = service.deactivate_source_for_user(
@@ -289,12 +276,6 @@ def activate_rag_source(
     current_user: UserORM = Depends(require_hr_or_admin),
     db: Session = Depends(get_db),
 ) -> UserRagSourceActionResponse:
-    """
-    Повторно включает ранее деактивированный RAG-источник.
-
-    При включении снова проверяется квота активных источников пользователя.
-    """
-
     service = RagSourceService(db)
 
     try:
@@ -330,12 +311,6 @@ def permanently_delete_rag_source(
     current_user: UserORM = Depends(require_hr_or_admin),
     db: Session = Depends(get_db),
 ) -> UserRagSourceActionResponse:
-    """
-    Полностью удаляет RAG-источник из БД.
-
-    Использовать осторожно: запись физически удаляется из rag_sources.
-    """
-
     service = RagSourceService(db)
 
     deleted = service.permanently_delete_source_for_user(

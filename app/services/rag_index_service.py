@@ -15,7 +15,46 @@ from app.rag.chunker import TextChunker
 from app.rag.embedding_factory import create_embedding_model
 from app.rag.embedding_model import EmbeddingModel
 from app.rag.faiss_store import FaissVectorStore
-from app.schemas.rag import RagSource
+from app.schemas.rag import RagContext, RagSearchRequest, RagSource
+
+
+class RagIndexNotReadyError(Exception):
+    """
+    Ошибка состояния персонального RAG-индекса.
+
+    Используется, когда пользователь пытается искать по RAG,
+    но его FAISS-индекс отсутствует, устарел, строится или сломан.
+    """
+
+    def __init__(
+        self,
+        owner_user_id: str,
+        status: str,
+        reindex_required: bool,
+        message: str,
+        sources_count: int = 0,
+        chunks_count: int = 0,
+    ) -> None:
+        super().__init__(message)
+
+        self.owner_user_id = owner_user_id
+        self.status = status
+        self.reindex_required = reindex_required
+        self.message = message
+        self.sources_count = sources_count
+        self.chunks_count = chunks_count
+
+    def to_detail(self) -> dict:
+        return {
+            "error": "rag_reindex_required",
+            "message": self.message,
+            "owner_user_id": self.owner_user_id,
+            "index_status": self.status,
+            "reindex_required": self.reindex_required,
+            "sources_count": self.sources_count,
+            "chunks_count": self.chunks_count,
+            "reindex_endpoint": "/api/v1/rag/reindex",
+        }
 
 
 class RagIndexService:
@@ -93,13 +132,6 @@ class RagIndexService:
         return rag_index
 
     def mark_index_stale(self, owner_user_id: str) -> RagIndexORM:
-        """
-        Помечает индекс пользователя устаревшим.
-
-        Используется после загрузки, активации, деактивации или удаления
-        RAG-источников. Индекс здесь не перестраивается.
-        """
-
         rag_index = self.get_or_create_index(owner_user_id)
         active_sources = self.list_active_sources(owner_user_id)
 
@@ -116,10 +148,6 @@ class RagIndexService:
         return rag_index
 
     def mark_index_building(self, owner_user_id: str) -> RagIndexORM:
-        """
-        Переводит индекс в состояние building.
-        """
-
         rag_index = self.get_or_create_index(owner_user_id)
 
         rag_index.status = RagIndexStatus.BUILDING.value
@@ -146,10 +174,6 @@ class RagIndexService:
         embedding_dimension: int | None = None,
         retriever_type: str = "faiss",
     ) -> RagIndexORM:
-        """
-        Фиксирует успешно построенный персональный FAISS-индекс.
-        """
-
         rag_index = self.get_or_create_index(owner_user_id)
 
         active_sources = self.list_active_sources(owner_user_id)
@@ -193,10 +217,6 @@ class RagIndexService:
         owner_user_id: str,
         error_message: str,
     ) -> RagIndexORM:
-        """
-        Фиксирует ошибку построения индекса.
-        """
-
         rag_index = self.get_or_create_index(owner_user_id)
 
         rag_index.status = RagIndexStatus.FAILED.value
@@ -212,17 +232,6 @@ class RagIndexService:
     def reindex_user_sources(self, owner_user_id: str) -> RagIndexORM:
         """
         Полностью перестраивает персональный FAISS-индекс пользователя.
-
-        Последовательность:
-        1. помечает индекс как building;
-        2. загружает активные rag_sources пользователя;
-        3. строит chunks;
-        4. строит FAISS index;
-        5. сохраняет faiss.index и chunks.json;
-        6. обновляет rag_indexes в ready.
-
-        Если активных источников нет, создаётся пустой FAISS-индекс.
-        Это нормальное состояние: индекс ready, но chunks_count = 0.
         """
 
         self.mark_index_building(owner_user_id)
@@ -279,6 +288,123 @@ class RagIndexService:
             )
             raise
 
+    def search_user_index(
+        self,
+        owner_user_id: str,
+        request: RagSearchRequest,
+    ) -> RagContext:
+        """
+        Выполняет поиск только по готовому персональному FAISS-индексу.
+
+        Если индекс не готов, выбрасывает RagIndexNotReadyError.
+        API-слой преобразует эту ошибку в HTTP 409.
+        """
+
+        rag_index = self.get_ready_index_or_raise(owner_user_id)
+
+        index_dir = (
+            Path(rag_index.index_path).parent
+            if rag_index.index_path
+            else self.get_user_index_dir(owner_user_id)
+        )
+
+        try:
+            vector_store = FaissVectorStore.load(index_dir)
+
+        except FileNotFoundError as error:
+            rag_index = self.mark_index_stale(owner_user_id)
+            raise RagIndexNotReadyError(
+                owner_user_id=owner_user_id,
+                status=rag_index.status,
+                reindex_required=rag_index.reindex_required,
+                message=(
+                    "Personal RAG index files are missing. "
+                    "Run POST /api/v1/rag/reindex before search."
+                ),
+                sources_count=rag_index.sources_count,
+                chunks_count=rag_index.chunks_count,
+            ) from error
+
+        results = vector_store.search(
+            query=request.query,
+            embedding_model=self.embedding_model,
+            top_k=request.top_k,
+        )
+
+        return RagContext(
+            query=request.query,
+            results=results,
+        )
+
+    def get_ready_index_or_raise(self, owner_user_id: str) -> RagIndexORM:
+        """
+        Возвращает готовый индекс или объяснимо сообщает,
+        что нужна переиндексация.
+        """
+
+        rag_index = self.get_or_create_index(owner_user_id)
+
+        active_sources = self.list_active_sources(owner_user_id)
+        current_sources_hash = self.calculate_sources_hash(active_sources)
+
+        if rag_index.sources_hash != current_sources_hash:
+            rag_index = self.mark_index_stale(owner_user_id)
+            raise self._not_ready_error(
+                owner_user_id=owner_user_id,
+                rag_index=rag_index,
+                message=(
+                    "Personal RAG index is stale because active sources changed. "
+                    "Run POST /api/v1/rag/reindex before search."
+                ),
+            )
+
+        if rag_index.status != RagIndexStatus.READY.value:
+            raise self._not_ready_error(
+                owner_user_id=owner_user_id,
+                rag_index=rag_index,
+                message=(
+                    f"Personal RAG index is not ready: status={rag_index.status}. "
+                    "Run POST /api/v1/rag/reindex before search."
+                ),
+            )
+
+        if rag_index.reindex_required:
+            raise self._not_ready_error(
+                owner_user_id=owner_user_id,
+                rag_index=rag_index,
+                message=(
+                    "Personal RAG index requires reindex. "
+                    "Run POST /api/v1/rag/reindex before search."
+                ),
+            )
+
+        if not rag_index.index_path or not rag_index.chunks_path:
+            rag_index = self.mark_index_stale(owner_user_id)
+            raise self._not_ready_error(
+                owner_user_id=owner_user_id,
+                rag_index=rag_index,
+                message=(
+                    "Personal RAG index metadata is incomplete. "
+                    "Run POST /api/v1/rag/reindex before search."
+                ),
+            )
+
+        index_path = Path(rag_index.index_path)
+        chunks_path = Path(rag_index.chunks_path)
+
+        if not index_path.exists() or not chunks_path.exists():
+            rag_index = self.mark_index_stale(owner_user_id)
+            raise self._not_ready_error(
+                owner_user_id=owner_user_id,
+                rag_index=rag_index,
+                message=(
+                    "Personal RAG index files are missing. "
+                    "Run POST /api/v1/rag/reindex before search."
+                ),
+            )
+
+        return rag_index
+
     def list_active_sources(self, owner_user_id: str) -> list[RagSourceORM]:
         stmt = (
             select(RagSourceORM)
@@ -295,13 +421,6 @@ class RagIndexService:
         return self.calculate_sources_hash(active_sources)
 
     def calculate_sources_hash(self, sources: Iterable[RagSourceORM]) -> str:
-        """
-        Считает стабильный hash активных RAG-источников.
-
-        Hash меняется при изменении состава активных источников,
-        content_hash, типа источника или даты обновления.
-        """
-
         payload = [
             {
                 "id": source.id,
@@ -327,17 +446,6 @@ class RagIndexService:
         return sha256(serialized_payload.encode("utf-8")).hexdigest()
 
     def needs_reindex(self, owner_user_id: str) -> bool:
-        """
-        Проверяет, нужно ли перестраивать индекс.
-
-        Индекс считается неактуальным, если:
-        - записи ещё нет;
-        - статус не ready;
-        - reindex_required=True;
-        - hash активных источников отличается;
-        - файлов faiss.index/chunks.json нет на диске.
-        """
-
         rag_index = self.get_index(owner_user_id)
 
         if rag_index is None:
@@ -373,6 +481,21 @@ class RagIndexService:
         return (
             index_dir / FaissVectorStore.INDEX_FILENAME,
             index_dir / FaissVectorStore.CHUNKS_FILENAME,
+        )
+
+    def _not_ready_error(
+        self,
+        owner_user_id: str,
+        rag_index: RagIndexORM,
+        message: str,
+    ) -> RagIndexNotReadyError:
+        return RagIndexNotReadyError(
+            owner_user_id=owner_user_id,
+            status=rag_index.status,
+            reindex_required=rag_index.reindex_required,
+            message=message,
+            sources_count=rag_index.sources_count,
+            chunks_count=rag_index.chunks_count,
         )
 
     @staticmethod

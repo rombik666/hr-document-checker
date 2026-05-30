@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from time import perf_counter
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -18,7 +18,7 @@ from app.reports.report_builder import ReportBuilder
 from app.schemas.checks import FormalCheckResponse, SemanticCheckResponse
 from app.schemas.common import StorageMode
 from app.schemas.documents import ParsedDocument
-from app.schemas.reports import Report
+from app.schemas.reports import Report, ReportListItem, ReportListResponse
 from app.services.document_processing_service import DocumentProcessingService
 from app.services.report_storage_service import ReportStorageService
 
@@ -301,6 +301,49 @@ async def build_document_report(
     finally:
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
+
+
+@router.get("/reports", response_model=ReportListResponse)
+def list_saved_reports(
+    limit: int = Query(20, ge=1, le=100),
+    current_user: UserORM = Depends(require_candidate_or_hr_or_admin),
+    db: Session = Depends(get_db),
+) -> ReportListResponse:
+    """
+    Возвращает историю сохранённых отчётов.
+
+    Candidate и HR видят только свои отчёты.
+    Admin видит все отчёты.
+    """
+
+    storage_service = ReportStorageService(db)
+
+    records = storage_service.list_report_records_for_user(
+        user_id=current_user.id,
+        user_role=current_user.role,
+        limit=limit,
+    )
+
+    reports = [
+        ReportListItem(
+            report_id=record.id,
+            document_id=record.document_id,
+            processing_session_id=record.processing_session_id,
+            filename=record.filename,
+            summary_status=record.summary_status,
+            total_issues=record.total_issues,
+            critical_count=record.critical_count,
+            major_count=record.major_count,
+            minor_count=record.minor_count,
+            created_at=record.created_at,
+        )
+        for record in records
+    ]
+
+    return ReportListResponse(
+        reports=reports,
+        total=len(reports),
+    )
 
 
 @router.get("/reports/{report_id}", response_model=Report)

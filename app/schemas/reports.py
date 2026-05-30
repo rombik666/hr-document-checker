@@ -50,3 +50,24 @@ class Report(BaseModel):
     technical_info: TechnicalInfo
 
     raw_check_results: list[CheckResult] = Field(default_factory=list)
+
+
+class ReportListItem(BaseModel):
+    report_id: str
+    document_id: str
+    processing_session_id: str | None = None
+    filename: str
+
+    summary_status: ReportStatus
+
+    total_issues: int
+    critical_count: int
+    major_count: int
+    minor_count: int
+
+    created_at: datetime
+
+
+class ReportListResponse(BaseModel):
+    reports: list[ReportListItem] = Field(default_factory=list)
+    total: int

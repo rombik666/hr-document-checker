@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.documents import router as documents_router
 from app.db.init_db import init_db
@@ -35,6 +36,12 @@ app = FastAPI(
     description="Prototype of HR and business document checker with AI agents",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+app.mount(
+    "/static",
+    StaticFiles(directory="app/static"),
+    name="static",
 )
 
 app.add_middleware(RequestLoggingMiddleware)

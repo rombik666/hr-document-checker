@@ -4,6 +4,16 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import require_admin
 from app.db.models import UserORM
 from app.db.session import get_db
+from app.core.config import settings
+from app.rag.index_builder import RagIndexBuilder
+from app.rag.knowledge_loader import KnowledgeLoader
+from app.rag.service import RagService
+from app.schemas.rag import (
+    RagReindexResponse,
+    RagSourceInfo,
+    RagSourcesResponse,
+    RagStatus,
+)
 from app.schemas.admin import (
     AdminStatusResponse,
     BackupPayload,
@@ -63,6 +73,9 @@ def get_roles(
                 role="admin",
                 description="Monitors system status, metrics, backups and storage diagnostics.",
                 permissions=[
+                    "view_rag_status",
+                    "list_rag_sources",
+                    "reindex_rag",                    
                     "view_metrics",
                     "view_database_status",
                     "run_privacy_check",
@@ -93,6 +106,65 @@ def run_storage_privacy_check(
     service = DbInspectionService(db)
     return PrivacyCheckResponse.model_validate(
         service.run_privacy_check()
+    )
+
+@router.get("/rag/status", response_model=RagStatus)
+def get_admin_rag_status(
+    current_user: UserORM = Depends(require_admin),
+) -> RagStatus:
+    """
+    Возвращает технический статус RAG-подсистемы для администратора.
+    """
+
+    service = RagService()
+    return service.get_status()
+
+
+@router.get("/rag/sources", response_model=RagSourcesResponse)
+def list_admin_rag_sources(
+    current_user: UserORM = Depends(require_admin),
+) -> RagSourcesResponse:
+    """
+    Возвращает список источников базы знаний без полного текста источников.
+    """
+
+    loader = KnowledgeLoader()
+    sources = loader.load_sources(settings.knowledge_base_dir)
+
+    return RagSourcesResponse(
+        knowledge_base_dir=str(settings.knowledge_base_dir),
+        sources_count=len(sources),
+        sources=[
+            RagSourceInfo(
+                source_id=source.source_id,
+                title=source.title,
+                path=source.path,
+                content_length=len(source.content),
+            )
+            for source in sources
+        ],
+    )
+
+
+@router.post("/rag/reindex", response_model=RagReindexResponse)
+def reindex_admin_rag(
+    current_user: UserORM = Depends(require_admin),
+) -> RagReindexResponse:
+    """
+    Перестраивает FAISS-индекс RAG-базы знаний.
+    """
+
+    result = RagIndexBuilder().build()
+
+    return RagReindexResponse(
+        status="completed",
+        knowledge_base_dir=result["knowledge_base_dir"],
+        index_dir=result["index_dir"],
+        sources_count=result["sources_count"],
+        chunks_count=result["chunks_count"],
+        embedding_dimension=result.get("embedding_dimension"),
+        index_path=result["index_path"],
+        chunks_path=result["chunks_path"],
     )
 
 

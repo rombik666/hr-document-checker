@@ -57,3 +57,26 @@ class RagStatus(BaseModel):
     embedding_model_name: str | None = None
     index_dir: str | None = None
     index_exists: bool = False
+
+class RagSourceInfo(BaseModel):
+    source_id: str
+    title: str
+    path: str
+    content_length: int
+
+
+class RagSourcesResponse(BaseModel):
+    knowledge_base_dir: str
+    sources_count: int
+    sources: list[RagSourceInfo] = Field(default_factory=list)
+
+
+class RagReindexResponse(BaseModel):
+    status: str
+    knowledge_base_dir: str
+    index_dir: str
+    sources_count: int
+    chunks_count: int
+    embedding_dimension: int | None = None
+    index_path: str
+    chunks_path: str

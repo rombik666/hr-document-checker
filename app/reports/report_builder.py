@@ -10,7 +10,6 @@ from app.schemas.reports import Report, TechnicalInfo, VacancyRelevance
 class ReportBuilder:
     """
     Генератор итогового отчёта.
-
     """
 
     def build(
@@ -43,11 +42,18 @@ class ReportBuilder:
             semantic_checks_enabled=semantic_check_response is not None,
         )
 
+        semantic_rag_metadata = (
+            semantic_check_response.rag_metadata
+            if semantic_check_response is not None
+            else {}
+        )
+
         technical_info = self._build_technical_info(
             document=document,
             check_results=check_results,
             semantic_checks_enabled=semantic_check_response is not None,
             vacancy_text_provided=vacancy_text is not None,
+            semantic_rag_metadata=semantic_rag_metadata,
         )
 
         vacancy_relevance = self._build_vacancy_relevance(
@@ -144,6 +150,7 @@ class ReportBuilder:
         check_results: list[CheckResult],
         semantic_checks_enabled: bool,
         vacancy_text_provided: bool,
+        semantic_rag_metadata: dict | None = None,
     ) -> TechnicalInfo:
         completed: list[str] = []
         failed: list[str] = []
@@ -160,6 +167,19 @@ class ReportBuilder:
             if execution.status == CheckStatus.FAILED:
                 failed.append(execution.agent_name)
 
+        metadata = {
+            "source_format": document.metadata.source_format.value,
+            "document_type": document.metadata.document_type.value,
+            "storage_mode": document.metadata.storage_mode.value,
+            "sections_count": len(document.sections),
+            "entities_count": len(document.entities),
+            "semantic_checks_enabled": semantic_checks_enabled,
+            "vacancy_text_provided": vacancy_text_provided,
+        }
+
+        if semantic_rag_metadata:
+            metadata.update(semantic_rag_metadata)
+
         return TechnicalInfo(
             generated_at=datetime.now(timezone.utc),
             checks_completed=completed,
@@ -169,15 +189,7 @@ class ReportBuilder:
             successful_agents_count=len(completed),
             failed_agents_count=len(failed),
             parser_warnings=document.metadata.warnings,
-            metadata={
-                "source_format": document.metadata.source_format.value,
-                "document_type": document.metadata.document_type.value,
-                "storage_mode": document.metadata.storage_mode.value,
-                "sections_count": len(document.sections),
-                "entities_count": len(document.entities),
-                "semantic_checks_enabled": semantic_checks_enabled,
-                "vacancy_text_provided": vacancy_text_provided,
-            },
+            metadata=metadata,
         )
 
     @staticmethod

@@ -3,7 +3,8 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from sqlalchemy import delete
 
-from app.db.models import RagSourceORM
+from app.core.config import settings
+from app.db.models import RagIndexORM, RagSourceORM
 from app.db.session import SessionLocal
 from app.main import app
 from tests.auth_helpers import admin_auth_headers, auth_headers
@@ -45,19 +46,58 @@ def _upload_text_rag_source(
     return response.json()["source"]["source_id"]
 
 
-def _delete_sources(source_ids: list[str]) -> None:
-    if not source_ids:
-        return
+def _reindex(headers: dict[str, str]) -> dict:
+    response = client.post(
+        "/api/v1/rag/reindex",
+        headers=headers,
+    )
 
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["status"] == "completed"
+    assert data["reindex_required"] is False
+    assert data["index_path"]
+    assert data["chunks_path"]
+
+    return data
+
+
+def _delete_sources(source_ids: list[str]) -> None:
     db = SessionLocal()
 
     try:
-        db.execute(
-            delete(RagSourceORM).where(
-                RagSourceORM.id.in_(source_ids)
+        owner_user_ids: set[str] = set()
+
+        if source_ids:
+            sources = (
+                db.query(RagSourceORM)
+                .filter(RagSourceORM.id.in_(source_ids))
+                .all()
             )
-        )
+
+            owner_user_ids.update(
+                source.owner_user_id
+                for source in sources
+                if source.owner_user_id is not None
+            )
+
+            db.execute(
+                delete(RagSourceORM).where(
+                    RagSourceORM.id.in_(source_ids)
+                )
+            )
+
+        for owner_user_id in owner_user_ids:
+            db.execute(
+                delete(RagIndexORM).where(
+                    RagIndexORM.owner_user_id == owner_user_id,
+                )
+            )
+
         db.commit()
+
     finally:
         db.close()
 
@@ -69,8 +109,19 @@ def _result_text(response_json: dict) -> str:
     ).lower()
 
 
-def test_hr_without_uploaded_sources_gets_empty_rag_context() -> None:
+def test_hr_without_uploaded_sources_gets_empty_rag_context_after_reindex(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        settings,
+        "rag_index_dir",
+        tmp_path / "index",
+    )
+
     headers = auth_headers(client, "hr")
+
+    _reindex(headers)
 
     response = client.post(
         "/api/v1/rag/search",
@@ -89,7 +140,16 @@ def test_hr_without_uploaded_sources_gets_empty_rag_context() -> None:
     assert data["results"] == []
 
 
-def test_hr_search_uses_uploaded_rag_source(tmp_path: Path) -> None:
+def test_hr_search_uses_uploaded_rag_source_after_reindex(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        settings,
+        "rag_index_dir",
+        tmp_path / "index",
+    )
+
     headers = auth_headers(client, "hr")
     source_ids: list[str] = []
 
@@ -106,6 +166,20 @@ def test_hr_search_uses_uploaded_rag_source(tmp_path: Path) -> None:
             ),
         )
         source_ids.append(source_id)
+
+        stale_response = client.post(
+            "/api/v1/rag/search",
+            headers=headers,
+            json={
+                "query": "Kafka Redis Kubernetes",
+                "top_k": 3,
+            },
+        )
+
+        assert stale_response.status_code == 409
+        assert stale_response.json()["detail"]["error"] == "rag_reindex_required"
+
+        _reindex(headers)
 
         response = client.post(
             "/api/v1/rag/search",
@@ -140,7 +214,16 @@ def test_hr_search_uses_uploaded_rag_source(tmp_path: Path) -> None:
         _delete_sources(source_ids)
 
 
-def test_hr_search_does_not_use_another_hr_uploaded_source(tmp_path: Path) -> None:
+def test_hr_search_does_not_use_another_hr_uploaded_source_after_reindex(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        settings,
+        "rag_index_dir",
+        tmp_path / "index",
+    )
+
     first_hr_headers = auth_headers(client, "hr")
     second_hr_headers = auth_headers(client, "hr")
     source_ids: list[str] = []
@@ -157,6 +240,9 @@ def test_hr_search_does_not_use_another_hr_uploaded_source(tmp_path: Path) -> No
             ),
         )
         source_ids.append(source_id)
+
+        _reindex(first_hr_headers)
+        _reindex(second_hr_headers)
 
         response = client.post(
             "/api/v1/rag/search",
@@ -178,23 +264,33 @@ def test_hr_search_does_not_use_another_hr_uploaded_source(tmp_path: Path) -> No
         _delete_sources(source_ids)
 
 
-def test_admin_search_uses_all_uploaded_rag_sources(tmp_path: Path) -> None:
-    hr_headers = auth_headers(client, "hr")
+def test_admin_search_uses_own_uploaded_rag_sources_after_reindex(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        settings,
+        "rag_index_dir",
+        tmp_path / "index",
+    )
+
     admin_headers = admin_auth_headers(client)
     source_ids: list[str] = []
 
     try:
         source_id = _upload_text_rag_source(
-            headers=hr_headers,
+            headers=admin_headers,
             tmp_path=tmp_path,
-            filename="rag_search_uploaded_admin_visible.txt",
-            title="RAG search test admin visible source",
+            filename="rag_search_uploaded_admin_own_source.txt",
+            title="RAG search test admin own source",
             content=(
-                "Источник HR для проверки прав администратора: "
+                "Источник администратора для проверки персонального индекса: "
                 "требования включают Elasticsearch, Logstash, Kibana."
             ),
         )
         source_ids.append(source_id)
+
+        _reindex(admin_headers)
 
         response = client.post(
             "/api/v1/rag/search",
@@ -228,7 +324,16 @@ def test_admin_search_uses_all_uploaded_rag_sources(tmp_path: Path) -> None:
         _delete_sources(source_ids)
 
 
-def test_deactivated_uploaded_source_is_not_used_in_rag_search(tmp_path: Path) -> None:
+def test_deactivated_uploaded_source_is_not_used_in_rag_search_after_reindex(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        settings,
+        "rag_index_dir",
+        tmp_path / "index",
+    )
+
     headers = auth_headers(client, "hr")
     source_ids: list[str] = []
 
@@ -245,12 +350,40 @@ def test_deactivated_uploaded_source_is_not_used_in_rag_search(tmp_path: Path) -
         )
         source_ids.append(source_id)
 
+        _reindex(headers)
+
+        active_response = client.post(
+            "/api/v1/rag/search",
+            headers=headers,
+            json={
+                "query": "Snowflake Airflow dbt",
+                "top_k": 3,
+            },
+        )
+
+        assert active_response.status_code == 200
+        assert len(active_response.json()["results"]) >= 1
+
         delete_response = client.delete(
             f"/api/v1/rag/sources/{source_id}",
             headers=headers,
         )
 
         assert delete_response.status_code == 200
+
+        stale_response = client.post(
+            "/api/v1/rag/search",
+            headers=headers,
+            json={
+                "query": "Snowflake Airflow dbt",
+                "top_k": 3,
+            },
+        )
+
+        assert stale_response.status_code == 409
+        assert stale_response.json()["detail"]["error"] == "rag_reindex_required"
+
+        _reindex(headers)
 
         response = client.post(
             "/api/v1/rag/search",

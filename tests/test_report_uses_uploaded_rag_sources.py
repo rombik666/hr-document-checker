@@ -26,24 +26,21 @@ def _create_resume_file(tmp_path: Path) -> Path:
     return file_path
 
 
-def test_report_generation_uses_db_backed_rag_for_hr(
+def test_report_generation_uses_per_user_faiss_rag_for_hr(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     calls: list[dict[str, str]] = []
 
-    def fake_search_user_sources(
+    def fake_search_user_index(
         self,
+        owner_user_id: str,
         request,
-        db,
-        user_id: str,
-        user_role: str,
     ) -> RagContext:
         calls.append(
             {
                 "query": request.query,
-                "user_id": user_id,
-                "user_role": user_role,
+                "owner_user_id": owner_user_id,
             }
         )
 
@@ -53,8 +50,8 @@ def test_report_generation_uses_db_backed_rag_for_hr(
         )
 
     monkeypatch.setattr(
-        "app.rag.service.RagService.search_user_sources",
-        fake_search_user_sources,
+        "app.services.rag_index_service.RagIndexService.search_user_index",
+        fake_search_user_index,
     )
 
     headers = auth_headers(client, "hr")
@@ -79,12 +76,18 @@ def test_report_generation_uses_db_backed_rag_for_hr(
 
     assert response.status_code == 200
 
+    data = response.json()
+    metadata = data["technical_info"]["metadata"]
+
     assert len(calls) == 1
-    assert calls[0]["user_role"] == "hr"
-    assert calls[0]["user_id"]
+    assert calls[0]["owner_user_id"]
     assert "качество резюме" in calls[0]["query"]
     assert "FastAPI" in calls[0]["query"]
     assert "PostgreSQL" in calls[0]["query"]
+
+    assert metadata["rag_backend"] == "per_user_faiss"
+    assert metadata["rag_index_status"] == "ready"
+    assert metadata["rag_reindex_required"] is False
 
 
 def test_report_generation_does_not_use_corporate_rag_for_candidate(
@@ -93,18 +96,15 @@ def test_report_generation_does_not_use_corporate_rag_for_candidate(
 ) -> None:
     calls: list[dict[str, str]] = []
 
-    def fake_search_user_sources(
+    def fake_search_user_index(
         self,
+        owner_user_id: str,
         request,
-        db,
-        user_id: str,
-        user_role: str,
     ) -> RagContext:
         calls.append(
             {
                 "query": request.query,
-                "user_id": user_id,
-                "user_role": user_role,
+                "owner_user_id": owner_user_id,
             }
         )
 
@@ -114,8 +114,8 @@ def test_report_generation_does_not_use_corporate_rag_for_candidate(
         )
 
     monkeypatch.setattr(
-        "app.rag.service.RagService.search_user_sources",
-        fake_search_user_sources,
+        "app.services.rag_index_service.RagIndexService.search_user_index",
+        fake_search_user_index,
     )
 
     headers = auth_headers(client, "candidate")
@@ -139,4 +139,11 @@ def test_report_generation_does_not_use_corporate_rag_for_candidate(
         )
 
     assert response.status_code == 200
+
+    data = response.json()
+    metadata = data["technical_info"]["metadata"]
+
     assert calls == []
+    assert metadata["rag_backend"] == "per_user_faiss"
+    assert metadata["rag_context_used"] is False
+    assert metadata["rag_index_status"] == "not_applicable"

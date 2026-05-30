@@ -67,7 +67,6 @@ class FormalCheckResponse(BaseModel):
 class SemanticCheckResponse(BaseModel):
     """
     Ответ API для семантических проверок.
-
     """
 
     document_id: str
@@ -77,3 +76,4 @@ class SemanticCheckResponse(BaseModel):
     major_count: int
     minor_count: int
     check_results: list[CheckResult]
+    rag_metadata: dict[str, Any] = Field(default_factory=dict)

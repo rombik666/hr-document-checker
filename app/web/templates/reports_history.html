@@ -1,17 +1,46 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="card">
-    <h1>История проверок</h1>
+<section class="hero">
+    <span class="badge">История проверок</span>
+    <h1>Сохранённые отчёты по документам</h1>
     <p>
-        Здесь отображаются сохранённые отчёты. Кандидат и HR видят только свои проверки,
-        администратор видит отчёты всех пользователей.
+        Здесь отображаются результаты проверок, сохранённые в базе данных.
+        Кандидат и HR видят только свои отчёты, а администратор имеет доступ ко всем проверкам.
     </p>
 
-    <a class="button secondary" href="/web/dashboard">Вернуться на панель</a>
+    <div class="form-actions">
+        <a class="button" href="/web/dashboard">Новая проверка</a>
+        <a class="button ghost" href="/web/profile">Личный кабинет</a>
+    </div>
+</section>
+
+<div class="grid three">
+    <div class="metric-card">
+        <strong>temporary</strong>
+        <span>отчёты сохраняются в истории</span>
+    </div>
+    <div class="metric-card">
+        <strong>no_store</strong>
+        <span>результат не попадает в БД</span>
+    </div>
+    <div class="metric-card">
+        <strong>DOCX</strong>
+        <span>экспорт доступен для сохранённых отчётов</span>
+    </div>
 </div>
 
-<div class="card">
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h2>Список отчётов</h2>
+            <p>
+                Откройте HTML-страницу отчёта, JSON-представление или скачайте DOCX-файл.
+            </p>
+        </div>
+        <span class="badge">reports</span>
+    </div>
+
     {% include "_reports_table.html" %}
-</div>
+</section>
 {% endblock %}

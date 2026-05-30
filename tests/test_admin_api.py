@@ -4,6 +4,11 @@ from tests.auth_helpers import auth_headers
 from tests.auth_helpers import admin_auth_headers
 from app.main import app
 
+from sqlalchemy import delete
+
+from app.db.models import DocumentORM
+from app.db.session import SessionLocal
+
 
 client = TestClient(app)
 
@@ -215,3 +220,53 @@ def test_admin_restore_endpoint_rejects_swagger_placeholder_payload() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_admin_privacy_check_detects_unmasked_normalized_storage_value() -> None:
+    db = SessionLocal()
+    document_id = "privacy-check-leak-document"
+
+    try:
+        db.execute(delete(DocumentORM).where(DocumentORM.id == document_id))
+
+        db.add(
+            DocumentORM(
+                id=document_id,
+                owner_user_id=None,
+                filename="ivan@example.com_resume.docx",
+                document_type="cv",
+                source_format="docx",
+                processing_status="report_generated",
+                storage_mode="temporary",
+            )
+        )
+
+        db.commit()
+
+        response = client.get(
+            "/api/v1/admin/storage/privacy-check",
+            headers=admin_auth_headers(client),
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["passed"] is False
+        assert data["unmasked_email_count"] >= 1
+        assert "documents" in data["checked_tables"]
+
+        findings = data["findings"]
+
+        assert any(
+            finding["table_name"] == "documents"
+            and finding["column_name"] == "filename"
+            and finding["record_id"] == document_id
+            and finding["finding_type"] == "email"
+            for finding in findings
+        )
+
+    finally:
+        db.execute(delete(DocumentORM).where(DocumentORM.id == document_id))
+        db.commit()
+        db.close()

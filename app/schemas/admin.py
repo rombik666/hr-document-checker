@@ -12,14 +12,29 @@ class DatabaseStatusResponse(BaseModel):
     long_term_storage_contains_source_files: bool
 
 
+class PrivacyFinding(BaseModel):
+    table_name: str
+    column_name: str
+    record_id: str
+    finding_type: str
+
+
 class PrivacyCheckResponse(BaseModel):
     passed: bool
+
     checked_reports: int
+    checked_tables: list[str] = Field(default_factory=list)
+    checked_records: int = 0
+
     raw_text_column_exists: bool
-    reports_with_unmasked_email: list[str]
-    reports_with_unmasked_phone: list[str]
+
+    reports_with_unmasked_email: list[str] = Field(default_factory=list)
+    reports_with_unmasked_phone: list[str] = Field(default_factory=list)
+
     unmasked_email_count: int
     unmasked_phone_count: int
+
+    findings: list[PrivacyFinding] = Field(default_factory=list)
 
 
 class RoleInfo(BaseModel):

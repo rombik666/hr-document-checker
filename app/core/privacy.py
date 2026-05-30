@@ -2,7 +2,9 @@ import re
 
 
 EMAIL_PATTERN = re.compile(
-    r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b"
+    r"(?<![A-Za-z0-9._%+-])"
+    r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
+    r"(?![A-Za-z0-9.-])"
 )
 
 PHONE_PATTERN = re.compile(

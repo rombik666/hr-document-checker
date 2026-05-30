@@ -1,226 +1,311 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="card">
-    <h2>Статус FAISS-индекса</h2>
-
+<section class="hero">
+    <span class="badge">RAG-источники</span>
+    <h1>Персональная база знаний HR-специалиста</h1>
     <p>
-        <strong>Статус индекса:</strong>
-        {% if rag_status.index_status == "ready" %}
-            <span class="badge">ready</span>
-        {% elif rag_status.index_status == "stale" %}
-            <span class="badge warning">stale</span>
-        {% elif rag_status.index_status == "failed" %}
-            <span class="badge danger">failed</span>
-        {% elif rag_status.index_status == "building" %}
-            <span class="badge warning">building</span>
-        {% else %}
-            <span class="muted">missing</span>
-        {% endif %}
+        Загружайте вакансии, чек-листы, корпоративные правила и примеры сильных формулировок.
+        После изменения источников FAISS-индекс становится устаревшим и требует переиндексации.
     </p>
 
-    <p><strong>Режим:</strong> {{ rag_status.mode }}</p>
-    <p><strong>Хранилище:</strong> {{ rag_status.source_backend }}</p>
-    <p><strong>Область доступа:</strong> {{ rag_status.user_scope }}</p>
-
-    <p><strong>Всего источников:</strong> {{ rag_status.sources_count }}</p>
-    <p><strong>Активных:</strong> {{ rag_status.active_sources_count }}</p>
-    <p><strong>Неактивных:</strong> {{ rag_status.inactive_sources_count }}</p>
-    <p><strong>Чанков в индексе:</strong> {{ rag_status.chunks_count }}</p>
-
-    <p><strong>Retriever:</strong> {{ rag_status.retriever_type }}</p>
-    <p><strong>Embedding backend:</strong> {{ rag_status.embedding_backend }}</p>
-    <p><strong>Embedding model:</strong> {{ rag_status.embedding_model_name }}</p>
-    <p><strong>Embedding dimension:</strong> {{ rag_status.embedding_dimension }}</p>
-
-    <p>
-        <strong>Требуется переиндексация:</strong>
-        {% if rag_status.reindex_required %}
-            <span class="badge warning">да</span>
-        {% else %}
-            <span class="badge">нет</span>
-        {% endif %}
-    </p>
-
-    <p>
-        <strong>Файлы индекса:</strong>
-        {% if rag_status.index_exists %}
-            <span class="badge">есть</span>
-        {% else %}
-            <span class="muted">нет</span>
-        {% endif %}
-    </p>
-
-    <p><strong>Последняя индексация:</strong> {{ rag_status.last_reindexed_at or "ещё не выполнялась" }}</p>
-
-    {% if rag_status.index_error %}
-        <p class="error">
-            <strong>Ошибка индекса:</strong> {{ rag_status.index_error }}
-        </p>
-    {% endif %}
-
-    <form
-        action="/web/rag/reindex"
-        method="post"
-        onsubmit="return confirm('Переиндексировать активные RAG-источники?');"
-    >
-        <button type="submit">Переиндексировать</button>
-    </form>
-
-    <p class="muted">
-        После загрузки, включения, отключения или удаления источника индекс получает
-        статус stale. Для использования источников в поиске и отчётах нажмите
-        «Переиндексировать».
-    </p>
-</div>
+    <div class="form-actions">
+        <a class="button" href="#upload-source">Загрузить источник</a>
+        <a class="button ghost" href="#sources-list">Загруженные источники</a>
+        <a class="button ghost" href="/web/dashboard">Вернуться на панель</a>
+    </div>
+</section>
 
 {% if error %}
-<div class="error">
-    {{ error }}
-</div>
+    <div class="error">{{ error }}</div>
 {% endif %}
 
 {% if success %}
-<div class="success">
-    {{ success }}
-</div>
+    <div class="success">{{ success }}</div>
 {% endif %}
 
-<div class="grid">
-    <div class="card">
-        <h2>Статус RAG</h2>
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h2>Статус FAISS-индекса</h2>
+            <p>
+                Индекс строится по активным источникам текущего HR-пользователя и используется
+                при RAG-поиске и формировании отчётов.
+            </p>
+        </div>
 
-        <p><strong>Режим:</strong> {{ rag_status.mode }}</p>
-        <p><strong>Хранилище:</strong> {{ rag_status.source_backend }}</p>
-        <p><strong>Область доступа:</strong> {{ rag_status.user_scope }}</p>
-        <p><strong>Всего источников:</strong> {{ rag_status.sources_count }}</p>
-        <p><strong>Активных:</strong> {{ rag_status.active_sources_count }}</p>
-        <p><strong>Неактивных:</strong> {{ rag_status.inactive_sources_count }}</p>
-        <p><strong>Чанков:</strong> {{ rag_status.chunks_count }}</p>
-        <p><strong>Retriever:</strong> {{ rag_status.retriever_type }}</p>
+        {% if rag_status.index_status == "ready" %}
+            <span class="status-pill status-ready">ready</span>
+        {% elif rag_status.index_status == "stale" %}
+            <span class="status-pill status-stale">stale</span>
+        {% elif rag_status.index_status == "failed" %}
+            <span class="status-pill status-failed">failed</span>
+        {% elif rag_status.index_status == "building" %}
+            <span class="status-pill status-building">building</span>
+        {% else %}
+            <span class="status-pill status-missing">missing</span>
+        {% endif %}
+    </div>
+
+    <div class="grid three">
+        <div class="metric-card">
+            <strong>{{ rag_status.sources_count }}</strong>
+            <span>всего источников</span>
+        </div>
+        <div class="metric-card">
+            <strong>{{ rag_status.active_sources_count }}</strong>
+            <span>активных источников</span>
+        </div>
+        <div class="metric-card">
+            <strong>{{ rag_status.chunks_count }}</strong>
+            <span>чанков в индексе</span>
+        </div>
+    </div>
+
+    <div class="grid three">
+        <div class="metric-card">
+            <strong>{{ rag_status.inactive_sources_count }}</strong>
+            <span>неактивных источников</span>
+        </div>
+        <div class="metric-card">
+            <strong>{{ rag_status.retriever_type }}</strong>
+            <span>retriever</span>
+        </div>
+        <div class="metric-card">
+            <strong>{{ rag_status.embedding_dimension }}</strong>
+            <span>embedding dimension</span>
+        </div>
+    </div>
+
+    <div class="grid two">
+        <div class="card compact">
+            <h3>Параметры индекса</h3>
+            <p><strong>Режим:</strong> {{ rag_status.mode }}</p>
+            <p><strong>Хранилище:</strong> {{ rag_status.source_backend }}</p>
+            <p><strong>Область доступа:</strong> {{ rag_status.user_scope }}</p>
+            <p><strong>Embedding backend:</strong> {{ rag_status.embedding_backend }}</p>
+            <p><strong>Embedding model:</strong> {{ rag_status.embedding_model_name }}</p>
+            <p><strong>Последняя индексация:</strong> {{ rag_status.last_reindexed_at or "ещё не выполнялась" }}</p>
+        </div>
+
+        <div class="card compact">
+            <h3>Состояние</h3>
+            <p>
+                <strong>Требуется переиндексация:</strong>
+                {% if rag_status.reindex_required %}
+                    <span class="status-pill warning">да</span>
+                {% else %}
+                    <span class="status-pill success">нет</span>
+                {% endif %}
+            </p>
+            <p>
+                <strong>Файлы индекса:</strong>
+                {% if rag_status.index_exists %}
+                    <span class="status-pill success">есть</span>
+                {% else %}
+                    <span class="status-pill danger">нет</span>
+                {% endif %}
+            </p>
+
+            {% if rag_status.index_error %}
+                <div class="error">
+                    <strong>Ошибка индекса:</strong> {{ rag_status.index_error }}
+                </div>
+            {% else %}
+                <div class="info">
+                    Если статус stale или missing, выполните переиндексацию перед RAG-поиском.
+                </div>
+            {% endif %}
+
+            <form
+                action="/web/rag/reindex"
+                method="post"
+                onsubmit="return confirm('Переиндексировать активные RAG-источники?');"
+            >
+                <button type="submit">Переиндексировать</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="warning">
+        После загрузки, включения, отключения или удаления источника индекс получает статус stale.
+        Для использования актуальной базы знаний в поиске и отчётах нажмите «Переиндексировать».
+    </div>
+</section>
+
+<section class="grid two">
+    <div class="card" id="upload-source">
+        <div class="section-header">
+            <div>
+                <h2>Загрузить источник</h2>
+                <p>
+                    Добавьте документ, который будет использоваться как контекст для RAG.
+                </p>
+            </div>
+            <span class="badge">DOCX / PDF / TXT / MD</span>
+        </div>
+
+        <form action="/web/rag/sources/upload" method="post" enctype="multipart/form-data">
+            <label for="title">Название источника</label>
+            <input
+                id="title"
+                name="title"
+                type="text"
+                placeholder="Например: Вакансия Backend Python"
+            >
+
+            <label for="source_type">Тип источника</label>
+            <select id="source_type" name="source_type">
+                {% for value, label in source_type_options %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="file">Файл источника</label>
+            <div class="file-drop" data-file-drop>
+                <strong>Перетащите файл сюда или выберите его вручную</strong>
+                <p class="muted small">
+                    Поддерживаются DOCX, PDF, TXT и MD. Максимальный размер одного файла —
+                    {{ max_file_size_mb }} МБ.
+                </p>
+                <input
+                    id="file"
+                    name="file"
+                    type="file"
+                    accept=".docx,.pdf,.txt,.md"
+                    required
+                >
+            </div>
+
+            <div class="form-actions">
+                <button type="submit">Загрузить в RAG</button>
+            </div>
+        </form>
     </div>
 
     <div class="card">
-        <h2>Лимиты хранения</h2>
+        <div class="section-header">
+            <div>
+                <h2>Лимиты хранения</h2>
+                <p>
+                    Ограничения защищают систему от случайной загрузки слишком больших источников.
+                </p>
+            </div>
+            <span class="badge">storage</span>
+        </div>
 
-        <p><strong>Максимальный размер файла:</strong> {{ max_file_size_mb }} МБ</p>
-        <p><strong>Квота активных источников:</strong> {{ max_storage_mb }} МБ</p>
-        <p><strong>Использовано активными источниками:</strong> {{ active_storage_mb }} МБ</p>
+        <div class="grid">
+            <div class="metric-card">
+                <strong>{{ max_file_size_mb }} МБ</strong>
+                <span>максимальный размер файла</span>
+            </div>
+            <div class="metric-card">
+                <strong>{{ max_storage_mb }} МБ</strong>
+                <span>квота активных источников</span>
+            </div>
+            <div class="metric-card">
+                <strong>{{ active_storage_mb }} МБ</strong>
+                <span>использовано активными</span>
+            </div>
+        </div>
 
-        <p class="muted">
+        <div class="info">
             В RAG добавляются только явно загруженные HR-документы.
-            Резюме кандидатов автоматически не попадают в RAG-базу.
-        </p>
+            Резюме кандидатов автоматически не попадают в базу знаний.
+        </div>
     </div>
-</div>
+</section>
 
-<div class="card">
-    <h2>Загрузить источник</h2>
-
-    <form action="/web/rag/sources/upload" method="post" enctype="multipart/form-data">
-        <label for="title">Название источника</label>
-        <input
-            id="title"
-            name="title"
-            type="text"
-            placeholder="Например: Вакансия Backend Python"
-        >
-
-        <label for="source_type">Тип источника</label>
-        <select id="source_type" name="source_type">
-            {% for value, label in source_type_options %}
-                <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-        </select>
-
-        <label for="file">Файл источника</label>
-        <input
-            id="file"
-            name="file"
-            type="file"
-            accept=".docx,.pdf,.txt,.md"
-            required
-        >
-
-        <p class="muted">
-            Поддерживаются DOCX, PDF, TXT и MD. Максимальный размер одного файла —
-            {{ max_file_size_mb }} МБ.
-        </p>
-
-        <button type="submit">Загрузить в RAG</button>
-    </form>
-</div>
-
-<div class="card">
-    <h2>Загруженные источники</h2>
+<section class="card" id="sources-list">
+    <div class="section-header">
+        <div>
+            <h2>Загруженные источники</h2>
+            <p>
+                Управляйте активностью источников. Неактивные документы не участвуют в поиске,
+                но остаются в списке до полного удаления.
+            </p>
+        </div>
+        <span class="badge">{{ rag_status.sources_count }} источников</span>
+    </div>
 
     {% if sources %}
-        <table>
-            <thead>
-            <tr>
-                <th>Название</th>
-                <th>Файл</th>
-                <th>Тип</th>
-                <th>Формат</th>
-                <th>Размер</th>
-                <th>Статус</th>
-                <th>Создан</th>
-                <th>Действия</th>
-            </tr>
-            </thead>
-
-            <tbody>
-            {% for source in sources %}
+        <div class="table-wrap">
+            <table>
+                <thead>
                 <tr>
-                    <td>{{ source.title }}</td>
-                    <td>{{ source.filename }}</td>
-                    <td>{{ source.source_type }}</td>
-                    <td>{{ source.source_format }}</td>
-                    <td>{{ (source.file_size_bytes / 1024 / 1024) | round(2) }} МБ</td>
-                    <td>
-                        {% if source.is_active %}
-                            <span class="badge">active</span>
-                        {% else %}
-                            <span class="muted">inactive</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ source.created_at }}</td>
-                    <td>
-                        {% if source.is_active %}
-                            <form
-                                action="/web/rag/sources/{{ source.id }}/delete"
-                                method="post"
-                                onsubmit="return confirm('Отключить этот RAG-источник? Он останется в истории, но перестанет участвовать в поиске.');"
-                            >
-                                <button class="button secondary" type="submit">Отключить</button>
-                            </form>
-                        {% else %}
-                            <form
-                                action="/web/rag/sources/{{ source.id }}/activate"
-                                method="post"
-                                onsubmit="return confirm('Включить этот RAG-источник снова?');"
-                            >
-                                <button type="submit">Включить</button>
-                            </form>
-                        {% endif %}
-
-                        <form
-                            action="/web/rag/sources/{{ source.id }}/permanent-delete"
-                            method="post"
-                            onsubmit="return confirm('Полностью удалить этот RAG-источник? Это действие нельзя отменить.');"
-                        >
-                            <button class="button danger" type="submit">Удалить полностью</button>
-                        </form>
-                    </td>
+                    <th>Название</th>
+                    <th>Файл</th>
+                    <th>Тип</th>
+                    <th>Формат</th>
+                    <th>Размер</th>
+                    <th>Статус</th>
+                    <th>Создан</th>
+                    <th>Действия</th>
                 </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+
+                <tbody>
+                {% for source in sources %}
+                    <tr>
+                        <td>
+                            <strong>{{ source.title }}</strong>
+                            <div class="muted small">ID: {{ source.id }}</div>
+                        </td>
+                        <td>{{ source.filename }}</td>
+                        <td>{{ source.source_type }}</td>
+                        <td>{{ source.source_format }}</td>
+                        <td>{{ (source.file_size_bytes / 1024 / 1024) | round(2) }} МБ</td>
+                        <td>
+                            {% if source.is_active %}
+                                <span class="status-pill success">active</span>
+                            {% else %}
+                                <span class="status-pill danger">inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ source.created_at }}</td>
+                        <td>
+                            <div class="form-actions">
+                                {% if source.is_active %}
+                                    <form
+                                        action="/web/rag/sources/{{ source.id }}/delete"
+                                        method="post"
+                                        onsubmit="return confirm('Отключить этот RAG-источник? Он останется в истории, но перестанет участвовать в поиске.');"
+                                    >
+                                        <button class="secondary" type="submit">Отключить</button>
+                                    </form>
+                                {% else %}
+                                    <form
+                                        action="/web/rag/sources/{{ source.id }}/activate"
+                                        method="post"
+                                        onsubmit="return confirm('Включить этот RAG-источник снова?');"
+                                    >
+                                        <button type="submit">Включить</button>
+                                    </form>
+                                {% endif %}
+
+                                <form
+                                    action="/web/rag/sources/{{ source.id }}/permanent-delete"
+                                    method="post"
+                                    onsubmit="return confirm('Полностью удалить этот RAG-источник? Это действие нельзя отменить.');"
+                                >
+                                    <button class="danger" type="submit">Удалить полностью</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <p class="muted">
-            Источников пока нет. Загрузите вакансию, чек-лист или корпоративные требования,
-            чтобы RAG начал использовать их при проверке документов.
-        </p>
+        <div class="empty-state">
+            <h3>Источников пока нет</h3>
+            <p class="muted">
+                Загрузите вакансию, чек-лист или корпоративные требования,
+                чтобы RAG начал использовать их при проверке документов.
+            </p>
+            <a class="button" href="#upload-source">Загрузить источник</a>
+        </div>
     {% endif %}
-</div>
+</section>
 {% endblock %}

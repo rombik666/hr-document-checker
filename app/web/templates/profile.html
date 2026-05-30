@@ -1,21 +1,105 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="card">
-    <h1>Личный кабинет</h1>
+<section class="hero">
+    <span class="badge">Личный кабинет</span>
+    <h1>Профиль пользователя</h1>
+    <p>
+        Здесь отображаются данные текущей учётной записи, роль в системе и быстрые действия
+        для перехода к проверкам, истории отчётов и доступным инструментам.
+    </p>
 
-    <p><strong>ID:</strong> {{ user.id }}</p>
-    <p><strong>Email:</strong> {{ user.email }}</p>
-    <p><strong>Имя:</strong> {{ user.full_name }}</p>
-    <p><strong>Роль:</strong> <span class="badge">{{ user.role }}</span></p>
-    <p><strong>Статус:</strong> {{ "активен" if user.is_active else "заблокирован" }}</p>
+    <div class="form-actions">
+        <a class="button" href="/web/dashboard">Панель управления</a>
+        <a class="button ghost" href="/web/reports">История проверок</a>
+        {% if user.role in ["hr", "admin"] %}
+            <a class="button ghost" href="/web/rag/sources">RAG-источники</a>
+        {% endif %}
+        <a class="button danger" href="/web/logout">Выйти</a>
+    </div>
+</section>
 
-    <a class="button secondary" href="/web/dashboard">Назад</a>
-    <a class="button danger" href="/web/logout">Выйти</a>
+<div class="grid two">
+    <section class="card">
+        <div class="section-header">
+            <div>
+                <h2>Учётная запись</h2>
+                <p class="muted">
+                    Основные сведения о пользователе и состоянии аккаунта.
+                </p>
+            </div>
+            <span class="badge">{{ user.role }}</span>
+        </div>
+
+        <div class="grid">
+            <div class="metric-card">
+                <strong>{{ user.full_name }}</strong>
+                <span>имя пользователя</span>
+            </div>
+            <div class="metric-card">
+                <strong>{{ user.email }}</strong>
+                <span>email</span>
+            </div>
+            <div class="metric-card">
+                <strong>{{ "активен" if user.is_active else "заблокирован" }}</strong>
+                <span>статус</span>
+            </div>
+        </div>
+
+        <details>
+            <summary>Технические данные профиля</summary>
+            <p><strong>ID:</strong> {{ user.id }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Имя:</strong> {{ user.full_name }}</p>
+            <p><strong>Роль:</strong> {{ user.role }}</p>
+            <p><strong>Статус:</strong> {{ "активен" if user.is_active else "заблокирован" }}</p>
+        </details>
+    </section>
+
+    <section class="card">
+        <div class="section-header">
+            <div>
+                <h2>Быстрые действия</h2>
+                <p class="muted">
+                    Доступные разделы зависят от роли пользователя.
+                </p>
+            </div>
+            <span class="badge">navigation</span>
+        </div>
+
+        <div class="grid">
+            <a class="button ghost" href="/web/dashboard">Проверить документ</a>
+            <a class="button ghost" href="/web/reports">Открыть историю</a>
+
+            {% if user.role in ["hr", "admin"] %}
+                <a class="button ghost" href="/web/rag/sources">Управлять RAG</a>
+            {% endif %}
+
+            {% if user.role == "admin" %}
+                <a class="button ghost" href="/web/admin">Администрирование</a>
+                <a class="button ghost" href="/api/v1/admin/db/status" target="_blank" rel="noopener noreferrer">Database status</a>
+                <a class="button ghost" href="/api/v1/admin/storage/privacy-check" target="_blank" rel="noopener noreferrer">Privacy check</a>
+            {% endif %}
+        </div>
+
+        <div class="info">
+            Кандидат работает только со своими проверками. HR получает доступ к RAG-источникам.
+            Администратор видит системные инструменты и диагностические endpoint’ы.
+        </div>
+    </section>
 </div>
 
-<div class="card">
-    <h2>Мои отчёты</h2>
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h2>Мои отчёты</h2>
+            <p>
+                Последние сохранённые проверки текущего пользователя.
+            </p>
+        </div>
+        <a class="button ghost" href="/web/reports">Открыть всё</a>
+    </div>
+
     {% include "_reports_table.html" %}
-</div>
+</section>
 {% endblock %}

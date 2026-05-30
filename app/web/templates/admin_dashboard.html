@@ -4,77 +4,155 @@
 {% set external_host = request.url.hostname or "127.0.0.1" %}
 {% set monitoring_scheme = "http" %}
 
-<div class="card">
-    <h1>Панель администратора</h1>
+<section class="hero">
+    <span class="badge">Панель администратора</span>
+    <h1>Администрирование и диагностика системы</h1>
     <p>
-        Администратор управляет технической диагностикой, мониторингом,
-        проверкой приватности и инфраструктурными инструментами.
+        Администратор контролирует состояние приложения, базу данных, приватность хранения,
+        резервное копирование, RAG-индексы, LLM-интеграцию и сервисы мониторинга.
     </p>
-    <p>
-        <a class="button secondary" href="/web/reports">Открыть историю проверок</a>
-        <a class="button secondary" href="/web/rag/sources">Управлять RAG-источниками</a>
-    </p>
-</div>
 
-<div class="grid">
-    <div class="card">
-        <h2>Диагностика приложения</h2>
-        <p><a href="/api/v1/admin/status" target="_blank" rel="noopener noreferrer">Admin status</a></p>
-        <p><a href="/api/v1/admin/roles" target="_blank" rel="noopener noreferrer">Roles</a></p>
-        <p><a href="/api/v1/admin/db/status" target="_blank" rel="noopener noreferrer">Database status</a></p>
-        <p><a href="/api/v1/admin/storage/privacy-check" target="_blank" rel="noopener noreferrer">Privacy check</a></p>
+    <div class="form-actions">
+        <a class="button" href="/web/reports">История проверок</a>
+        <a class="button ghost" href="/web/rag/sources">RAG-источники</a>
+        <a class="button ghost" href="/docs" target="_blank" rel="noopener noreferrer">Swagger API</a>
     </div>
+</section>
 
-    <div class="card">
-        <h2>ИИ и RAG</h2>
-        <p><a href="/web/rag/sources">Web RAG sources</a></p>
-        <p><a href="/api/v1/rag/status" target="_blank" rel="noopener noreferrer">RAG status</a></p>
-        <p><a href="/api/v1/llm/status" target="_blank" rel="noopener noreferrer">LLM status</a></p>
-        <p><a href="/docs" target="_blank" rel="noopener noreferrer">Swagger API</a></p>
-        <p><a href="/api/v1/admin/backup" target="_blank" rel="noopener noreferrer">Backup JSON</a></p>
-        <p><a href="/api/v1/admin/rag/status" target="_blank" rel="noopener noreferrer">Admin RAG status</a></p>
-        <p><a href="/api/v1/admin/rag/sources" target="_blank" rel="noopener noreferrer">Admin RAG sources</a></p>
-        <p><a href="/api/v1/admin/rag/indexes" target="_blank" rel="noopener noreferrer">Admin RAG indexes</a></p>
+<div class="grid three">
+    <div class="metric-card">
+        <strong>PostgreSQL</strong>
+        <span>основная БД стенда</span>
     </div>
-
-    <div class="card">
-        <h2>Мониторинг</h2>
-        <p>
-            <a
-                href="{{ monitoring_scheme }}://{{ external_host }}:9090"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                Prometheus
-            </a>
-        </p>
-        <p>
-            <a
-                href="{{ monitoring_scheme }}://{{ external_host }}:3000"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                Grafana
-            </a>
-        </p>
-        <p>
-            <a
-                href="{{ monitoring_scheme }}://{{ external_host }}:5050"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                pgAdmin
-            </a>
-        </p>
-        <p class="muted">
-            Ссылки строятся от текущего адреса сервера:
-            {{ monitoring_scheme }}://{{ external_host }}.
-        </p>
+    <div class="metric-card">
+        <strong>FAISS</strong>
+        <span>персональные RAG-индексы</span>
+    </div>
+    <div class="metric-card">
+        <strong>Ollama</strong>
+        <span>локальный LLM-провайдер</span>
     </div>
 </div>
 
-<div class="card">
-    <h2>Последние отчёты в системе</h2>
+<section class="grid three">
+    <div class="card">
+        <div class="section-header">
+            <div>
+                <h2>Диагностика приложения</h2>
+                <p class="muted">
+                    Проверка состояния API, ролей, БД и приватности.
+                </p>
+            </div>
+            <span class="badge">system</span>
+        </div>
+
+        <div class="grid">
+            <a class="button ghost" href="/api/v1/admin/status" target="_blank" rel="noopener noreferrer">Admin status</a>
+            <a class="button ghost" href="/api/v1/admin/roles" target="_blank" rel="noopener noreferrer">Roles</a>
+            <a class="button ghost" href="/api/v1/admin/db/status" target="_blank" rel="noopener noreferrer">Database status</a>
+            <a class="button ghost" href="/api/v1/admin/storage/privacy-check" target="_blank" rel="noopener noreferrer">Privacy check</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-header">
+            <div>
+                <h2>ИИ и RAG</h2>
+                <p class="muted">
+                    Контроль LLM, источников знаний и персональных FAISS-индексов.
+                </p>
+            </div>
+            <span class="badge">AI</span>
+        </div>
+
+        <div class="grid">
+            <a class="button ghost" href="/web/rag/sources">Web RAG sources</a>
+            <a class="button ghost" href="/api/v1/rag/status" target="_blank" rel="noopener noreferrer">RAG status</a>
+            <a class="button ghost" href="/api/v1/llm/status" target="_blank" rel="noopener noreferrer">LLM status</a>
+            <a class="button ghost" href="/api/v1/admin/rag/status" target="_blank" rel="noopener noreferrer">Admin RAG status</a>
+            <a class="button ghost" href="/api/v1/admin/rag/sources" target="_blank" rel="noopener noreferrer">Admin RAG sources</a>
+            <a class="button ghost" href="/api/v1/admin/rag/indexes" target="_blank" rel="noopener noreferrer">Admin RAG indexes</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-header">
+            <div>
+                <h2>Backup и API</h2>
+                <p class="muted">
+                    Экспорт состояния системы и документация REST API.
+                </p>
+            </div>
+            <span class="badge">docs</span>
+        </div>
+
+        <div class="grid">
+            <a class="button ghost" href="/docs" target="_blank" rel="noopener noreferrer">Swagger API</a>
+            <a class="button ghost" href="/api/v1/admin/backup" target="_blank" rel="noopener noreferrer">Backup JSON</a>
+            <a class="button ghost" href="/api/v1/health" target="_blank" rel="noopener noreferrer">Health check</a>
+            <a class="button ghost" href="/metrics" target="_blank" rel="noopener noreferrer">Metrics</a>
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h2>Мониторинг</h2>
+            <p>
+                Ссылки строятся от текущего адреса сервера:
+                {{ monitoring_scheme }}://{{ external_host }}.
+            </p>
+        </div>
+        <span class="badge">observability</span>
+    </div>
+
+    <div class="grid three">
+        <a
+            class="button ghost"
+            href="{{ monitoring_scheme }}://{{ external_host }}:9090"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Prometheus
+        </a>
+
+        <a
+            class="button ghost"
+            href="{{ monitoring_scheme }}://{{ external_host }}:3000"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Grafana
+        </a>
+
+        <a
+            class="button ghost"
+            href="{{ monitoring_scheme }}://{{ external_host }}:5050"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            pgAdmin
+        </a>
+    </div>
+
+    <div class="info">
+        Prometheus собирает метрики, Grafana используется для визуализации,
+        pgAdmin позволяет просматривать физическую схему PostgreSQL.
+    </div>
+</section>
+
+<section class="card">
+    <div class="section-header">
+        <div>
+            <h2>Последние отчёты в системе</h2>
+            <p>
+                Администратор видит отчёты всех пользователей.
+            </p>
+        </div>
+        <a class="button ghost" href="/web/reports">Открыть историю</a>
+    </div>
+
     {% include "_reports_table.html" %}
-</div>
+</section>
 {% endblock %}

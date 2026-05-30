@@ -1,15 +1,52 @@
-<form method="post" action="/web/report" enctype="multipart/form-data">
-    <label>Документ DOCX/PDF</label>
-    <input type="file" name="file" accept=".docx,.pdf" required>
+<form class="card check-form" method="post" action="/web/report" enctype="multipart/form-data">
+    <div class="section-header">
+        <div>
+            <h2>Проверка документа</h2>
+            <p>
+                Загрузите резюме, сопроводительное письмо или анкету кандидата.
+                Система выполнит формальные проверки, семантический анализ и сформирует итоговый отчёт.
+            </p>
+        </div>
+        <span class="badge">DOCX / PDF</span>
+    </div>
 
-    <label>Текст вакансии</label>
-    <textarea name="vacancy_text" placeholder="Вставьте требования вакансии..."></textarea>
+    <label for="document-file">Документ для проверки</label>
+    <div class="file-drop" data-file-drop>
+        <strong>Перетащите файл сюда или выберите его вручную</strong>
+        <p class="muted small">
+            Поддерживаются файлы DOCX и PDF. DOCX рекомендуется как основной формат, так как он лучше сохраняет структуру документа.
+        </p>
+        <input id="document-file" type="file" name="file" accept=".docx,.pdf" required>
+    </div>
 
-    <label>Режим хранения</label>
-    <select name="storage_mode">
-        <option value="temporary">temporary — сохранить отчёт в базе</option>
-        <option value="no_store">no_store — не сохранять отчёт</option>
+    <label for="vacancy-text">Текст вакансии</label>
+    <textarea
+        id="vacancy-text"
+        name="vacancy_text"
+        placeholder="Вставьте требования вакансии, если нужно проверить релевантность резюме..."
+    ></textarea>
+    <p class="muted small">
+        Поле можно оставить пустым. Если вакансия указана, отчёт дополнительно покажет закрытые и незакрытые требования.
+    </p>
+
+    <label for="storage-mode">Режим хранения</label>
+    <select id="storage-mode" name="storage_mode">
+        <option value="temporary">temporary — сохранить отчёт в базе данных</option>
+        <option value="no_store">no_store — не сохранять отчёт после проверки</option>
     </select>
 
-    <button type="submit">Проверить документ</button>
+    <div class="info">
+        В режиме no_store отчёт не сохраняется в истории. В режиме temporary сохраняется маскированный отчёт,
+        доступный только владельцу или администратору.
+    </div>
+
+    <div class="warning">
+        Для HR-пользователей при наличии готового RAG/FAISS-индекса система может использовать персональную базу знаний:
+        вакансии, чек-листы, правила и примеры сильных формулировок.
+    </div>
+
+    <div class="form-actions">
+        <button type="submit">Проверить документ</button>
+        <a class="button ghost" href="/web/reports">История проверок</a>
+    </div>
 </form>

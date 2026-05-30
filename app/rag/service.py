@@ -10,6 +10,10 @@ from app.rag.retriever import SimpleRagRetriever
 from app.rag.vector_store import InMemoryVectorStore
 from app.schemas.rag import RagContext, RagSearchRequest, RagStatus
 
+from sqlalchemy.orm import Session
+
+from app.services.rag_source_service import RagSourceService
+
 
 logger = get_logger(__name__)
 
@@ -57,6 +61,61 @@ class RagService:
 
         else:
             results = self._search_simple(request)
+
+        return RagContext(
+            query=request.query,
+            results=results,
+        )
+
+    def search_user_sources(
+    self,
+    request: RagSearchRequest,
+    db: Session,
+    user_id: str,
+    user_role: str,
+    ) -> RagContext:
+
+        source_service = RagSourceService(db)
+
+        sources = source_service.load_active_rag_sources_for_user(
+            user_id=user_id,
+            user_role=user_role,
+        )
+
+        if not sources:
+            return RagContext(
+                query=request.query,
+                results=[],
+            )
+
+        chunks = self.chunker.chunk_sources(sources)
+
+        if not chunks:
+            return RagContext(
+                query=request.query,
+                results=[],
+            )
+
+        retriever = self.retriever_type.lower().strip()
+
+        if retriever == "vector":
+            vector_store = InMemoryVectorStore.from_chunks(
+                chunks=chunks,
+                embedding_model=self.embedding_model,
+            )
+
+            results = vector_store.search(
+                query=request.query,
+                embedding_model=self.embedding_model,
+                top_k=request.top_k,
+            )
+
+        else:
+            results = self.simple_retriever.search(
+                query=request.query,
+                chunks=chunks,
+                top_k=request.top_k,
+            )
 
         return RagContext(
             query=request.query,

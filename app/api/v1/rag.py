@@ -1,5 +1,6 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from app.db.session import get_db
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
@@ -50,9 +51,16 @@ def _validate_rag_source_filename(filename: str) -> str:
 def search_rag_context(
     request: RagSearchRequest,
     current_user: UserORM = Depends(require_hr_or_admin),
+    db: Session = Depends(get_db),
 ) -> RagContext:
     service = RagService()
-    return service.search(request)
+
+    return service.search_user_sources(
+        request=request,
+        db=db,
+        user_id=current_user.id,
+        user_role=current_user.role,
+    )
 
 
 @router.get("/status", response_model=RagStatus)

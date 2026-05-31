@@ -9,6 +9,8 @@ from app.schemas.common import CheckStatus, CheckType, Severity
 from app.schemas.documents import ParsedDocument
 from app.schemas.rag import RagContext
 
+from app.agents.semantic.vacancy_relevance_agent import VacancyRelevanceAgent
+
 
 logger = get_logger(__name__)
 
@@ -97,7 +99,10 @@ class LlmSemanticAgent:
 
         parsed = extract_json_from_text(response.text)
 
-        return self._parse_issues(parsed)
+        return self._parse_issues(
+            parsed=parsed,
+            document_text=document.raw_text,
+        )
 
     @staticmethod
     def _system_prompt() -> str:
@@ -151,7 +156,11 @@ class LlmSemanticAgent:
     - Значение severity оставь строго одним из: Critical, Major, Minor.
     - Все остальные текстовые поля пиши на русском языке.
     - evidence_fragment заполняй только если такой фрагмент реально есть в тексте документа.
-    - Не включай персональные данные, если они не были замаскированы.
+    - RAG-контекст является только справочной базой знаний, а не текстом проверяемого документа.
+    - Не используй RAG-контекст как evidence_fragment.
+    - Не создавай замечание только потому, что в RAG-контексте есть правило или пример ошибки.
+    - evidence_fragment должен быть дословным фрагментом из блока «Текст документа».
+    - Не включай персональные данные, если они не были маскированы.
     - Не принимай решение о найме.
     - Не оценивай кандидата как человека.
     - Проверяй только качество документа: структуру, ясность, конкретность, логичность и соответствие вакансии.
@@ -176,7 +185,11 @@ class LlmSemanticAgent:
     {rag_fragments}
     """.strip()
 
-    def _parse_issues(self, parsed: dict) -> list[Issue]:
+    def _parse_issues(
+        self,
+        parsed: dict,
+        document_text: str,
+    ) -> list[Issue]:
         raw_issues = parsed.get("issues", [])
 
         if not isinstance(raw_issues, list):
@@ -190,8 +203,34 @@ class LlmSemanticAgent:
 
             issue = self._parse_issue(raw_issue)
 
-            if issue:
-                issues.append(issue)
+            if issue is None:
+                continue
+
+            if not self._issue_is_supported_by_document(
+                issue=issue,
+                document_text=document_text,
+            ):
+                logger.info(
+                    "llm_issue_filtered unsupported_by_document issue_type=%s description=%s evidence=%s",
+                    issue.issue_type,
+                    issue.description,
+                    issue.evidence_fragment,
+                )
+                continue
+
+            if self._issue_contradicts_document_skills(
+                issue=issue,
+                document_text=document_text,
+            ):
+                logger.info(
+                    "llm_issue_filtered contradicts_document_skills issue_type=%s description=%s evidence=%s",
+                    issue.issue_type,
+                    issue.description,
+                    issue.evidence_fragment,
+                )
+                continue
+
+            issues.append(issue)
 
         return issues
 
@@ -221,7 +260,7 @@ class LlmSemanticAgent:
         ).strip()
 
         if not recommendation_text:
-            recommendation_text = "Review this part of the document manually."
+            recommendation_text = "Проверьте этот фрагмент документа вручную."
 
         confidence_score = self._parse_confidence(
             raw_issue.get("confidence_score", 0.5)
@@ -245,6 +284,106 @@ class LlmSemanticAgent:
                 "llm_generated": True,
             },
         )
+
+    @classmethod
+    def _issue_is_supported_by_document(
+        cls,
+        issue: Issue,
+        document_text: str,
+    ) -> bool:
+        """
+        LLM не должен создавать замечание на основании RAG-контекста,
+        вакансии или собственных предположений.
+
+        """
+
+        if not issue.evidence_fragment:
+            return False
+
+        normalized_evidence = cls._normalize_for_match(issue.evidence_fragment)
+        normalized_document = cls._normalize_for_match(document_text)
+
+        if not normalized_evidence:
+            return False
+
+        return normalized_evidence in normalized_document
+
+    @classmethod
+    def _issue_contradicts_document_skills(
+        cls,
+        issue: Issue,
+        document_text: str,
+    ) -> bool:
+        """
+        Отбрасывает ложные LLM-замечания вида:
+        «PostgreSQL отсутствует», если PostgreSQL реально встречается
+        в тексте резюме.
+        """
+
+        issue_text = cls._normalize_for_match(
+            " ".join(
+                value
+                for value in [
+                    issue.description,
+                    issue.evidence_fragment or "",
+                    (
+                        issue.recommendation.recommendation_text
+                        if issue.recommendation
+                        else ""
+                    ),
+                ]
+                if value
+            )
+        )
+
+        absence_markers = [
+            "отсутствует",
+            "отсутствуют",
+            "не найден",
+            "не найдены",
+            "нет ",
+            "нету ",
+            "missing",
+            "not found",
+            "absent",
+        ]
+
+        if not any(marker in issue_text for marker in absence_markers):
+            return False
+
+        normalized_document = VacancyRelevanceAgent._normalize_text(document_text)
+
+        for skill in VacancyRelevanceAgent.IMPORTANT_SKILLS:
+            skill_label = VacancyRelevanceAgent.SKILL_LABELS.get(skill, skill)
+            normalized_skill = cls._normalize_for_match(skill)
+            normalized_label = cls._normalize_for_match(skill_label)
+
+            skill_is_mentioned_in_issue = (
+                normalized_skill in issue_text
+                or normalized_label in issue_text
+            )
+
+            if not skill_is_mentioned_in_issue:
+                continue
+
+            if VacancyRelevanceAgent._skill_is_present(
+                skill=skill,
+                normalized_text=normalized_document,
+            ):
+                return True
+
+        return False
+
+    @staticmethod
+    def _normalize_for_match(text: str) -> str:
+        normalized = text.lower()
+        normalized = normalized.replace("ё", "е")
+        normalized = normalized.replace("-", " ")
+        normalized = normalized.replace("_", " ")
+        normalized = normalized.replace("/", " ")
+        normalized = normalized.replace("\\", " ")
+
+        return " ".join(normalized.split())
 
     @staticmethod
     def _parse_severity(value: str) -> Severity:

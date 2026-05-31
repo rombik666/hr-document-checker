@@ -23,20 +23,24 @@
                 </td>
                 <td>
                     {% set item_status_class = "status-pill report-status-success" %}
+                    {% set item_status_label = "Готов" %}
 
                     {% if item.total_issues == 0 %}
                         {% set item_status_class = "status-pill report-status-success" %}
+                        {% set item_status_label = "Нет замечаний" %}
                     {% elif item.critical_count > 0 or item.major_count > 0 %}
                         {% set item_status_class = "status-pill report-status-danger" %}
+                        {% set item_status_label = "Требует доработки" %}
                     {% else %}
                         {% set item_status_class = "status-pill report-status-warning" %}
+                        {% set item_status_label = "Есть замечания" %}
                     {% endif %}
 
                     <span class="{{ item_status_class }}">
-                        {{ item.summary_status | report_status_label }}
+                        {{ item_status_label }}
                     </span>
                 </td>
-                <td>
+                                <td>
                     <time data-local-datetime="{{ item.created_at | datetime_iso }}">
                         {{ item.created_at | display_datetime }}
                     </time>

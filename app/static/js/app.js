@@ -176,21 +176,79 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (contactForm) {
-        contactForm.addEventListener("submit", (event) => {
+        const contactStatus = contactForm.querySelector("[data-contact-status]");
+        const contactSubmitButton = contactForm.querySelector('button[type="submit"]');
+
+        const setContactStatus = (message, type = "success") => {
+            if (!contactStatus) {
+                return;
+            }
+
+            contactStatus.hidden = false;
+            contactStatus.textContent = message;
+            contactStatus.classList.remove("success", "error");
+            contactStatus.classList.add(type);
+        };
+
+        const resetContactStatus = () => {
+            if (!contactStatus) {
+                return;
+            }
+
+            contactStatus.hidden = true;
+            contactStatus.textContent = "";
+            contactStatus.classList.remove("success", "error");
+        };
+
+        contactForm.addEventListener("submit", async (event) => {
             event.preventDefault();
             event.stopImmediatePropagation();
 
-            const email = contactForm.dataset.contactEmail || "";
-            const formData = new FormData(contactForm);
-            const topic = String(formData.get("topic") || "Обращение по проекту");
-            const message = String(formData.get("message") || "");
+            resetContactStatus();
 
-            const subject = encodeURIComponent(`[HR Document Checker] ${topic}`);
-            const body = encodeURIComponent(message);
+            if (contactSubmitButton) {
+                contactSubmitButton.disabled = true;
+                contactSubmitButton.setAttribute("aria-busy", "true");
+                contactSubmitButton.dataset.originalText =
+                    contactSubmitButton.textContent || "Отправить письмо";
+                contactSubmitButton.textContent = "Отправка...";
+            }
 
-            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+            try {
+                const response = await fetch(contactForm.action, {
+                    method: "POST",
+                    body: new FormData(contactForm),
+                    headers: {
+                        "Accept": "application/json",
+                    },
+                });
 
-            closeContactModal();
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || "Не удалось отправить письмо.");
+                }
+
+                setContactStatus(data.message || "Письмо отправлено.", "success");
+                contactForm.reset();
+
+                window.setTimeout(() => {
+                    closeContactModal();
+                    resetContactStatus();
+                }, 1400);
+            } catch (error) {
+                setContactStatus(
+                    error.message || "Не удалось отправить письмо. Попробуйте позже.",
+                    "error"
+                );
+            } finally {
+                if (contactSubmitButton) {
+                    contactSubmitButton.disabled = false;
+                    contactSubmitButton.removeAttribute("aria-busy");
+                    contactSubmitButton.textContent =
+                        contactSubmitButton.dataset.originalText || "Отправить письмо";
+                }
+            }
         });
     }
 

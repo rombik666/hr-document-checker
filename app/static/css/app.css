@@ -1591,3 +1591,53 @@ summary {
     background: #fdecec;
     border: 1px solid #f3b3b3;
 }
+
+.contact-form-status {
+    margin: 14px 0 0;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    font-weight: 700;
+}
+
+.contact-form-status.success {
+    color: #167c3a;
+    background: #e8f8ee;
+    border-color: #b9e7c8;
+}
+
+.contact-form-status.error {
+    color: #b42318;
+    background: #fdecec;
+    border-color: #f3b3b3;
+}
+
+.footer-social-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.footer-social-button:hover,
+.footer-social-button:focus {
+    background: var(--primary-soft);
+    border-color: rgba(37, 99, 235, 0.28);
+    box-shadow: none;
+    transform: none;
+}
+
+.footer-social-button img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}

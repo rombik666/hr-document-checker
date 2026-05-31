@@ -33,17 +33,21 @@
             </p>
         </div>
         {% set report_status_class = "status-pill report-status-success" %}
+        {% set report_status_label = "Готов" %}
 
         {% if report.total_issues == 0 %}
             {% set report_status_class = "status-pill report-status-success" %}
+            {% set report_status_label = "Нет замечаний" %}
         {% elif report.critical_count > 0 or report.major_count > 0 %}
             {% set report_status_class = "status-pill report-status-danger" %}
+            {% set report_status_label = "Требует доработки" %}
         {% else %}
             {% set report_status_class = "status-pill report-status-warning" %}
+            {% set report_status_label = "Есть замечания" %}
         {% endif %}
 
         <span class="{{ report_status_class }}">
-            {{ report.summary_status | report_status_label }}
+            {{ report_status_label }}
         </span>
     </div>
 

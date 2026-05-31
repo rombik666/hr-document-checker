@@ -47,6 +47,12 @@ services:
       LLM_TIMEOUT_SECONDS: "120"
       LLM_ENABLED: "true"
       LLM_SEMANTIC_AGENT_ENABLED: "true"
+      CONTACT_EMAIL_TO: "maximk161@yandex.com"
+      SMTP_HOST: "smtp.yandex.ru"
+      SMTP_PORT: "465"
+      SMTP_USERNAME: "maximk161@yandex.com"
+      SMTP_FROM_EMAIL: "maximk161@yandex.com"
+      SMTP_PASSWORD: "${SMTP_PASSWORD}"
     ports:
       - "8000:8000"
     volumes:

@@ -1,14 +1,25 @@
+import smtplib
+import ssl
+
+from email.message import EmailMessage
+
 from pathlib import Path
+
 from tempfile import NamedTemporaryFile
+
 from time import perf_counter
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.concurrency import run_in_threadpool
 from fastapi.templating import Jinja2Templates
+
 from pydantic import ValidationError
+
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import AUTH_COOKIE_NAME
+from app.core.config import settings
 from app.auth.security import create_access_token, decode_access_token
 from app.coordinator.formal_check_coordinator import FormalCheckCoordinator
 from app.coordinator.semantic_check_coordinator import SemanticCheckCoordinator
@@ -22,7 +33,6 @@ from app.schemas.common import StorageMode
 from app.services.document_processing_service import DocumentProcessingService
 from app.services.report_storage_service import ReportStorageService
 from app.services.user_service import UserService
-
 from app.services.rag_index_service import RagIndexService
 from app.services.rag_source_service import RagSourceService
 
@@ -133,6 +143,159 @@ def _localize_web_error(error: Exception) -> str:
     }
 
     return translations.get(message, message)
+
+def _get_optional_user_from_request(
+    request: Request,
+    db: Session,
+) -> UserORM | None:
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+
+    if not token:
+        return None
+
+    try:
+        payload = decode_access_token(token)
+    except ValueError:
+        return None
+
+    user_id = str(payload.get("sub") or "")
+
+    if not user_id:
+        return None
+
+    return db.get(UserORM, user_id)
+
+def _send_contact_email(
+    topic: str,
+    message: str,
+    client_host: str | None = None,
+    user: UserORM | None = None,
+) -> None:
+    if not settings.smtp_username or not settings.smtp_password:
+        raise RuntimeError(
+            "SMTP is not configured. Set SMTP_USERNAME and SMTP_PASSWORD."
+        )
+
+    from_email = settings.smtp_from_email or settings.smtp_username
+
+    email = EmailMessage()
+    email["Subject"] = f"[HR Document Checker] {topic}"
+    email["From"] = from_email
+    email["To"] = settings.contact_email_to
+
+    if user:
+        user_info = [
+            f"ID пользователя: {user.id}",
+            f"Email пользователя: {user.email}",
+            f"ФИО / имя: {user.full_name}",
+            f"Роль: {user.role}",
+        ]
+    else:
+        user_info = [
+            "Пользователь: не авторизован",
+        ]
+
+    email.set_content(
+        "\n".join(
+            [
+                "Новое обращение через форму HR Document Checker.",
+                "",
+                "Данные пользователя:",
+                *user_info,
+                "",
+                f"Тема обращения: {topic}",
+                "",
+                "Описание:",
+                message,
+                "",
+                "---",
+                f"IP клиента: {client_host or 'не определён'}",
+            ]
+        )
+    )
+
+    context = ssl.create_default_context()
+
+    with smtplib.SMTP_SSL(
+        settings.smtp_host,
+        settings.smtp_port,
+        context=context,
+        timeout=20,
+    ) as server:
+        server.login(settings.smtp_username, settings.smtp_password)
+        server.send_message(email)
+
+@router.post("/contact")
+async def submit_contact_form(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    form = await request.form()
+
+    topic = str(form.get("topic") or "").strip()
+    message = str(form.get("message") or "").strip()
+
+    if not topic:
+        return JSONResponse(
+            {"success": False, "message": "Выберите тему обращения."},
+            status_code=400,
+        )
+
+    if not message:
+        return JSONResponse(
+            {"success": False, "message": "Введите описание обращения."},
+            status_code=400,
+        )
+
+    if len(message) > 5000:
+        return JSONResponse(
+            {
+                "success": False,
+                "message": "Описание слишком длинное. Сократите текст до 5000 символов.",
+            },
+            status_code=400,
+        )
+    
+    user = _get_optional_user_from_request(request, db)
+
+    try:
+        await run_in_threadpool(
+            _send_contact_email,
+            topic,
+            message,
+            request.client.host if request.client else None,
+            user,
+        )
+    except RuntimeError as error:
+        logger.warning("contact_email_not_configured error=%s", error)
+
+        return JSONResponse(
+            {
+                "success": False,
+                "message": (
+                    "Отправка почты пока не настроена на сервере. "
+                    "Проверьте SMTP_USERNAME и SMTP_PASSWORD."
+                ),
+            },
+            status_code=503,
+        )
+    except Exception:
+        logger.exception("contact_email_send_failed")
+
+        return JSONResponse(
+            {
+                "success": False,
+                "message": "Не удалось отправить письмо. Попробуйте позже.",
+            },
+            status_code=500,
+        )
+
+    return JSONResponse(
+        {
+            "success": True,
+            "message": "Письмо отправлено. Я получил ваше обращение.",
+        }
+    )
 
 
 def _template(

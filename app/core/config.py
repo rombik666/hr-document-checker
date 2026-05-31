@@ -49,5 +49,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    contact_email_to: str = "maximk161@yandex.com"
+
+    smtp_host: str = "smtp.yandex.ru"
+    smtp_port: int = 465
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+
 
 settings = Settings()

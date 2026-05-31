@@ -105,9 +105,14 @@
 
         <div class="footer-bottom">
             <div class="footer-socials">
-                <a href="#" aria-label="Email">
+                <button
+                    class="footer-social-button"
+                    type="button"
+                    aria-label="Email"
+                    data-contact-modal-open
+                >
                     <img src="/static/icons/envelope.svg" alt="">
-                </a>
+                </button>
                 <a
                     href="https://t.me/MaximKudinovJob"
                     aria-label="Telegram"
@@ -131,7 +136,7 @@
         <div class="section-header">
             <div>
                 <h2 id="contact-modal-title">Обращение по проекту</h2>
-                <p>Выберите тему и опишите вопрос. После отправки откроется почтовое приложение.</p>
+                <p>Выберите тему и подробно опишите ситуацию. Ответим вам как можно скорее.</p>
             </div>
 
             <button class="button ghost contact-modal-close" type="button" data-contact-modal-close>
@@ -139,7 +144,7 @@
             </button>
         </div>
 
-        <form data-contact-form data-contact-email="maximk161@yandex.com">
+        <form data-contact-form action="/web/contact" method="post">
             <label for="contact-topic">Тема обращения</label>
             <select id="contact-topic" name="topic" required>
                 <option value="Вопрос по работе сервиса">Вопрос по работе сервиса</option>
@@ -157,8 +162,10 @@
             ></textarea>
 
             <div class="form-actions">
-                <button type="submit">Открыть письмо</button>
+                <button type="submit">Отправить письмо</button>
             </div>
+
+            <p class="contact-form-status" data-contact-status hidden></p>
         </form>
     </section>
 </div>

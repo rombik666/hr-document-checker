@@ -165,6 +165,7 @@ hr {
     width: 20px;
     height: 20px;
     display: block;
+    flex: 0 0 auto;
 }
 
 .brand:hover {
@@ -2036,6 +2037,12 @@ body.mobile-nav-open {
 .landing-actions img {
     width: 18px;
     height: 18px;
+    display: block;
+    flex: 0 0 auto;
+}
+
+.landing-actions .button:not(.ghost) img {
+    filter: none;
 }
 
 .landing-hero {

@@ -1494,17 +1494,17 @@ summary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    min-height: 34px;
+    width: auto;
+    height: auto;
+    min-height: 0;
     margin: 0;
     padding: 0;
-    border: 1px solid rgba(203, 213, 225, 0.9);
-    border-radius: 999px;
-    background: rgba(248, 250, 252, 0.92);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: #94a3b8;
-    font-size: 26px;
-    font-weight: 500;
+    font-size: 28px;
+    font-weight: 400;
     line-height: 1;
     box-shadow: none;
     cursor: pointer;
@@ -1512,7 +1512,7 @@ summary {
 
 .contact-modal-x:hover,
 .contact-modal-x:focus {
-    background: #f1f5f9;
+    background: transparent;
     color: #64748b;
     box-shadow: none;
     transform: none;
@@ -2563,7 +2563,7 @@ body.mobile-nav-open {
 }
 
 .nav-auth-link.nav-register:hover {
-    color: #ffffff;
+    color: var(--primary-dark);
     text-decoration: none;
     transform: translateY(-1px);
 }

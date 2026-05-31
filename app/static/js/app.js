@@ -3,16 +3,52 @@ document.addEventListener("DOMContentLoaded", () => {
     const links = document.querySelector("[data-nav-links]");
 
     if (toggle && links) {
-        toggle.addEventListener("click", () => {
-            const isOpen = links.classList.toggle("is-open");
-            toggle.setAttribute("aria-expanded", String(isOpen));
-        });
+        const backdrop = document.createElement("div");
+        backdrop.className = "mobile-nav-backdrop";
+        backdrop.setAttribute("data-nav-backdrop", "");
+        document.body.appendChild(backdrop);
+
+        const openMenu = () => {
+            links.classList.add("is-open");
+            toggle.setAttribute("aria-expanded", "true");
+            document.body.classList.add("mobile-nav-open");
+            links.setAttribute("aria-hidden", "false");
+        };
+
+        const closeMenu = () => {
+            links.classList.remove("is-open");
+            toggle.setAttribute("aria-expanded", "false");
+            document.body.classList.remove("mobile-nav-open");
+            links.setAttribute("aria-hidden", "true");
+        };
+
+        const toggleMenu = () => {
+            if (links.classList.contains("is-open")) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        };
+
+        links.setAttribute("aria-hidden", "true");
+
+        toggle.addEventListener("click", toggleMenu);
+        backdrop.addEventListener("click", closeMenu);
 
         links.querySelectorAll("a").forEach((link) => {
-            link.addEventListener("click", () => {
-                links.classList.remove("is-open");
-                toggle.setAttribute("aria-expanded", "false");
-            });
+            link.addEventListener("click", closeMenu);
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && links.classList.contains("is-open")) {
+                closeMenu();
+            }
+        });
+
+        window.addEventListener("resize", () => {
+            if (window.innerWidth > 860) {
+                closeMenu();
+            }
         });
     }
 

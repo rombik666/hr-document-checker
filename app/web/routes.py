@@ -527,10 +527,17 @@ def web_index(
 ):
     user = _get_current_web_user(request, db)
 
-    if user is None:
-        return _redirect("/web/login")
+    if user is not None:
+        return _redirect("/web/dashboard")
 
-    return _redirect("/web/dashboard")
+    return _template(
+        request=request,
+        name="landing.html",
+        context={
+            "page_title": "HR Document Checker",
+            "user": None,
+        },
+    )
 
 
 @router.get("/login")

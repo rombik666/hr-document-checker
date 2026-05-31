@@ -15,15 +15,28 @@ from app.db.session import SessionLocal
 client = TestClient(app)
 
 
-def test_web_index_redirects_anonymous_user_to_login_page() -> None:
+def test_web_index_returns_landing_page_for_anonymous_user() -> None:
     response = client.get("/web/")
 
     assert response.status_code == 200
-    assert "Вход" in response.text
-    assert 'action="/web/login"' in response.text
-    assert 'name="email"' in response.text
-    assert 'name="password"' in response.text
+    assert "HR Document Checker" in response.text
+    assert "Проверяйте HR-документы" in response.text
+    assert "AI-агенты" in response.text
+    assert "RAG" in response.text
+    assert "FAISS" in response.text
     assert 'href="/web/register"' in response.text
+    assert 'href="/web/login"' in response.text
+    assert 'action="/web/login"' not in response.text
+
+def test_web_index_redirects_authenticated_user_to_dashboard() -> None:
+    response = client.get(
+        "/web/",
+        headers=auth_headers(client, "candidate"),
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/web/dashboard"
 
 
 def test_web_dashboard_returns_candidate_dashboard_for_authenticated_user() -> None:

@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="landing-hero" id="top">
+    <div class="landing-hero-content">
+        <span class="landing-badge">
+            <img src="/static/icons/landing/sparkles.svg" alt="">
+            AI-агенты • RAG • FAISS • HR-документы
+        </span>
+
+        <h1>
+            Проверяйте HR-документы с помощью
+            <span>искусственного интеллекта</span>
+        </h1>
+
+        <p>
+            HR Document Checker помогает кандидатам и HR-специалистам находить ошибки
+            в резюме, сопроводительных письмах, анкетах и вакансиях. Система объединяет
+            rule-based проверки, LLM-агентов, RAG-контекст и понятные отчёты с приоритетами.
+        </p>
+
+        <div class="landing-actions">
+            <a class="button" href="/web/register">
+                Начать проверку
+                <img src="/static/icons/landing/arrow-right.svg" alt="">
+            </a>
+            <a class="button ghost" href="#how-it-works">Как это работает</a>
+        </div>
+
+        <div class="landing-trust-row">
+            <span>DOCX/PDF</span>
+            <span>Critical / Major / Minor</span>
+            <span>Evidence-based отчёт</span>
+            <span>Персональные RAG-источники</span>
+        </div>
+    </div>
+
+    <div class="landing-hero-panel">
+        <div class="landing-report-card">
+            <div class="landing-report-header">
+                <span class="status-pill danger">Critical</span>
+                <span class="muted small">Пример отчёта</span>
+            </div>
+
+            <h3>Документ требует доработки</h3>
+            <p class="muted">
+                Система выявляет проблемы в структуре, хронологии, релевантности и качестве формулировок.
+            </p>
+
+            <div class="landing-score-grid">
+                <div>
+                    <strong>3</strong>
+                    <span>Critical</span>
+                </div>
+                <div>
+                    <strong>7</strong>
+                    <span>Major</span>
+                </div>
+                <div>
+                    <strong>5</strong>
+                    <span>Minor</span>
+                </div>
+            </div>
+
+            <div class="landing-evidence">
+                <strong>Evidence-фрагмент</strong>
+                <span>«Опыт указан без дат, конкретных результатов и связи с требованиями вакансии...»</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="landing-stats">
+    <div class="metric-card">
+        <strong>DOCX/PDF</strong>
+        <span>поддерживаемые форматы</span>
+    </div>
+    <div class="metric-card">
+        <strong>RAG</strong>
+        <span>контекст HR-источников</span>
+    </div>
+    <div class="metric-card">
+        <strong>FAISS</strong>
+        <span>персональные индексы</span>
+    </div>
+    <div class="metric-card">
+        <strong>DOCX</strong>
+        <span>экспорт отчёта</span>
+    </div>
+</section>
+
+<section class="landing-section" id="features">
+    <div class="section-header landing-centered">
+        <div>
+            <h2>Возможности системы</h2>
+            <p>
+                Платформа закрывает полный сценарий первичной проверки документа:
+                от загрузки файла до структурированного отчёта с рекомендациями.
+            </p>
+        </div>
+    </div>
+
+    <div class="landing-feature-grid">
+        <article class="card landing-feature-card">
+            <div class="landing-icon landing-icon-indigo">
+                <img src="/static/icons/landing/brain.svg" alt="">
+            </div>
+            <h3>ИИ-анализ</h3>
+            <p>
+                Семантические агенты анализируют качество текста, противоречия,
+                шаблонность и соответствие документа требованиям вакансии.
+            </p>
+        </article>
+
+        <article class="card landing-feature-card">
+            <div class="landing-icon landing-icon-purple">
+                <img src="/static/icons/landing/database.svg" alt="">
+            </div>
+            <h3>RAG-подсистема</h3>
+            <p>
+                HR-специалист может загружать вакансии, регламенты и чек-листы,
+                а система использует их как контекст проверки.
+            </p>
+        </article>
+
+        <article class="card landing-feature-card">
+            <div class="landing-icon landing-icon-amber">
+                <img src="/static/icons/landing/zap.svg" alt="">
+            </div>
+            <h3>Быстрый отчёт</h3>
+            <p>
+                Результаты группируются по уровням Critical, Major и Minor,
+                чтобы пользователь сразу видел самые важные проблемы.
+            </p>
+        </article>
+
+        <article class="card landing-feature-card">
+            <div class="landing-icon landing-icon-green">
+                <img src="/static/icons/landing/bar-chart.svg" alt="">
+            </div>
+            <h3>Сопоставление с вакансией</h3>
+            <p>
+                При наличии вакансии система помогает определить покрытые требования
+                и пробелы в опыте или формулировках кандидата.
+            </p>
+        </article>
+
+        <article class="card landing-feature-card">
+            <div class="landing-icon landing-icon-red">
+                <img src="/static/icons/landing/shield.svg" alt="">
+            </div>
+            <h3>Контроль хранения</h3>
+            <p>
+                Поддерживается режим временного хранения и no-store,
+                чтобы снизить риски при работе с персональными данными.
+            </p>
+        </article>
+
+        <article class="card landing-feature-card">
+            <div class="landing-icon landing-icon-blue">
+                <img src="/static/icons/landing/clock.svg" alt="">
+            </div>
+            <h3>История проверок</h3>
+            <p>
+                Пользователь может вернуться к ранее созданным отчётам,
+                просмотреть замечания и экспортировать результат.
+            </p>
+        </article>
+    </div>
+</section>
+
+<section class="landing-section landing-how" id="how-it-works">
+    <div class="section-header landing-centered">
+        <div>
+            <h2>Как работает проверка</h2>
+            <p>Пайплайн построен так, чтобы результат был объяснимым и пригодным для ручной проверки.</p>
+        </div>
+    </div>
+
+    <div class="landing-steps">
+        <article class="card landing-step">
+            <span>1</span>
+            <img src="/static/icons/landing/upload.svg" alt="">
+            <h3>Загрузка</h3>
+            <p>Пользователь загружает резюме, письмо, анкету или вакансию в формате DOCX/PDF.</p>
+        </article>
+
+        <article class="card landing-step">
+            <span>2</span>
+            <img src="/static/icons/landing/brain.svg" alt="">
+            <h3>Анализ</h3>
+            <p>Система извлекает текст, секции, сущности и запускает формальные и семантические проверки.</p>
+        </article>
+
+        <article class="card landing-step">
+            <span>3</span>
+            <img src="/static/icons/landing/file-text.svg" alt="">
+            <h3>Отчёт</h3>
+            <p>Формируется отчёт с приоритетами, evidence-фрагментами и рекомендациями по исправлению.</p>
+        </article>
+
+        <article class="card landing-step">
+            <span>4</span>
+            <img src="/static/icons/landing/trending-up.svg" alt="">
+            <h3>Улучшение</h3>
+            <p>Пользователь применяет рекомендации и при необходимости повторяет проверку документа.</p>
+        </article>
+    </div>
+</section>
+
+<section class="landing-section" id="roles">
+    <div class="section-header landing-centered">
+        <div>
+            <h2>Роли пользователей</h2>
+            <p>Сценарии работы отличаются в зависимости от роли: кандидат, HR-специалист или администратор.</p>
+        </div>
+    </div>
+
+    <div class="landing-role-grid">
+        <article class="card landing-role-card">
+            <div class="landing-role-icon landing-gradient-indigo">
+                <img src="/static/icons/landing/users.svg" alt="">
+            </div>
+            <h3>Кандидат</h3>
+            <p>Проверяет резюме и сопроводительные письма перед отправкой работодателю.</p>
+            <ul>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> Проверка структуры и полноты</li>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> Анализ формулировок</li>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> Рекомендации по улучшению</li>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> История отчётов</li>
+            </ul>
+            <a class="button ghost full-width" href="/web/register">Зарегистрироваться</a>
+        </article>
+
+        <article class="card landing-role-card landing-role-popular">
+            <div class="landing-popular-label">Основная роль</div>
+            <div class="landing-role-icon landing-gradient-green">
+                <img src="/static/icons/landing/sparkles.svg" alt="">
+            </div>
+            <h3>HR-специалист</h3>
+            <p>Проверяет документы кандидатов и использует собственную базу знаний через RAG.</p>
+            <ul>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> Все функции кандидата</li>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> RAG-источники</li>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> FAISS-переиндексация</li>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> Сопоставление с вакансией</li>
+            </ul>
+            <a class="button full-width" href="/web/register">Начать работу</a>
+        </article>
+
+        <article class="card landing-role-card">
+            <div class="landing-role-icon landing-gradient-dark">
+                <img src="/static/icons/landing/lock.svg" alt="">
+            </div>
+            <h3>Администратор</h3>
+            <p>Контролирует пользователей, отчёты, системные статусы и техническую часть сервиса.</p>
+            <ul>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> Административная панель</li>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> Доступ к системной информации</li>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> Мониторинг и диагностика</li>
+                <li><img src="/static/icons/landing/check-circle.svg" alt=""> Swagger API</li>
+            </ul>
+            <a class="button ghost full-width" href="/web/login">Войти</a>
+        </article>
+    </div>
+</section>
+
+<section class="landing-final-cta">
+    <div>
+        <h2>Готовы проверить документ?</h2>
+        <p>
+            Создайте аккаунт, загрузите DOCX/PDF-файл и получите структурированный отчёт
+            с замечаниями, приоритетами и рекомендациями.
+        </p>
+    </div>
+
+    <div class="landing-actions">
+        <a class="button" href="/web/register">
+            Начать проверку
+            <img src="/static/icons/landing/arrow-right.svg" alt="">
+        </a>
+        <a class="button ghost" href="/web/login">Войти</a>
+    </div>
+</section>
+{% endblock %}

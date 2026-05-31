@@ -154,47 +154,39 @@
 {% endif %}
 
 {% if report.critical %}
-<section class="card issue-critical section-spaced">
-    <div class="section-header">
+<section class="card report-issue-section report-issue-section-critical section-spaced">
+    <div class="report-issue-section-header">
+        <img src="/static/icons/reports/circle-alert.svg" alt="">
         <div>
             <h2>Критические замечания</h2>
-            <p class="muted">
-                Проблемы, которые существенно мешают использовать документ.
-            </p>
+            <p>Необходимо исправить перед отправкой документа.</p>
         </div>
-        <span class="badge danger">{{ report.critical_count }}</span>
     </div>
 
-    <div class="issues-list">
+    <div class="report-issue-list">
         {% for issue in report.critical %}
-            <article class="card compact issue-critical issue-card-wide">
-                <div class="issue-main">
+            <article class="report-issue-card report-issue-card-critical">
+                <div class="report-issue-title-row">
+                    <span class="issue-level-badge issue-level-critical">Critical</span>
                     <h3>{{ issue.description }}</h3>
-
-                    {% if user and user.role == "admin" %}
-                        <p><strong>Тип:</strong> {{ issue.issue_type }}</p>
-                    {% endif %}
-
-                    {% if issue.evidence_fragment %}
-                        <div class="info">
-                            <strong>Фрагмент:</strong> {{ issue.evidence_fragment }}
-                        </div>
-                    {% endif %}
                 </div>
 
-                <div class="issue-side">
-                    {% if issue.recommendation %}
-                        <p><strong>Рекомендация:</strong> {{ issue.recommendation.recommendation_text }}</p>
+                {% if issue.recommendation %}
+                    <p>{{ issue.recommendation.recommendation_text }}</p>
+                {% endif %}
 
-                        {% if issue.recommendation.example_fix %}
-                            <p><strong>Пример исправления:</strong> {{ issue.recommendation.example_fix }}</p>
-                        {% endif %}
-                    {% endif %}
+                {% if issue.evidence_fragment %}
+                    <div class="report-evidence-box">
+                        {{ issue.evidence_fragment }}
+                    </div>
+                {% endif %}
 
-                    {% if user and user.role == "admin" and issue.confidence_score is not none %}
-                        <p class="muted small">Confidence score: {{ issue.confidence_score }}</p>
-                    {% endif %}
-                </div>
+                {% if issue.recommendation and issue.recommendation.example_fix %}
+                    <div class="report-fix-box">
+                        <strong>Пример исправления:</strong>
+                        <span>{{ issue.recommendation.example_fix }}</span>
+                    </div>
+                {% endif %}
             </article>
         {% endfor %}
     </div>
@@ -202,47 +194,39 @@
 {% endif %}
 
 {% if report.major %}
-<section class="card issue-major section-spaced">
-    <div class="section-header">
+<section class="card report-issue-section report-issue-section-major section-spaced">
+    <div class="report-issue-section-header">
+        <img src="/static/icons/reports/triangle-alert.svg" alt="">
         <div>
             <h2>Значимые замечания</h2>
-            <p class="muted">
-                Замечания, которые снижают качество документа.
-            </p>
+            <p>Важные улучшения, которые повышают качество документа.</p>
         </div>
-        <span class="badge warning">{{ report.major_count }}</span>
     </div>
 
-    <div class="issues-list">
+    <div class="report-issue-list">
         {% for issue in report.major %}
-            <article class="card compact issue-major issue-card-wide">
-                <div class="issue-main">
+            <article class="report-issue-card report-issue-card-major">
+                <div class="report-issue-title-row">
+                    <span class="issue-level-badge issue-level-major">Major</span>
                     <h3>{{ issue.description }}</h3>
-
-                    {% if user and user.role == "admin" %}
-                        <p><strong>Тип:</strong> {{ issue.issue_type }}</p>
-                    {% endif %}
-
-                    {% if issue.evidence_fragment %}
-                        <div class="info">
-                            <strong>Фрагмент:</strong> {{ issue.evidence_fragment }}
-                        </div>
-                    {% endif %}
                 </div>
 
-                <div class="issue-side">
-                    {% if issue.recommendation %}
-                        <p><strong>Рекомендация:</strong> {{ issue.recommendation.recommendation_text }}</p>
+                {% if issue.recommendation %}
+                    <p>{{ issue.recommendation.recommendation_text }}</p>
+                {% endif %}
 
-                        {% if issue.recommendation.example_fix %}
-                            <p><strong>Пример исправления:</strong> {{ issue.recommendation.example_fix }}</p>
-                        {% endif %}
-                    {% endif %}
+                {% if issue.evidence_fragment %}
+                    <div class="report-evidence-box">
+                        {{ issue.evidence_fragment }}
+                    </div>
+                {% endif %}
 
-                    {% if user and user.role == "admin" and issue.confidence_score is not none %}
-                        <p class="muted small">Confidence score: {{ issue.confidence_score }}</p>
-                    {% endif %}
-                </div>
+                {% if issue.recommendation and issue.recommendation.example_fix %}
+                    <div class="report-fix-box">
+                        <strong>Пример исправления:</strong>
+                        <span>{{ issue.recommendation.example_fix }}</span>
+                    </div>
+                {% endif %}
             </article>
         {% endfor %}
     </div>
@@ -250,47 +234,39 @@
 {% endif %}
 
 {% if report.minor %}
-<section class="card issue-minor section-spaced">
-    <div class="section-header">
+<section class="card report-issue-section report-issue-section-minor section-spaced">
+    <div class="report-issue-section-header">
+        <img src="/static/icons/reports/info.svg" alt="">
         <div>
             <h2>Незначительные замечания</h2>
-            <p class="muted">
-                Второстепенные замечания по стилю, повторам и отдельным формулировкам.
-            </p>
+            <p>Второстепенные замечания по стилю, повторам и отдельным формулировкам.</p>
         </div>
-        <span class="badge">{{ report.minor_count }}</span>
     </div>
 
-    <div class="issues-list">
+    <div class="report-issue-list">
         {% for issue in report.minor %}
-            <article class="card compact issue-minor issue-card-wide">
-                <div class="issue-main">
+            <article class="report-issue-card report-issue-card-minor">
+                <div class="report-issue-title-row">
+                    <span class="issue-level-badge issue-level-minor">Minor</span>
                     <h3>{{ issue.description }}</h3>
-
-                    {% if user and user.role == "admin" %}
-                        <p><strong>Тип:</strong> {{ issue.issue_type }}</p>
-                    {% endif %}
-
-                    {% if issue.evidence_fragment %}
-                        <div class="info">
-                            <strong>Фрагмент:</strong> {{ issue.evidence_fragment }}
-                        </div>
-                    {% endif %}
                 </div>
 
-                <div class="issue-side">
-                    {% if issue.recommendation %}
-                        <p><strong>Рекомендация:</strong> {{ issue.recommendation.recommendation_text }}</p>
+                {% if issue.recommendation %}
+                    <p>{{ issue.recommendation.recommendation_text }}</p>
+                {% endif %}
 
-                        {% if issue.recommendation.example_fix %}
-                            <p><strong>Пример исправления:</strong> {{ issue.recommendation.example_fix }}</p>
-                        {% endif %}
-                    {% endif %}
+                {% if issue.evidence_fragment %}
+                    <div class="report-evidence-box">
+                        {{ issue.evidence_fragment }}
+                    </div>
+                {% endif %}
 
-                    {% if user and user.role == "admin" and issue.confidence_score is not none %}
-                        <p class="muted small">Confidence score: {{ issue.confidence_score }}</p>
-                    {% endif %}
-                </div>
+                {% if issue.recommendation and issue.recommendation.example_fix %}
+                    <div class="report-fix-box">
+                        <strong>Пример исправления:</strong>
+                        <span>{{ issue.recommendation.example_fix }}</span>
+                    </div>
+                {% endif %}
             </article>
         {% endfor %}
     </div>

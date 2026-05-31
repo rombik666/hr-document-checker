@@ -1,80 +1,168 @@
 {% if reports %}
-<div
-    class="table-wrap"
     {% if reports_table_paginated %}
-        data-paginated-table
-        data-page-size="10"
-    {% endif %}
->
-    <table>
-        <thead>
-            <tr>
-                <th>Документ</th>
-                <th>Статус</th>
-                <th>Дата проверки</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for item in reports %}
-            <tr>
-                <td class="filename-cell">
-                    <strong class="report-document-title">{{ item.filename }}</strong>
-                </td>
-                <td>
+        <div
+            class="table-wrap reports-history-wrap"
+            data-paginated-table
+            data-page-size="10"
+        >
+            <table class="reports-history-table">
+                <thead>
+                    <tr>
+                        <th>Документ</th>
+                        <th>Дата</th>
+                        <th>Статус</th>
+                        <th>Замечания</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for item in reports %}
                     {% set item_status_class = "status-pill report-status-success" %}
                     {% set item_status_label = "Готов" %}
 
                     {% if item.total_issues == 0 %}
                         {% set item_status_class = "status-pill report-status-success" %}
-                        {% set item_status_label = "Нет замечаний" %}
+                        {% set item_status_label = "Готов" %}
                     {% elif item.critical_count > 0 or item.major_count > 0 %}
-                        {% set item_status_class = "status-pill report-status-danger" %}
+                        {% set item_status_class = "status-pill report-status-warning" %}
                         {% set item_status_label = "Требует доработки" %}
                     {% else %}
-                        {% set item_status_class = "status-pill report-status-warning" %}
-                        {% set item_status_label = "Есть замечания" %}
+                        {% set item_status_class = "status-pill report-status-success" %}
+                        {% set item_status_label = "Готов" %}
                     {% endif %}
 
-                    <span class="{{ item_status_class }}">
-                        {{ item_status_label }}
-                    </span>
-                </td>
-                                <td>
-                    <time data-local-datetime="{{ item.created_at | datetime_iso }}">
-                        {{ item.created_at | display_datetime }}
-                    </time>
-                </td>
-                <td>
-                    <div class="form-actions">
-                        <a class="button ghost" href="/web/reports/{{ item.id }}">Открыть</a>
+                    <tr>
+                        <td class="filename-cell">
+                            <div class="reports-history-document">
+                                <img src="/static/icons/reports/file-text.svg" alt="">
+                                <strong>{{ item.filename }}</strong>
+                            </div>
+                        </td>
 
-                        {% if user and user.role == "admin" %}
-                            <a class="button ghost" href="/api/v1/documents/reports/{{ item.id }}">JSON</a>
-                        {% endif %}
+                        <td>
+                            <time data-local-datetime="{{ item.created_at | datetime_iso }}">
+                                {{ item.created_at | display_datetime }}
+                            </time>
+                        </td>
 
-                        <a class="button ghost" href="/api/v1/documents/reports/{{ item.id }}/export/docx">DOCX</a>
+                        <td>
+                            <span class="{{ item_status_class }}">
+                                {{ item_status_label }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <div class="report-issues-pills">
+                                {% if item.critical_count > 0 %}
+                                    <span class="issue-count-pill issue-count-critical">{{ item.critical_count }}</span>
+                                {% endif %}
+
+                                {% if item.major_count > 0 %}
+                                    <span class="issue-count-pill issue-count-major">{{ item.major_count }}</span>
+                                {% endif %}
+
+                                {% if item.minor_count > 0 %}
+                                    <span class="issue-count-pill issue-count-minor">{{ item.minor_count }}</span>
+                                {% endif %}
+
+                                {% if item.total_issues == 0 %}
+                                    <span class="issue-count-pill issue-count-ready">0</span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="report-row-actions">
+                                <a class="button ghost report-action-button" href="/web/reports/{{ item.report_id }}">
+                                    <img src="/static/icons/reports/eye.svg" alt="">
+                                    Открыть
+                                </a>
+
+                                <a class="button ghost report-action-button" href="/api/v1/documents/reports/{{ item.report_id }}/export/docx">
+                                    <img src="/static/icons/reports/download.svg" alt="">
+                                    DOCX
+                                </a>
+
+                                {% if user and user.role == "admin" %}
+                                    <a class="button ghost report-action-button" href="/api/v1/documents/reports/{{ item.report_id }}">
+                                        JSON
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="table-pagination" data-pagination-controls>
+                <button class="button ghost" type="button" data-page-prev>Назад</button>
+                <span class="muted" data-page-info>Страница 1</span>
+                <button class="button ghost" type="button" data-page-next>Вперёд</button>
+            </div>
+        </div>
+    {% else %}
+        <div class="recent-reports-list">
+            {% for item in reports %}
+                {% set item_status_class = "status-pill report-status-success" %}
+                {% set item_status_label = "Готов" %}
+
+                {% if item.total_issues == 0 %}
+                    {% set item_status_class = "status-pill report-status-success" %}
+                    {% set item_status_label = "Готов" %}
+                {% elif item.critical_count > 0 or item.major_count > 0 %}
+                    {% set item_status_class = "status-pill report-status-warning" %}
+                    {% set item_status_label = "Требует доработки" %}
+                {% else %}
+                    {% set item_status_class = "status-pill report-status-success" %}
+                    {% set item_status_label = "Готов" %}
+                {% endif %}
+
+                <article class="recent-report-row">
+                    <div class="recent-report-main">
+                        <strong>{{ item.filename }}</strong>
+
+                        <div class="recent-report-meta">
+                            <time data-local-datetime="{{ item.created_at | datetime_iso }}">
+                                {{ item.created_at | display_datetime }}
+                            </time>
+
+                            <span class="{{ item_status_class }}">
+                                {{ item_status_label }}
+                            </span>
+                        </div>
                     </div>
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
 
-    {% if reports_table_paginated %}
-        <div class="table-pagination" data-pagination-controls>
-            <button class="button ghost" type="button" data-page-prev>Назад</button>
-            <span class="muted" data-page-info>Страница 1</span>
-            <button class="button ghost" type="button" data-page-next>Вперёд</button>
+                    <div class="recent-report-side">
+                        <div class="report-issues-pills">
+                            {% if item.critical_count > 0 %}
+                                <span class="issue-count-pill issue-count-critical">{{ item.critical_count }} Critical</span>
+                            {% endif %}
+
+                            {% if item.major_count > 0 %}
+                                <span class="issue-count-pill issue-count-major">{{ item.major_count }} Major</span>
+                            {% endif %}
+
+                            {% if item.minor_count > 0 %}
+                                <span class="issue-count-pill issue-count-minor">{{ item.minor_count }} Minor</span>
+                            {% endif %}
+                        </div>
+
+                        <a class="button ghost report-action-button" href="/web/reports/{{ item.report_id }}">
+                            Открыть отчёт
+                        </a>
+                    </div>
+                </article>
+            {% endfor %}
         </div>
     {% endif %}
-</div>
 {% else %}
-<div class="empty-state">
-    <h3>Сохранённых отчётов пока нет</h3>
-    <p class="muted">
-        Здесь появятся проверки, для которых включено сохранение отчёта.
-    </p>
-    <a class="button" href="/web/dashboard#check-document">Создать первую проверку</a>
-</div>
+    <div class="empty-state">
+        <h3>Сохранённых отчётов пока нет</h3>
+        <p class="muted">
+            Здесь появятся проверки, для которых включено сохранение отчёта.
+        </p>
+        <a class="button" href="/web/dashboard#check-document">Создать первую проверку</a>
+    </div>
 {% endif %}

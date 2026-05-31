@@ -2736,3 +2736,341 @@ body.mobile-nav-open {
     transform: none !important;
     outline: none !important;
 }
+
+/* Reports: recent cards and history table */
+
+.recent-reports-list {
+    display: grid;
+    gap: 16px;
+}
+
+.recent-report-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px 16px;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.recent-report-main {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.recent-report-main strong {
+    color: var(--text);
+    font-size: 15px;
+    word-break: break-word;
+}
+
+.recent-report-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.recent-report-side {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.report-issues-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.issue-count-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.issue-count-critical {
+    border: 1px solid #fecaca;
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.issue-count-major {
+    border: 1px solid #fde68a;
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.issue-count-minor {
+    border: 1px solid #e2e8f0;
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.issue-count-ready {
+    border: 1px solid #bbf7d0;
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.report-action-button {
+    min-height: 40px;
+    margin-top: 0;
+    padding: 9px 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--text);
+    box-shadow: none;
+    font-size: 14px;
+}
+
+.report-action-button img {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+}
+
+.report-action-button:hover {
+    background: #f8fafc;
+    color: var(--primary-dark);
+    box-shadow: none;
+    transform: none;
+}
+
+.reports-history-wrap {
+    border-radius: 0 0 22px 22px;
+}
+
+.reports-history-table {
+    min-width: 920px;
+}
+
+.reports-history-table th {
+    padding: 18px 22px;
+    background: #ffffff;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.reports-history-table td {
+    padding: 18px 22px;
+    background: #ffffff;
+    vertical-align: middle;
+}
+
+.reports-history-table tr:hover td {
+    background: #fbfdff;
+}
+
+.reports-history-document {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.reports-history-document img {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+}
+
+.reports-history-document strong {
+    color: var(--text);
+    font-size: 15px;
+}
+
+.report-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+    .recent-report-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .recent-report-side {
+        justify-content: flex-start;
+    }
+
+    .report-action-button {
+        width: 100%;
+    }
+}
+
+.reports-history-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.reports-history-card .section-header {
+    padding: 22px 24px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Report issue sections */
+
+.report-issue-section {
+    padding: clamp(24px, 3vw, 34px);
+    border-left: 0;
+}
+
+.report-issue-section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.report-issue-section-header img {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+}
+
+.report-issue-section-header h2 {
+    margin-bottom: 6px;
+}
+
+.report-issue-section-header p {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.report-issue-section-critical .report-issue-section-header h2 {
+    color: #991b1b;
+}
+
+.report-issue-section-major .report-issue-section-header h2 {
+    color: #172033;
+}
+
+.report-issue-section-minor .report-issue-section-header h2 {
+    color: #172033;
+}
+
+.report-issue-list {
+    display: grid;
+    gap: 18px;
+}
+
+.report-issue-card {
+    padding: 18px 16px;
+    border-radius: 10px;
+}
+
+.report-issue-card-critical {
+    border: 1px solid #fca5a5;
+    background: #fef2f2;
+}
+
+.report-issue-card-major {
+    border: 1px solid #facc15;
+    background: #fffbeb;
+}
+
+.report-issue-card-minor {
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+}
+
+.report-issue-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.report-issue-title-row h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.issue-level-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.issue-level-critical {
+    border: 1px solid #fecaca;
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.issue-level-major {
+    border: 1px solid #fde68a;
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.issue-level-minor {
+    border: 1px solid #bfdbfe;
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.report-issue-card p {
+    margin: 0 0 14px;
+    color: var(--text);
+}
+
+.report-evidence-box {
+    padding: 13px 14px;
+    border: 1px solid rgba(203, 213, 225, 0.95);
+    border-radius: 6px;
+    background: #ffffff;
+    color: #334155;
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.report-fix-box {
+    display: grid;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 13px 14px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--text);
+}
+
+@media (max-width: 560px) {
+    .report-issue-section-header {
+        align-items: flex-start;
+    }
+
+    .report-issue-title-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

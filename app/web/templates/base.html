@@ -54,7 +54,7 @@
 
 <footer class="site-footer">
     <div class="site-footer-inner">
-        <div class="footer-main">
+        <div class="footer-main {% if not user %}footer-main-auth{% endif %}">
             <div class="footer-brand">
                 <div class="footer-logo">HR Document Checker</div>
                 <p>
@@ -63,24 +63,25 @@
                 </p>
             </div>
 
-            <div class="footer-column">
-                <h3>Сервис</h3>
-                <a href="/web/dashboard">Главная</a>
-                <a href="/web/reports">История проверок</a>
-                <a href="/web/profile">Личный кабинет</a>
-            </div>
+            {% if user %}
+                <div class="footer-column">
+                    <h3>Сервис</h3>
+                    <a href="/web/dashboard">Главная</a>
+                    <a href="/web/reports">История проверок</a>
+                    <a href="/web/profile">Личный кабинет</a>
+                </div>
 
-            <div class="footer-column">
-                <h3>Поддержка</h3>
-                {% if user and user.role in ["admin"] %}
-                <a href="/docs">Swagger API</a>
-                {% endif %}
-                {% if user and user.role in ["hr", "admin"] %}
-                    <a href="/web/rag/sources">RAG-источники</a>
-                {% endif %}
+                <div class="footer-column">
+                    <h3>Поддержка</h3>
+                    <a href="/docs">Swagger API</a>
 
-                <a href="#">Документация</a>
-            </div>
+                    {% if user.role in ["hr", "admin"] %}
+                        <a href="/web/rag/sources">RAG-источники</a>
+                    {% endif %}
+
+                    <a href="#">Документация</a>
+                </div>
+            {% endif %}
 
             <div class="footer-column">
                 <h3>Контакты</h3>

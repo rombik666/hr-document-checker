@@ -24,11 +24,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         let fileName = dropZone.querySelector("[data-file-caption]");
+        const selectButton = dropZone.querySelector(".file-select-button");
 
         if (!fileName) {
             fileName = document.createElement("div");
             fileName.className = "file-drop-name muted small";
             dropZone.appendChild(fileName);
+        }
+
+        if (selectButton && !selectButton.dataset.defaultText) {
+            selectButton.dataset.defaultText = selectButton.textContent.trim() || "Выберите файл";
         }
 
         fileName.textContent = "Файл не выбран";
@@ -37,9 +42,17 @@ document.addEventListener("DOMContentLoaded", () => {
             if (input.files && input.files.length > 0) {
                 fileName.textContent = `Выбран файл: ${input.files[0].name}`;
                 dropZone.classList.add("has-file");
+
+                if (selectButton) {
+                    selectButton.textContent = "Заменить файл";
+                }
             } else {
                 fileName.textContent = "Файл не выбран";
                 dropZone.classList.remove("has-file");
+
+                if (selectButton) {
+                    selectButton.textContent = selectButton.dataset.defaultText || "Выберите файл";
+                }
             }
         };
 

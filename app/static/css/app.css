@@ -247,7 +247,7 @@ hr {
     box-shadow: none;
 }
 
-.card.compact + .card.compact {
+.card:not(.vacancy-relevance-card).compact + .card:not(.vacancy-relevance-card).compact {
     margin-top: 12px;
 }
 
@@ -1546,4 +1546,48 @@ summary {
     background: #fdecec;
     border-color: #f3b3b3;
     color: #b42318;
+}
+
+.vacancy-relevance-grid {
+    align-items: stretch;
+}
+
+.vacancy-relevance-grid > .card.compact.vacancy-relevance-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 124px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.vacancy-relevance-list {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.vacancy-relevance-list li + li {
+    margin-top: 6px;
+}
+
+.status-pill.report-status-success,
+.badge.report-status-success {
+    color: #167c3a;
+    background: #e8f8ee;
+    border: 1px solid #b9e7c8;
+}
+
+.status-pill.report-status-warning,
+.badge.report-status-warning {
+    color: #b86100;
+    background: #fff4e5;
+    border: 1px solid #ffd39a;
+}
+
+.status-pill.report-status-danger,
+.badge.report-status-danger {
+    color: #b42318;
+    background: #fdecec;
+    border: 1px solid #f3b3b3;
 }

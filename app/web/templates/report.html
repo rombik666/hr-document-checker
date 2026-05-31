@@ -32,7 +32,19 @@
                 Основные параметры отчёта и распределение найденных замечаний.
             </p>
         </div>
-        <span class="status-pill">{{ report.summary_status | report_status_label }}</span>
+        {% set report_status_class = "status-pill report-status-success" %}
+
+        {% if report.total_issues == 0 %}
+            {% set report_status_class = "status-pill report-status-success" %}
+        {% elif report.critical_count > 0 or report.major_count > 0 %}
+            {% set report_status_class = "status-pill report-status-danger" %}
+        {% else %}
+            {% set report_status_class = "status-pill report-status-warning" %}
+        {% endif %}
+
+        <span class="{{ report_status_class }}">
+            {{ report.summary_status | report_status_label }}
+        </span>
     </div>
 
     <div class="grid four report-summary-grid">

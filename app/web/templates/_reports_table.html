@@ -22,7 +22,17 @@
                     <strong class="report-document-title">{{ item.filename }}</strong>
                 </td>
                 <td>
-                    <span class="status-pill">
+                    {% set item_status_class = "status-pill report-status-success" %}
+
+                    {% if item.total_issues == 0 %}
+                        {% set item_status_class = "status-pill report-status-success" %}
+                    {% elif item.critical_count > 0 or item.major_count > 0 %}
+                        {% set item_status_class = "status-pill report-status-danger" %}
+                    {% else %}
+                        {% set item_status_class = "status-pill report-status-warning" %}
+                    {% endif %}
+
+                    <span class="{{ item_status_class }}">
                         {{ item.summary_status | report_status_label }}
                     </span>
                 </td>

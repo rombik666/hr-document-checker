@@ -17,7 +17,10 @@
                 <span class="brand-logo">
                     <img src="/static/icons/brand/file-check-corner.svg" alt="">
                 </span>
-                <span>HR Document Checker</span>
+                <span class="brand-copy">
+                    <span class="brand-title">HR Document Checker</span>
+                    <span class="brand-subtitle">AI-Powered Document Analysis</span>
+                </span>
             </a>
         </div>
 
@@ -46,8 +49,8 @@
 
                 <span class="badge">{{ user.role }}</span>
             {% else %}
-                <a href="/web/login">Войти</a>
-                <a href="/web/register">Регистрация</a>
+                <a class="nav-auth-link nav-signin" href="/web/login">Войти</a>
+                <a class="nav-auth-link nav-register" href="/web/register">Зарегистрироваться</a>
             {% endif %}
         </div>
     </nav>
@@ -138,20 +141,20 @@
     <div class="contact-modal-backdrop" data-contact-modal-close></div>
 
     <section class="contact-modal-card" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+        <button
+            class="contact-modal-x"
+            type="button"
+            data-contact-modal-close
+            aria-label="Закрыть форму обращения"
+         >
+            ×
+        </button>
+
         <div class="section-header">
             <div>
                 <h2 id="contact-modal-title">Обращение по проекту</h2>
                 <p>Выберите тему и подробно опишите ситуацию. Ответим вам как можно скорее.</p>
             </div>
-
-            <button
-                class="contact-modal-x"
-                type="button"
-                data-contact-modal-close
-                aria-label="Закрыть форму обращения"
-            >
-                ×
-            </button>
         </div>
 
         <form data-contact-form action="/web/contact" method="post">

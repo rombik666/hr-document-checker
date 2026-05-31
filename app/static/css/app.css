@@ -46,12 +46,6 @@ body {
     line-height: 1.55;
 }
 
-body.modal-open .site-header {
-    filter: blur(4px);
-    opacity: 0.62;
-    pointer-events: none;
-}
-
 a {
     color: var(--primary);
     text-decoration: none;
@@ -2505,4 +2499,199 @@ body.mobile-nav-open {
     .landing-final-cta {
         border-radius: 22px;
     }
+}
+
+/* Header / desktop auth menu */
+
+.brand {
+    gap: 12px;
+}
+
+.brand-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.brand-title {
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+}
+
+.brand-subtitle {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: 0;
+}
+
+.nav-auth-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+    padding: 12px 22px;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.nav-auth-link.nav-signin {
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.nav-auth-link.nav-signin:hover {
+    background: var(--surface-soft);
+    color: var(--primary-dark);
+    text-decoration: none;
+}
+
+.nav-auth-link.nav-register {
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, var(--primary), #7c3aed);
+    color: #ffffff;
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.24);
+}
+
+.nav-auth-link.nav-register:hover {
+    color: #ffffff;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+/* Force desktop menu to stay visible */
+
+@media (min-width: 861px) {
+    .site-nav {
+        min-height: 70px;
+    }
+
+    .nav-toggle {
+        display: none !important;
+    }
+
+    .nav-links {
+        position: static !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 14px !important;
+        width: auto !important;
+        max-width: none !important;
+        height: auto !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: none !important;
+        overflow: visible !important;
+    }
+
+    .nav-links::before {
+        display: none !important;
+        content: none !important;
+    }
+}
+
+/* Mobile menu remains a drawer */
+
+@media (max-width: 860px) {
+    .brand-subtitle {
+        display: none;
+    }
+
+    .brand-title {
+        font-size: 15px;
+    }
+
+    .nav-toggle {
+        display: inline-flex !important;
+    }
+}
+
+/* Contact modal */
+
+.contact-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+}
+
+.contact-modal[hidden] {
+    display: none;
+}
+
+.contact-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: rgba(15, 23, 42, 0.36);
+    backdrop-filter: blur(10px);
+}
+
+.contact-modal-card {
+    position: relative;
+    z-index: 1;
+    width: min(620px, 100%);
+    max-height: min(760px, calc(100dvh - 40px));
+    overflow-y: auto;
+    padding: clamp(22px, 3vw, 32px);
+    border: 1px solid rgba(219, 227, 239, 0.92);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: var(--shadow-md);
+}
+
+.contact-modal-card .section-header {
+    padding-right: 46px;
+}
+
+.contact-modal-x {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    border-radius: 999px;
+    background: rgba(248, 250, 252, 0.96);
+    color: #94a3b8;
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.contact-modal-x:hover,
+.contact-modal-x:focus {
+    background: #f1f5f9;
+    color: #64748b;
+    box-shadow: none;
+    transform: none;
+    outline: none;
 }

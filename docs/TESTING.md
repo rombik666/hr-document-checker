@@ -1,25 +1,8 @@
 # Тестирование
 
-## Общее описание
+Production-сервис: https://hr-checker.ru
 
-Проект содержит автоматизированные тесты для следующих компонентов:
-
-- парсеры;
-- экстракторы;
-- классификаторы;
-- формальные агенты;
-- семантические агенты;
-- LLM-инфраструктура;
-- RAG и FAISS;
-- сборка отчётов;
-- хранение данных;
-- приватность;
-- API endpoints;
-- веб-интерфейс;
-- метрики;
-- backup/restore;
-- производительность;
-- Docker smoke testing.
+Проект: HR Document Checker — прототип системы проверки HR- и бизнес-документов с использованием rule-based проверок, RAG, персональных FAISS-индексов и LLM-агентов.
 
 ## Запуск всех тестов
 
@@ -27,82 +10,66 @@
 python -m pytest
 ```
 
-## Запуск тестов с подробным выводом
-
-```powershell
-python -m pytest -v
-```
-
-## Покрытие тестами
-
-Сформировать отчёт покрытия:
+## Coverage
 
 ```powershell
 python -m pytest --cov=app --cov-report=term-missing --cov-report=html
 ```
 
-HTML-отчёт:
-
-```text
-htmlcov/index.html
-```
-
-Сгенерированные файлы покрытия игнорируются Git:
-
-```text
-htmlcov/
-.coverage
-coverage.xml
-```
-
-## Performance-тесты
-
-Performance-тесты отмечены маркером:
-
-```text
-performance
-```
-
-Запуск:
+## Отдельные группы
 
 ```powershell
+python -m pytest tests/test_web_interface.py
+python -m pytest tests/test_text_quality_agent.py tests/test_llm_semantic_agent.py
+python -m pytest tests/test_report_builder.py tests/test_report_api.py tests/test_docx_export.py
+python -m pytest tests/test_rag*.py
 python -m pytest -m performance
 ```
 
 ## Docker smoke test
 
-Запустите окружение:
-
 ```powershell
 .\start.ps1 -NoBuild
-```
-
-Запустите smoke test:
-
-```powershell
 .\scripts\smoke_test.ps1
 ```
 
-Smoke test проверяет:
+Smoke test проверяет FastAPI health endpoint, метрики, RAG status, LLM status, admin DB status, privacy check, Web UI, Prometheus, Grafana и pgAdmin.
 
-- FastAPI health endpoint;
-- endpoint метрик;
-- Prometheus metrics endpoint;
-- RAG status;
-- LLM status;
-- admin DB status;
-- privacy check;
-- Web UI;
-- Prometheus;
-- Grafana;
-- pgAdmin.
+## Проверка production
+
+```bash
+docker ps
+sudo nginx -t
+sudo systemctl status nginx
+docker logs hr_doc_checker_app --tail 100
+curl https://hr-checker.ru/api/v1/health
+curl https://hr-checker.ru/web/login
+```
+
+## Проверка Web UI вручную
+
+1. Регистрация пользователя.
+2. Вход пользователя.
+3. Проверка документа кандидатом.
+4. Просмотр отчёта.
+5. Скачивание DOCX.
+6. Просмотр истории отчётов.
+7. Проверка локального времени в истории.
+8. Открытие формы Email.
+9. Отправка обращения.
+10. Проверка RAG-страницы HR-пользователем.
+11. Загрузка RAG-источника.
+12. Переиндексация.
+13. Повторная проверка документа с RAG-контекстом.
 
 ## Стабильность тестов
 
 Для unit-тестов реальные вызовы LLM не требуются. Там, где необходимо, используются mock LLM-клиенты.
 
-Docker-демонстрация может использовать Ollama с настройкой:
+## Тесты приватности
 
-```text
-LLM_PROVIDER=ollama
-```
+Проверяют, что в долговременном хранилище не остаются исходные файлы, полный raw-текст документа, открытые email и телефоны.
+
+## Тесты отчётов
+
+Проверяют сборку summary, распределение замечаний по Critical/Major/Minor, наличие рекомендаций и evidence-фрагментов, корректный DOCX-экспорт и скрытие технических разделов для candidate/hr.

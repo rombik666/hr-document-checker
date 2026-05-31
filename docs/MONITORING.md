@@ -1,94 +1,71 @@
 # Мониторинг
 
-## Назначение
+Production-сервис: https://hr-checker.ru
 
-Мониторинг используется для наблюдения за состоянием приложения, обработкой запросов и метриками проверки документов.
-
-Проект включает:
-
-- JSON endpoint метрик;
-- Prometheus endpoint метрик;
-- сервис Prometheus;
-- сервис Grafana;
-- постоянные логи приложения.
+Проект: HR Document Checker — прототип системы проверки HR- и бизнес-документов с использованием rule-based проверок, RAG, персональных FAISS-индексов и LLM-агентов.
 
 ## Endpoints
 
-### JSON-метрики
-
 ```text
 GET /api/v1/metrics
+GET /api/v1/metrics/prometheus
 ```
 
-### Prometheus-метрики
+Production:
 
 ```text
-GET /api/v1/metrics/prometheus
+https://hr-checker.ru/api/v1/metrics
+https://hr-checker.ru/api/v1/metrics/prometheus
 ```
 
 ## Prometheus
 
-Prometheus доступен по адресу:
+Prometheus доступен на сервере локально: `http://127.0.0.1:9090`.
 
-```text
-http://127.0.0.1:9090
-```
+SSH-туннель:
 
-Prometheus собирает метрики с адреса:
-
-```text
-http://app:8000/api/v1/metrics/prometheus
+```bash
+ssh -L 9090:127.0.0.1:9090 deploy@31.76.80.117
 ```
 
 ## Grafana
 
-Grafana доступна по адресу:
-
-```text
-http://127.0.0.1:3000
-```
-
-Данные для входа:
+Grafana доступна локально: `http://127.0.0.1:3000`.
 
 ```text
 login: admin
 password: admin
 ```
 
-## Логи приложения
+SSH-туннель:
 
-Логи записываются в файл:
-
-```text
-logs/app.log
+```bash
+ssh -L 3000:127.0.0.1:3000 deploy@31.76.80.117
 ```
 
-Папка `logs/` игнорируется Git, за исключением файла `.gitkeep`.
+## Логи
 
-## Логирование запросов
+Логи приложения записываются в `logs/app.log`. Последние логи контейнера:
 
-Приложение логирует:
-
-- request ID;
-- HTTP-метод;
-- путь запроса;
-- HTTP-статус;
-- длительность обработки.
-
-Приложение не логирует:
-
-- raw-текст документа;
-- содержимое загруженных файлов;
-- текст вакансии;
-- немаскированный e-mail;
-- немаскированный телефон.
-
-## Шумные endpoints
-
-Endpoint, который регулярно опрашивает Prometheus, исключён из обычных INFO-логов запросов:
-
-```text
-/api/v1/metrics/prometheus
+```bash
+docker logs hr_doc_checker_app --tail 100
 ```
 
-Это предотвращает засорение логов однотипными сообщениями.
+## Что не должно попадать в логи
+
+Raw-текст документа, содержимое файлов, полный текст вакансии, немаскированные e-mail и телефоны, SMTP-пароль, JWT/cookie-секреты.
+
+## Проверка production
+
+```bash
+docker ps
+sudo nginx -t
+sudo systemctl status nginx
+docker logs hr_doc_checker_app --tail 100
+curl https://hr-checker.ru/api/v1/health
+curl https://hr-checker.ru/web/login
+```
+
+## Важные метрики
+
+Доступность health endpoint, количество запросов, время обработки, ошибки парсинга, ошибки LLM, ошибки RAG, количество отчётов, статистика Critical/Major/Minor, состояние FAISS-индекса, ошибки SMTP и privacy diagnostics.

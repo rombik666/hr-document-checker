@@ -1,83 +1,62 @@
 # Резервное копирование и восстановление
 
-## Назначение
+Production-сервис: https://hr-checker.ru
 
-В проекте реализованы JSON-скрипты резервного копирования и восстановления сохранённых метаданных документов и отчётов.
+Проект: HR Document Checker — прототип системы проверки HR- и бизнес-документов с использованием rule-based проверок, RAG, персональных FAISS-индексов и LLM-агентов.
 
-Backup реализован на уровне приложения, поэтому может работать как с PostgreSQL, так и с SQLite-совместимыми тестовыми окружениями.
+## Что входит в backup
 
-## Скрипт резервного копирования
+Backup включает метаданные документов, метаданные отчётов и санитизированный JSON отчёта.
 
-Запуск локально:
+Backup не включает исходные DOCX/PDF-файлы, raw-текст документов, Hugging Face cache, бинарные FAISS-индексы, `chunks.json`, логи, Docker volumes, SMTP-секреты и `.env`.
+
+## Backup
+
+Локально:
 
 ```powershell
 python scripts\backup_db.py
 ```
 
-Запуск внутри Docker:
+В Docker:
 
 ```powershell
 docker exec -it -w /app hr_doc_checker_app python scripts/backup_db.py
 ```
 
-Файлы backup создаются в папке:
+На сервере:
 
-```text
-backups/
+```bash
+cd ~/apps/hr-document-checker
+docker exec -it -w /app hr_doc_checker_app python scripts/backup_db.py
 ```
 
-Пример:
+Файлы создаются в папке `backups/`.
 
-```text
-backups/backup_20260429_010013.json
-```
-
-## Скрипт восстановления
-
-Запуск локально:
+## Restore
 
 ```powershell
 python scripts\restore_db.py backups\backup_20260429_010013.json
 ```
 
-Запуск внутри Docker:
+В Docker:
 
 ```powershell
 docker exec -it -w /app hr_doc_checker_app python scripts/restore_db.py "backups/backup_20260429_010013.json"
 ```
 
-Внутри Docker нужно использовать Linux-style пути через `/`.
+## pg_dump для production
 
-## Содержимое backup
-
-Backup включает:
-
-- метаданные документов;
-- метаданные отчётов;
-- санитизированный JSON отчёта.
-
-Backup не включает:
-
-- исходные DOCX/PDF-файлы;
-- raw-текст документов;
-- Hugging Face cache;
-- файлы FAISS-индекса;
-- логи.
-
-## Безопасность
-
-Перед разрушительными операциями, например:
-
-```powershell
-.\reset.ps1
+```bash
+docker exec -t hr_doc_checker_postgres pg_dump -U hr_user -d hr_doc_checker > backups/postgres_dump.sql
 ```
 
-создайте резервную копию:
+Восстановление:
 
-```powershell
-docker exec -it -w /app hr_doc_checker_app python scripts/backup_db.py
+```bash
+cat backups/postgres_dump.sql | docker exec -i hr_doc_checker_postgres psql -U hr_user -d hr_doc_checker
 ```
 
-## Ограничения
+## Рекомендации
 
-Это MVP-уровень backup/restore. Для production-развёртывания PostgreSQL следует добавить нативный `pg_dump` и регулярные задачи резервного копирования по расписанию.
+Перед обновлением production и перед полным сбросом Docker volumes обязательно создавать резервную копию. Для production-эксплуатации рекомендуется добавить регулярный `pg_dump`, хранение backup вне сервера и проверку восстановления на тестовом окружении.

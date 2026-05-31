@@ -1,188 +1,84 @@
 # API documentation
 
-## Базовый адрес
+Production-сервис: https://hr-checker.ru
 
-```text
-http://127.0.0.1:8000
-```
+Проект: HR Document Checker — прототип системы проверки HR- и бизнес-документов с использованием rule-based проверок, RAG, персональных FAISS-индексов и LLM-агентов.
 
-Swagger UI:
+## Базовые адреса
 
-```text
-http://127.0.0.1:8000/docs
-```
+Production: `https://hr-checker.ru`.
 
-OpenAPI schema:
+Swagger UI: `https://hr-checker.ru/docs`.
 
-```text
-http://127.0.0.1:8000/openapi.json
-```
+Локально: `http://127.0.0.1:8000`.
 
 ## Health
 
-### GET `/api/v1/health`
-
-Проверяет доступность приложения.
-
-Пример ответа:
-
-```json
-{
-  "status": "ok",
-  "service": "HR Document Checker"
-}
-```
+`GET /api/v1/health` — проверяет доступность приложения.
 
 ## Documents API
 
-### POST `/api/v1/documents/parse`
-
-Парсит DOCX/PDF-документ и возвращает структуру документа.
-
-Формат запроса:
-
 ```text
-multipart/form-data
+POST /api/v1/documents/parse
+POST /api/v1/documents/check-formal
+POST /api/v1/documents/check-semantic
+POST /api/v1/documents/report
+GET  /api/v1/documents/reports/{report_id}
+GET  /api/v1/documents/reports/{report_id}/export/docx
 ```
 
-Поля:
+`POST /api/v1/documents/report` — главный endpoint полного цикла проверки: upload → parse → classify → entities → formal checks → semantic checks → RAG context → LLM semantic agent → report build → optional DB save.
 
-| Поле | Тип | Обязательное | Описание |
-|---|---|---:|---|
-| `file` | file | да | DOCX/PDF-документ |
-
-### POST `/api/v1/documents/check-formal`
-
-Запускает формальные проверки документа.
-
-Формальные агенты:
-
-- `CompletenessAgent`;
-- `ContactValidationAgent`;
-- `SectionStructureAgent`;
-- `DatePresenceAgent`.
-
-### POST `/api/v1/documents/check-semantic`
-
-Запускает семантические проверки документа.
-
-Поля:
-
-| Поле | Тип | Обязательное | Описание |
-|---|---|---:|---|
-| `file` | file | да | DOCX/PDF-документ |
-| `vacancy_text` | string | нет | Текст вакансии |
-| `storage_mode` | string | нет | `temporary`, `metadata_only`, `no_store` |
-
-### POST `/api/v1/documents/report`
-
-Главный endpoint полного цикла проверки:
-
-```text
-upload
-↓
-parse
-↓
-classify
-↓
-extract entities
-↓
-formal checks
-↓
-semantic checks
-↓
-RAG context
-↓
-LLM semantic agent
-↓
-report build
-↓
-optional DB save
-```
-
-### GET `/api/v1/documents/reports/{report_id}`
-
-Возвращает сохранённый JSON-отчёт.
-
-### GET `/api/v1/documents/reports/{report_id}/export/docx`
-
-Экспортирует сохранённый отчёт в DOCX.
+Формат запроса: `multipart/form-data`. Основные поля: `file`, `vacancy_text`, `storage_mode`.
 
 ## RAG API
 
-### GET `/api/v1/rag/status`
-
-Возвращает техническое состояние RAG-подсистемы.
-
-Ожидаемые поля:
-
-```json
-{
-  "retriever_type": "faiss",
-  "embedding_backend": "sentence_transformer",
-  "embedding_model_name": "sentence-transformers/all-MiniLM-L6-v2",
-  "index_exists": true
-}
+```text
+GET  /api/v1/rag/status
+POST /api/v1/rag/search
 ```
 
-### POST `/api/v1/rag/search`
+`GET /api/v1/rag/status` возвращает техническое состояние RAG-подсистемы.
 
-Выполняет поиск по базе знаний.
-
-Пример запроса:
-
-```json
-{
-  "query": "что должно быть в резюме python backend developer",
-  "top_k": 3
-}
-```
+`POST /api/v1/rag/search` выполняет поиск по базе знаний.
 
 ## LLM API
 
-### GET `/api/v1/llm/status`
-
-Показывает состояние LLM-провайдера.
-
-### POST `/api/v1/llm/generate`
-
-Тестовая генерация ответа через выбранный LLM provider.
-
-Пример запроса:
-
-```json
-{
-  "system_prompt": "You are an HR document checking assistant.",
-  "prompt": "Give one recommendation for improving a CV.",
-  "temperature": 0.2,
-  "max_tokens": 120
-}
+```text
+GET  /api/v1/llm/status
+POST /api/v1/llm/generate
 ```
 
 ## Admin API
 
-### GET `/api/v1/admin/status`
-
-Проверка доступности административного слоя.
-
-### GET `/api/v1/admin/roles`
-
-Возвращает демонстрационные роли системы.
-
-### GET `/api/v1/admin/db/status`
-
-Возвращает состояние БД без раскрытия содержимого документов.
-
-### GET `/api/v1/admin/storage/privacy-check`
-
-Проверяет, что в сохранённых отчётах не обнаружены очевидные незащищённые e-mail и телефоны.
+```text
+GET /api/v1/admin/status
+GET /api/v1/admin/roles
+GET /api/v1/admin/db/status
+GET /api/v1/admin/storage/privacy-check
+```
 
 ## Metrics API
 
-### GET `/api/v1/metrics`
+```text
+GET /api/v1/metrics
+GET /api/v1/metrics/prometheus
+```
 
-Возвращает метрики в JSON.
+## Web routes
 
-### GET `/api/v1/metrics/prometheus`
+```text
+GET  /web/login
+POST /web/login
+GET  /web/register
+POST /web/register
+GET  /web/dashboard
+GET  /web/reports
+GET  /web/report/{report_id}
+GET  /web/rag/sources
+POST /web/contact
+```
 
-Возвращает метрики в формате Prometheus.
+## Приватность API
+
+API и Web UI не должны сохранять исходные загруженные файлы в долговременном хранилище. При сохранении отчёта используется санитизация данных: маскирование e-mail и телефонов, исключение raw-текста документа и ограничение технической информации для обычных пользователей.

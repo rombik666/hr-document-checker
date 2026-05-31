@@ -1,10 +1,10 @@
 # Архитектура
 
-## Общее описание
+Production-сервис: https://hr-checker.ru
 
-**HR Document Checker** — это модульное FastAPI-приложение для проверки HR- и бизнес-документов.
+Проект: HR Document Checker — прототип системы проверки HR- и бизнес-документов с использованием rule-based проверок, RAG, персональных FAISS-индексов и LLM-агентов.
 
-Основной pipeline обработки:
+## Основной pipeline
 
 ```text
 Загрузка DOCX/PDF
@@ -44,125 +44,39 @@ app/
 ├── llm/              абстракция LLM-провайдера
 ├── middleware/       логирование запросов
 ├── parsers/          парсеры DOCX/PDF
-├── rag/              база знаний, чанкинг, эмбеддинги, FAISS
+├── rag/              база знаний, пользовательские источники, чанкинг, эмбеддинги, FAISS
 ├── reports/          сборка отчёта и DOCX-экспорт
 ├── schemas/          Pydantic-схемы
 ├── services/         хранение, backup, privacy diagnostics
-└── web/              минимальный веб-интерфейс
+└── web/              веб-интерфейс
 ```
 
-## Агентная архитектура
+## Роли
 
-В системе используется мультиагентный подход: каждый агент отвечает за отдельный тип проверки документа.
+`candidate`, `hr`, `admin`.
 
-Формальные агенты:
+## Агенты
 
-- `CompletenessAgent`;
-- `ContactValidationAgent`;
-- `SectionStructureAgent`;
-- `DatePresenceAgent`.
+Формальные агенты: `CompletenessAgent`, `ContactValidationAgent`, `SectionStructureAgent`, `DatePresenceAgent`.
 
-Семантические агенты:
+Семантические агенты: `TextQualityAgent`, `ContradictionAgent`, `VacancyRelevanceAgent`, `LlmSemanticAgent`.
 
-- `TextQualityAgent`;
-- `ContradictionAgent`;
-- `VacancyRelevanceAgent`;
-- `LlmSemanticAgent`.
-
-Координаторы:
-
-- `FormalCheckCoordinator`;
-- `SemanticCheckCoordinator`.
+Координаторы: `FormalCheckCoordinator`, `SemanticCheckCoordinator`.
 
 ## Архитектура RAG
 
-Основной Docker-режим использует:
+RAG-подсистема предоставляет проверкам дополнительный HR-контекст. Есть базовая база знаний проекта и пользовательские RAG-источники HR-пользователей. Пользовательские источники используются для построения персонального FAISS-индекса.
 
-```text
-sentence-transformers/all-MiniLM-L6-v2
-+
-FAISS
-```
+Статусы индекса: `missing`, `stale`, `building`, `ready`, `failed`.
 
-Pipeline RAG-подсистемы:
+## LLM
 
-```text
-data/knowledge_base/*.md
-↓
-KnowledgeLoader
-↓
-TextChunker
-↓
-SentenceTransformerEmbeddingModel
-↓
-FaissVectorStore
-↓
-data/index/faiss.index
-data/index/chunks.json
-```
+LLM-слой реализован как провайдер-независимый интерфейс. Поддерживаются mock client, Ollama client и OpenAI-compatible client. Docker-демонстрация использует Ollama и модель `qwen2.5:3b`.
 
-Fallback/test-режимы:
+## Хранение данных
 
-- `HashingEmbeddingModel`;
-- `InMemoryVectorStore`;
-- `SimpleRagRetriever`.
+В БД не должны храниться исходные DOCX/PDF-файлы, полный raw-текст проверяемого документа, немаскированные e-mail и телефоны.
 
-## Архитектура LLM
+## Развёртывание
 
-LLM-слой реализован как провайдер-независимый интерфейс.
-
-Поддерживаемые клиенты:
-
-- `MockLlmClient`;
-- `OllamaClient`;
-- `OpenAICompatibleClient`.
-
-Docker-демонстрация использует Ollama:
-
-```text
-LLM_PROVIDER=ollama
-LLM_BASE_URL=http://host.docker.internal:11434
-LLM_MODEL=qwen2.5:7b
-```
-
-Для стабильности автоматических тестов используется mock-режим.
-
-## Архитектура хранения данных
-
-Таблицы базы данных:
-
-- `documents`;
-- `reports`.
-
-В базе данных хранятся:
-
-- метаданные документов;
-- очищенные/санитизированные отчёты;
-- техническая информация отчёта.
-
-В базе данных не хранятся:
-
-- исходные загруженные DOCX/PDF-файлы;
-- полный raw-текст документа;
-- немаскированные персональные данные.
-
-## Архитектура развёртывания
-
-Сервисы Docker Compose:
-
-- FastAPI-приложение;
-- PostgreSQL;
-- pgAdmin;
-- Prometheus;
-- Grafana.
-
-## Мониторинг
-
-Приложение предоставляет endpoints:
-
-```text
-GET /api/v1/metrics
-GET /api/v1/metrics/prometheus
-```
-
-Prometheus собирает метрики приложения, а Grafana используется для их визуализации.
+Production-схема: Internet → `https://hr-checker.ru` → Nginx → `127.0.0.1:8000` → `hr_doc_checker_app` → PostgreSQL / RAG index / logs / backups.

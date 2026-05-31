@@ -5,7 +5,7 @@
     <span class="badge">Личный кабинет</span>
     <h1>Профиль пользователя</h1>
     <p>
-        Основные сведения об учётной записи и последние сохранённые проверки.
+        Основные сведения об учётной записи и управление текущей сессией.
     </p>
 
     <div class="form-actions">
@@ -46,16 +46,9 @@
             <strong>{{ "активна" if user.is_active else "заблокирована" }}</strong>
         </div>
     </div>
-</section>
 
-<section class="card">
-    <div class="section-header">
-        <div>
-            <h2>Последние отчёты</h2>
-        </div>
-        <a class="button ghost" href="/web/reports">Открыть всё</a>
+    <div class="profile-logout">
+        <a class="button danger full-width" href="/web/logout">Выйти из аккаунта</a>
     </div>
-
-    {% include "_reports_table.html" %}
 </section>
 {% endblock %}

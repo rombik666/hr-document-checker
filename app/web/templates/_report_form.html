@@ -14,9 +14,23 @@
     <div class="file-drop" data-file-drop>
         <strong>Перетащите файл сюда или выберите его вручную</strong>
         <p class="muted small">
-            Поддерживаются файлы DOCX и PDF. DOCX рекомендуется как основной формат, так как он лучше сохраняет структуру документа.
+            Поддерживаются файлы DOCX и PDF. DOCX рекомендуется как основной формат,
+            так как он лучше сохраняет структуру документа.
         </p>
-        <input id="document-file" type="file" name="file" accept=".docx,.pdf" required>
+
+        <div class="file-picker-row">
+            <label class="button file-select-button" for="document-file">Выберите файл</label>
+            <span class="file-selected-name" data-file-caption>Файл не выбран</span>
+        </div>
+
+        <input
+            class="file-input-native"
+            id="document-file"
+            type="file"
+            name="file"
+            accept=".docx,.pdf"
+            required
+        >
     </div>
 
     <label for="vacancy-text">Текст вакансии</label>

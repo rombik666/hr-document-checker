@@ -1310,3 +1310,43 @@ summary {
         padding: 18px;
     }
 }
+
+.profile-logout {
+    margin-top: 18px;
+}
+
+.rag-management-grid {
+    align-items: stretch;
+}
+
+.rag-management-grid > .card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100%;
+    margin-bottom: 0;
+}
+
+.storage-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.storage-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.storage-metrics-grid .metric-card {
+    min-height: 96px;
+}
+
+.storage-metrics-grid .metric-card:last-child {
+    grid-column: 1 / -1;
+}
+
+.storage-card .info {
+    margin-top: 18px;
+}

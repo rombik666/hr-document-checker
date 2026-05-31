@@ -17,19 +17,20 @@
                 </thead>
 
                 <tbody>
-                    {% set item_status_class = "status-pill report-status-success" %}
-                    {% set item_status_label = "Готов" %}
-
-                    {% if item.total_issues == 0 %}
+                     {% for item in reports %}
                         {% set item_status_class = "status-pill report-status-success" %}
                         {% set item_status_label = "Готов" %}
-                    {% elif item.critical_count > 0 %}
-                        {% set item_status_class = "status-pill report-status-danger" %}
-                        {% set item_status_label = "Требует доработки" %}
-                    {% else %}
-                        {% set item_status_class = "status-pill report-status-warning" %}
-                        {% set item_status_label = "Есть замечания" %}
-                    {% endif %}
+
+                        {% if item.total_issues == 0 %}
+                            {% set item_status_class = "status-pill report-status-success" %}
+                            {% set item_status_label = "Готов" %}
+                        {% elif item.critical_count > 0 %}
+                            {% set item_status_class = "status-pill report-status-danger" %}
+                            {% set item_status_label = "Требует доработки" %}
+                        {% else %}
+                            {% set item_status_class = "status-pill report-status-warning" %}
+                            {% set item_status_label = "Есть замечания" %}
+                        {% endif %}
 
                     <tr>
                         <td class="filename-cell">

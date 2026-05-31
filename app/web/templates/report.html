@@ -62,11 +62,18 @@
         <span>проверенный файл</span>
     </div>
 
-    {% if report.summary %}
-        <div class="info report-summary">
-            {{ report.summary }}
-        </div>
+    {% set summary_alert_class = "summary-alert summary-alert-success" %}
+    {% if report.total_issues == 0 %}
+        {% set summary_alert_class = "summary-alert summary-alert-success" %}
+    {% elif report.critical_count > 0 or report.major_count > 0 %}
+        {% set summary_alert_class = "summary-alert summary-alert-danger" %}
+    {% else %}
+        {% set summary_alert_class = "summary-alert summary-alert-warning" %}
     {% endif %}
+
+    <div class="{{ summary_alert_class }}">
+        {{ report.summary }}
+    </div>
 
     {% if not report.technical_info.metadata.saved_to_db %}
         <div class="warning">

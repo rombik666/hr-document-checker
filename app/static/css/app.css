@@ -1521,3 +1521,29 @@ summary {
         min-height: auto;
     }
 }
+.summary-alert {
+    margin-top: 18px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    border: 1px solid transparent;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.summary-alert-success {
+    background: #e8f8ee;
+    border-color: #b9e7c8;
+    color: #167c3a;
+}
+
+.summary-alert-warning {
+    background: #fff4e5;
+    border-color: #ffd39a;
+    color: #b86100;
+}
+
+.summary-alert-danger {
+    background: #fdecec;
+    border-color: #f3b3b3;
+    color: #b42318;
+}

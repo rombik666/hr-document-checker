@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const openMenu = () => {
             links.classList.add("is-open");
             toggle.setAttribute("aria-expanded", "true");
+            toggle.textContent = "Назад";
             document.body.classList.add("mobile-nav-open");
             links.setAttribute("aria-hidden", "false");
         };
@@ -18,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const closeMenu = () => {
             links.classList.remove("is-open");
             toggle.setAttribute("aria-expanded", "false");
+            toggle.textContent = "Меню";
             document.body.classList.remove("mobile-nav-open");
             links.setAttribute("aria-hidden", "true");
         };

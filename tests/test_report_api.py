@@ -124,9 +124,12 @@ def test_report_endpoint_includes_semantic_issues_and_vacancy_relevance(tmp_path
     assert "vacancy_requirements_gap" in issue_types
 
     assert data["vacancy_relevance"] is not None
-    assert "fastapi" in data["vacancy_relevance"]["missing_requirements"]
-    assert "postgresql" in data["vacancy_relevance"]["missing_requirements"]
-    assert "docker" in data["vacancy_relevance"]["missing_requirements"]
+    assert data["vacancy_relevance"]["covered_requirements"] == ["Python", "Git"]
+    assert data["vacancy_relevance"]["missing_requirements"] == [
+        "FastAPI",
+        "PostgreSQL",
+        "Docker",
+    ]
 
     assert data["technical_info"]["metadata"]["semantic_checks_enabled"] is True
     assert data["technical_info"]["metadata"]["vacancy_text_provided"] is True

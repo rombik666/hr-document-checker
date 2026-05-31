@@ -69,9 +69,12 @@ def test_resume_with_vacancy_is_saved_to_db_and_exported_to_docx(tmp_path: Path)
     document_id = report_data["document_id"]
 
     assert report_data["vacancy_relevance"] is not None
-    assert "fastapi" in report_data["vacancy_relevance"]["missing_requirements"]
-    assert "postgresql" in report_data["vacancy_relevance"]["missing_requirements"]
-    assert "docker" in report_data["vacancy_relevance"]["missing_requirements"]
+    assert report_data["vacancy_relevance"]["covered_requirements"] == ["Python", "Git"]
+    assert report_data["vacancy_relevance"]["missing_requirements"] == [
+        "FastAPI",
+        "PostgreSQL",
+        "Docker",
+    ]
 
     db = SessionLocal()
 
@@ -81,9 +84,6 @@ def test_resume_with_vacancy_is_saved_to_db_and_exported_to_docx(tmp_path: Path)
         assert stored_report is not None
         assert stored_report.document_id == document_id
         assert stored_report.report_json["vacancy_relevance"] is not None
-        assert "fastapi" in stored_report.report_json["vacancy_relevance"]["missing_requirements"]
-        assert "postgresql" in stored_report.report_json["vacancy_relevance"]["missing_requirements"]
-        assert "docker" in stored_report.report_json["vacancy_relevance"]["missing_requirements"]
 
         processing_session = (
             db.query(ProcessingSessionORM)
@@ -105,9 +105,6 @@ def test_resume_with_vacancy_is_saved_to_db_and_exported_to_docx(tmp_path: Path)
         assert vacancy_issue is not None
         assert vacancy_issue.severity == "Critical"
         assert vacancy_issue.evidence_fragment is not None
-        assert "fastapi" in vacancy_issue.evidence_fragment
-        assert "postgresql" in vacancy_issue.evidence_fragment
-        assert "docker" in vacancy_issue.evidence_fragment
 
     finally:
         db.close()

@@ -5,6 +5,7 @@ from app.schemas.checks import CheckResult, FormalCheckResponse, Issue, Semantic
 from app.schemas.common import CheckStatus, ReportStatus, Severity
 from app.schemas.documents import ParsedDocument
 from app.schemas.reports import Report, TechnicalInfo, VacancyRelevance
+from app.agents.semantic.vacancy_relevance_agent import VacancyRelevanceAgent
 
 
 class ReportBuilder:
@@ -57,6 +58,7 @@ class ReportBuilder:
         )
 
         vacancy_relevance = self._build_vacancy_relevance(
+            document=document,
             issues=issues,
             vacancy_text=vacancy_text,
         )
@@ -194,15 +196,13 @@ class ReportBuilder:
 
     @staticmethod
     def _build_vacancy_relevance(
+        document: ParsedDocument,
         issues: list[Issue],
         vacancy_text: str | None,
     ) -> VacancyRelevance | None:
         """
         Формирует блок релевантности вакансии.
 
-        Если vacancy_text не передан, блок не нужен.
-        Если vacancy_text передан и агент релевантности нашёл пробелы,
-        данные берутся из metadata соответствующей проблемы.
         """
 
         if not vacancy_text:
@@ -213,22 +213,57 @@ class ReportBuilder:
             if issue.issue_type == "vacancy_requirements_gap"
         ]
 
-        if not relevance_issues:
+        if relevance_issues:
+            issue = relevance_issues[0]
+            metadata = issue.metadata
+
+            covered_requirements = (
+                metadata.get("covered_skill_labels")
+                or metadata.get("covered_skills", [])
+            )
+
+            missing_requirements = (
+                metadata.get("missing_skill_labels")
+                or metadata.get("missing_skills", [])
+            )
+
+            return VacancyRelevance(
+                coverage_percent=metadata.get("coverage_percent"),
+                covered_requirements=covered_requirements,
+                missing_requirements=missing_requirements,
+                comment=issue.description,
+            )
+
+        analysis = VacancyRelevanceAgent.analyze_texts(
+            document_text=document.raw_text,
+            vacancy_text=vacancy_text,
+        )
+
+        covered_requirements = VacancyRelevanceAgent.label_skills(
+            analysis.covered_skills
+        )
+
+        missing_requirements = VacancyRelevanceAgent.label_skills(
+            analysis.missing_skills
+        )
+
+        if not analysis.required_skills:
             return VacancyRelevance(
                 coverage_percent=100.0,
                 covered_requirements=[],
                 missing_requirements=[],
                 comment=(
-                    "По найденным ключевым требованиям явных пробелов относительно вакансии не обнаружено."
+                    "В тексте вакансии не удалось выделить ключевые требования "
+                    "из поддерживаемого набора технологий."
                 ),
             )
 
-        issue = relevance_issues[0]
-        metadata = issue.metadata
-
         return VacancyRelevance(
-            coverage_percent=metadata.get("coverage_percent"),
-            covered_requirements=metadata.get("covered_skills", []),
-            missing_requirements=metadata.get("missing_skills", []),
-            comment=issue.description,
+            coverage_percent=analysis.coverage_percent,
+            covered_requirements=covered_requirements,
+            missing_requirements=missing_requirements,
+            comment=(
+                "По найденным ключевым требованиям явных пробелов относительно "
+                "вакансии не обнаружено."
+            ),
         )

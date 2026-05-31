@@ -98,11 +98,12 @@
         </div>
     {% endif %}
 
-    <div class="grid two equal-cards">
-        <div class="card compact">
+    <div class="grid two equal-cards vacancy-relevance-grid">
+        <div class="card compact vacancy-relevance-card">
             <h3>Закрытые требования</h3>
+
             {% if report.vacancy_relevance.covered_requirements %}
-                <ul>
+                <ul class="vacancy-relevance-list">
                     {% for item in report.vacancy_relevance.covered_requirements %}
                         <li>{{ item }}</li>
                     {% endfor %}
@@ -112,10 +113,11 @@
             {% endif %}
         </div>
 
-        <div class="card compact">
+        <div class="card compact vacancy-relevance-card">
             <h3>Незакрытые требования</h3>
+
             {% if report.vacancy_relevance.missing_requirements %}
-                <ul>
+                <ul class="vacancy-relevance-list">
                     {% for item in report.vacancy_relevance.missing_requirements %}
                         <li>{{ item }}</li>
                     {% endfor %}

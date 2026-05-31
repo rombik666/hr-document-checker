@@ -106,7 +106,12 @@ def test_report_builder_includes_semantic_results() -> None:
 
     assert report.vacancy_relevance is not None
     assert report.vacancy_relevance.coverage_percent is not None
-    assert "fastapi" in report.vacancy_relevance.missing_requirements
+    assert report.vacancy_relevance.covered_requirements == ["Python", "Git"]
+    assert report.vacancy_relevance.missing_requirements == [
+        "FastAPI",
+        "PostgreSQL",
+        "Docker",
+    ]
 
     assert report.technical_info.metadata["semantic_checks_enabled"] is True
     assert report.technical_info.metadata["vacancy_text_provided"] is True

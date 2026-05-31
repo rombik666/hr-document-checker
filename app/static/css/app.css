@@ -1415,22 +1415,39 @@ summary {
 }
 
 .footer-link-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: fit-content;
+    min-height: auto;
     margin: 0;
     padding: 0;
     border: 0;
+    border-radius: 0;
     background: transparent;
     color: var(--text-muted);
     font: inherit;
     font-weight: 700;
+    line-height: 1.55;
     box-shadow: none;
     cursor: pointer;
+    text-align: left;
 }
 
-.footer-link-button:hover {
+.footer-link-button:hover,
+.footer-link-button:focus {
     color: var(--primary-dark);
     background: transparent;
     box-shadow: none;
     transform: none;
+    text-decoration: none;
+}
+
+.footer-link-button img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
 }
 
 .contact-modal[hidden] {

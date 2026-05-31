@@ -23,10 +23,15 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const fileName = document.createElement("div");
-        fileName.className = "file-drop-name muted small";
+        let fileName = dropZone.querySelector("[data-file-caption]");
+
+        if (!fileName) {
+            fileName = document.createElement("div");
+            fileName.className = "file-drop-name muted small";
+            dropZone.appendChild(fileName);
+        }
+
         fileName.textContent = "Файл не выбран";
-        dropZone.appendChild(fileName);
 
         const updateFileName = () => {
             if (input.files && input.files.length > 0) {
@@ -61,19 +66,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.querySelectorAll("[data-storage-mode-toggle]").forEach((toggle) => {
-    const form = toggle.closest("form");
-    const input = form ? form.querySelector("[data-storage-mode-input]") : null;
+        const form = toggle.closest("form");
+        const input = form ? form.querySelector("[data-storage-mode-input]") : null;
 
-    if (!input) {
-        return;
-    }
+        if (!input) {
+            return;
+        }
 
-    const syncStorageMode = () => {
-        input.value = toggle.checked ? "temporary" : "no_store";
-    };
+        const syncStorageMode = () => {
+            input.value = toggle.checked ? "temporary" : "no_store";
+        };
 
-    toggle.addEventListener("change", syncStorageMode);
-    syncStorageMode();
+        toggle.addEventListener("change", syncStorageMode);
+        syncStorageMode();
     });
 
     document.querySelectorAll("[data-paginated-table]").forEach((tableWrap) => {

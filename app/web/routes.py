@@ -104,6 +104,18 @@ templates.env.filters["report_status_label"] = _report_status_label
 templates.env.filters["source_type_label"] = _source_type_label
 templates.env.filters["role_label"] = _role_label
 
+def _localize_web_error(error: Exception) -> str:
+    message = str(error)
+
+    translations = {
+        "User with this email already exists.": "Пользователь с таким email уже существует.",
+        "Admin user cannot be created through public registration.": (
+            "Администратора нельзя создать через публичную регистрацию."
+        ),
+    }
+
+    return translations.get(message, message)
+
 
 def _template(
     request: Request,
@@ -431,7 +443,7 @@ def register_web_user(
             name="register.html",
             context={
                 "page_title": "Регистрация",
-                "error": str(error),
+                "error": _localize_web_error(error),
             },
             status_code=400,
         )

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="grid two">
+<div class="grid two equal-cards auth-grid">
     <section class="hero">
         <span class="badge">HR Document Checker</span>
         <h1>Вход в систему проверки документов</h1>
@@ -28,7 +28,6 @@
                 <h2>Вход</h2>
                 <p>Введите email и пароль для доступа к личному кабинету.</p>
             </div>
-            <span class="badge">secure</span>
         </div>
 
         {% if error %}
@@ -48,7 +47,7 @@
             </div>
         </form>
 
-        <p class="muted small">
+        <p class="muted small auth-note">
             Роли candidate, HR и admin определяют доступ к отчётам, RAG-источникам и административным функциям.
         </p>
     </section>

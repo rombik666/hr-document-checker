@@ -64,9 +64,9 @@
         </div>
     </div>
 
-    <div class="grid two">
+    <div class="rag-status-details">
         {% if user.role == "admin" %}
-            <div class="card compact">
+            <div class="card compact rag-status-card">
                 <h3>Параметры индекса</h3>
                 <p><strong>Режим:</strong> {{ rag_status.mode }}</p>
                 <p><strong>Хранилище:</strong> {{ rag_status.source_backend }}</p>
@@ -83,7 +83,7 @@
             </div>
         {% endif %}
 
-        <div class="card compact">
+        <div class="card compact rag-status-card">
             <h3>Состояние</h3>
 
             <p>
@@ -135,7 +135,7 @@
     </div>
 </section>
 
-<section class="grid two">
+<section class="grid two equal-cards rag-management-grid">
     <div class="card" id="upload-source">
         <div class="section-header">
             <div>
@@ -170,7 +170,14 @@
                     Поддерживаются DOCX, PDF, TXT и MD. Максимальный размер одного файла —
                     {{ max_file_size_mb }} МБ.
                 </p>
+
+                <div class="file-picker-row">
+                    <label class="button file-select-button" for="file">Выберите файл</label>
+                    <span class="file-selected-name" data-file-caption>Файл не выбран</span>
+                </div>
+
                 <input
+                    class="file-input-native"
                     id="file"
                     name="file"
                     type="file"
@@ -185,7 +192,7 @@
         </form>
     </div>
 
-    <div class="card">
+    <div class="card storage-card">
         <div class="section-header">
             <div>
                 <h2>Лимиты хранения</h2>
@@ -196,7 +203,7 @@
             <span class="badge">storage</span>
         </div>
 
-        <div class="grid">
+        <div class="storage-metrics-grid">
             <div class="metric-card">
                 <strong>{{ max_file_size_mb }} МБ</strong>
                 <span>максимальный размер файла</span>
@@ -235,7 +242,7 @@
 
     {% if sources %}
         <div class="table-wrap">
-            <table>
+            <table class="rag-sources-table">
                 <thead>
                 <tr>
                     <th>Название</th>
@@ -279,8 +286,8 @@
                             {{ source.created_at | display_datetime }}
                         </td>
 
-                        <td>
-                            <div class="form-actions">
+                        <td class="actions-cell">
+                            <div class="table-actions">
                                 {% if source.is_active %}
                                     <form
                                         action="/web/rag/sources/{{ source.id }}/delete"

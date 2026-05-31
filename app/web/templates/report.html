@@ -35,30 +35,31 @@
         <span class="status-pill">{{ report.summary_status | report_status_label }}</span>
     </div>
 
-    <div class="grid three">
+    <div class="grid four report-summary-grid">
         <div class="metric-card">
             <strong>{{ report.total_issues }}</strong>
             <span>Всего замечаний</span>
         </div>
+
         <div class="metric-card">
             <strong>{{ report.critical_count }}</strong>
             <span>Критические</span>
         </div>
+
         <div class="metric-card">
             <strong>{{ report.major_count }}</strong>
             <span>Значимые</span>
         </div>
-    </div>
 
-    <div class="grid two">
         <div class="metric-card">
             <strong>{{ report.minor_count }}</strong>
             <span>Незначительные</span>
         </div>
-        <div class="metric-card filename-cell">
-            <strong>{{ report.filename }}</strong>
-            <span>проверенный файл</span>
-        </div>
+    </div>
+
+    <div class="metric-card filename-cell report-file-card">
+        <strong>{{ report.filename }}</strong>
+        <span>проверенный файл</span>
     </div>
 
     {% if report.summary %}

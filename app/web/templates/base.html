@@ -57,21 +57,28 @@
         <div class="footer-main">
             <div class="footer-brand">
                 <div class="footer-logo">HR Document Checker</div>
-                <p>Система проверки HR-документов с использованием ИИ-агентов, RAG и FAISS.</p>
+                <p>
+                    Система проверки HR-документов с использованием ИИ-агентов,
+                    RAG и персональных FAISS-индексов.
+                </p>
             </div>
 
             <div class="footer-column">
                 <h3>Сервис</h3>
                 <a href="/web/dashboard">Главная</a>
-                <a href="/web/reports">История</a>
+                <a href="/web/reports">История проверок</a>
                 <a href="/web/profile">Личный кабинет</a>
             </div>
 
             <div class="footer-column">
                 <h3>Поддержка</h3>
                 <a href="/docs">Swagger API</a>
-                <a href="/web/rag/sources">RAG-источники</a>
-                <a href="#">Контакты</a>
+
+                {% if user and user.role in ["hr", "admin"] %}
+                    <a href="/web/rag/sources">RAG-источники</a>
+                {% endif %}
+
+                <a href="#">Документация</a>
             </div>
 
             <div class="footer-column">
@@ -89,8 +96,12 @@
 
         <div class="footer-bottom">
             <div class="footer-socials">
-                <a href="#" aria-label="Email"><img src="/static/icons/envelope.svg" alt=""></a>
-                <a href="#" aria-label="Telegram"><img src="/static/icons/telegram.svg" alt=""></a>
+                <a href="#" aria-label="Email">
+                    <img src="/static/icons/envelope.svg" alt="">
+                </a>
+                <a href="#" aria-label="Telegram">
+                    <img src="/static/icons/telegram.svg" alt="">
+                </a>
             </div>
 
             <div class="footer-copy">

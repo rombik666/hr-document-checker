@@ -2695,3 +2695,44 @@ body.mobile-nav-open {
     transform: none;
     outline: none;
 }
+
+.contact-modal-x {
+    position: absolute !important;
+    top: 16px !important;
+    right: 18px !important;
+    z-index: 2 !important;
+
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+
+    color: #94a3b8 !important;
+    font-size: 30px !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+
+    cursor: pointer !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+}
+
+.contact-modal-x:hover,
+.contact-modal-x:focus,
+.contact-modal-x:active {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #64748b !important;
+    transform: none !important;
+    outline: none !important;
+}

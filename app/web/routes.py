@@ -293,7 +293,7 @@ async def submit_contact_form(
     return JSONResponse(
         {
             "success": True,
-            "message": "Письмо отправлено. Я получил ваше обращение.",
+            "message": "Письмо отправлено. Мы получили ваше обращение.",
         }
     )
 

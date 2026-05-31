@@ -48,22 +48,6 @@ class SectionStructureAgent(BaseFormalAgent):
                 )
             )
 
-        short_sections = [
-            section for section in document.sections
-            if len(section.text.strip()) < 5
-        ]
-
-        if short_sections:
-            issues.append(
-                self._make_issue(
-                    severity=Severity.MINOR,
-                    issue_type="very_short_sections",
-                    description="В документе найдены слишком короткие секции.",
-                    recommendation_text="Проверьте, нет ли случайных пустых или неполных строк.",
-                    evidence_fragment=short_sections[0].text,
-                )
-            )
-
         return issues
 
     def _make_issue(

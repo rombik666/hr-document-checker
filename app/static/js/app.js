@@ -178,6 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (contactForm) {
         contactForm.addEventListener("submit", (event) => {
             event.preventDefault();
+            event.stopImmediatePropagation();
 
             const email = contactForm.dataset.contactEmail || "";
             const formData = new FormData(contactForm);
@@ -261,6 +262,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.querySelectorAll("form").forEach((form) => {
+        if (form.matches("[data-contact-form]")) {
+            return;
+        }
+
         form.addEventListener("submit", () => {
             const submitButton = form.querySelector('button[type="submit"]');
 

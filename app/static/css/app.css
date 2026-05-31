@@ -501,6 +501,7 @@ button.is-loading:hover,
     color: #92400e;
     background: var(--warning-soft);
     border-color: #fde68a;
+    margin-top: 10px;
 }
 
 .info {

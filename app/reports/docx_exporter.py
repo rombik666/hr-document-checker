@@ -5,24 +5,35 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
 
 from app.schemas.checks import Issue
+from app.schemas.common import ReportStatus, Severity
 from app.schemas.reports import Report
 
 
 class DocxReportExporter:
-    
-    def export(self, report: Report) -> BytesIO:
+
+    def export(
+        self,
+        report: Report,
+        include_technical: bool = True,
+    ) -> BytesIO:
         document = Document()
 
         self._configure_styles(document)
 
-        self._add_title(document, report)
+        self._add_title(document, report, include_technical=include_technical)
         self._add_summary(document, report)
         self._add_counts(document, report)
         self._add_vacancy_relevance(document, report)
-        self._add_issues_section(document, "Critical", report.critical)
-        self._add_issues_section(document, "Major", report.major)
-        self._add_issues_section(document, "Minor", report.minor)
-        self._add_technical_info(document, report)
+
+        if include_technical:
+            self._add_issues_section(document, "Critical", report.critical, include_technical=True)
+            self._add_issues_section(document, "Major", report.major, include_technical=True)
+            self._add_issues_section(document, "Minor", report.minor, include_technical=True)
+            self._add_technical_info(document, report)
+        else:
+            self._add_issues_section(document, "Критические замечания", report.critical, include_technical=False)
+            self._add_issues_section(document, "Значимые замечания", report.major, include_technical=False)
+            self._add_issues_section(document, "Незначительные замечания", report.minor, include_technical=False)
 
         buffer = BytesIO()
         document.save(buffer)
@@ -41,19 +52,38 @@ class DocxReportExporter:
             style.font.name = "Times New Roman"
 
     @staticmethod
-    def _add_title(document: Document, report: Report) -> None:
+    def _add_title(
+        document: Document,
+        report: Report,
+        include_technical: bool,
+    ) -> None:
         title = document.add_heading("Итоговый отчёт проверки документа", level=1)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
         document.add_paragraph(f"Файл: {report.filename}")
-        document.add_paragraph(f"Report ID: {report.report_id}")
-        document.add_paragraph(f"Document ID: {report.document_id}")
+
+        if include_technical:
+            document.add_paragraph(f"Report ID: {report.report_id}")
+            document.add_paragraph(f"Document ID: {report.document_id}")
+
+    @staticmethod
+    def _status_label(status: ReportStatus | str) -> str:
+        value = getattr(status, "value", status)
+
+        return {
+            "ready": "Готов",
+            "requires_revision": "Требует доработки",
+            "failed": "Ошибка проверки",
+            "draft": "Черновик",
+        }.get(str(value), str(value))
 
     @staticmethod
     def _add_summary(document: Document, report: Report) -> None:
         document.add_heading("1. Общий результат", level=2)
 
-        document.add_paragraph(f"Статус: {report.summary_status.value}")
+        document.add_paragraph(
+            f"Статус: {DocxReportExporter._status_label(report.summary_status)}"
+        )
         document.add_paragraph(report.summary)
 
     @staticmethod
@@ -65,9 +95,9 @@ class DocxReportExporter:
 
         header_cells = table.rows[0].cells
         header_cells[0].text = "Всего"
-        header_cells[1].text = "Critical"
-        header_cells[2].text = "Major"
-        header_cells[3].text = "Minor"
+        header_cells[1].text = "Критические"
+        header_cells[2].text = "Значимые"
+        header_cells[3].text = "Незначительные"
 
         row_cells = table.add_row().cells
         row_cells[0].text = str(report.total_issues)
@@ -112,6 +142,7 @@ class DocxReportExporter:
         document: Document,
         title: str,
         issues: list[Issue],
+        include_technical: bool,
     ) -> None:
         document.add_heading(title, level=2)
 
@@ -120,20 +151,46 @@ class DocxReportExporter:
             return
 
         for index, issue in enumerate(issues, start=1):
-            self._add_issue(document, index, issue)
+            self._add_issue(
+                document=document,
+                index=index,
+                issue=issue,
+                include_technical=include_technical,
+            )
 
     @staticmethod
-    def _add_issue(document: Document, index: int, issue: Issue) -> None:
-        document.add_heading(
-            f"{index}. {issue.issue_type} — {issue.severity.value}",
-            level=3,
-        )
+    def _severity_label(severity: Severity | str) -> str:
+        value = getattr(severity, "value", severity)
 
-        document.add_paragraph(f"Агент: {issue.source_agent}")
-        document.add_paragraph(f"Описание: {issue.description}")
+        return {
+            "Critical": "Критическое",
+            "Major": "Значимое",
+            "Minor": "Незначительное",
+            "critical": "Критическое",
+            "major": "Значимое",
+            "minor": "Незначительное",
+        }.get(str(value), str(value))
+
+    @staticmethod
+    def _add_issue(
+        document: Document,
+        index: int,
+        issue: Issue,
+        include_technical: bool,
+    ) -> None:
+        if include_technical:
+            title = f"{index}. {issue.issue_type} — {issue.severity.value}"
+        else:
+            title = f"{index}. {issue.issue_type} — {issue.description}"
+
+        document.add_heading(title, level=3)
+
+        if include_technical:
+            document.add_paragraph(f"Агент: {issue.source_agent}")
+            document.add_paragraph(f"Описание: {issue.description}")
 
         if issue.evidence_fragment:
-            document.add_paragraph("Evidence-фрагмент:")
+            document.add_paragraph("Фрагмент:")
             document.add_paragraph(issue.evidence_fragment)
 
         if issue.recommendation:
@@ -146,7 +203,7 @@ class DocxReportExporter:
                     f"Пример исправления: {issue.recommendation.example_fix}"
                 )
 
-        if issue.confidence_score is not None:
+        if include_technical and issue.confidence_score is not None:
             document.add_paragraph(f"Confidence score: {issue.confidence_score}")
 
     @staticmethod

@@ -27,7 +27,9 @@
                     </span>
                 </td>
                 <td>
-                    {{ item.created_at | display_datetime }}
+                    <time data-local-datetime="{{ item.created_at | datetime_iso }}">
+                        {{ item.created_at | display_datetime }}
+                    </time>
                 </td>
                 <td>
                     <div class="form-actions">

@@ -23,7 +23,7 @@ def make_document(text: str) -> ParsedDocument:
 
 
 def test_text_quality_agent_detects_weak_phrase() -> None:
-    document = make_document("Занимался разработкой backend.")
+    document = make_document("Уверенный пользователь компьютера.")
 
     result = TextQualityAgent().run(document)
 
@@ -33,7 +33,7 @@ def test_text_quality_agent_detects_weak_phrase() -> None:
 
 
 def test_text_quality_agent_detects_water_phrase() -> None:
-    document = make_document("Ответственный, коммуникабельный, быстро обучаюсь.")
+    document = make_document("активная жизненная позиция")
 
     result = TextQualityAgent().run(document)
 

@@ -16,6 +16,60 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    const formatLocalDatetime = (isoValue) => {
+        if (!isoValue) {
+            return "—";
+        }
+
+        const date = new Date(isoValue);
+
+        if (Number.isNaN(date.getTime())) {
+            return "—";
+        }
+
+        const now = new Date();
+
+        const dateOnly = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate()
+        );
+
+        const todayOnly = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+        );
+
+        const yesterdayOnly = new Date(todayOnly);
+        yesterdayOnly.setDate(todayOnly.getDate() - 1);
+
+        const time = date.toLocaleTimeString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+
+        if (dateOnly.getTime() === todayOnly.getTime()) {
+            return `Сегодня, в ${time}`;
+        }
+
+        if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+            return `Вчера, в ${time}`;
+        }
+
+        const day = date.toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+
+        return `${day}, ${time}`;
+    };
+
+    document.querySelectorAll("[data-local-datetime]").forEach((element) => {
+        element.textContent = formatLocalDatetime(element.dataset.localDatetime);
+    });
+
     document.querySelectorAll("[data-file-drop]").forEach((dropZone) => {
         const input = dropZone.querySelector('input[type="file"]');
 
@@ -33,7 +87,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (selectButton && !selectButton.dataset.defaultText) {
-            selectButton.dataset.defaultText = selectButton.textContent.trim() || "Выберите файл";
+            selectButton.dataset.defaultText =
+                selectButton.textContent.trim() || "Выберите файл";
         }
 
         fileName.textContent = "Файл не выбран";
@@ -51,7 +106,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 dropZone.classList.remove("has-file");
 
                 if (selectButton) {
-                    selectButton.textContent = selectButton.dataset.defaultText || "Выберите файл";
+                    selectButton.textContent =
+                        selectButton.dataset.defaultText || "Выберите файл";
                 }
             }
         };
@@ -77,6 +133,65 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     });
+
+    const contactModal = document.querySelector("[data-contact-modal]");
+    const contactForm = document.querySelector("[data-contact-form]");
+
+    const closeContactModal = () => {
+        if (!contactModal) {
+            return;
+        }
+
+        contactModal.hidden = true;
+        document.body.classList.remove("modal-open");
+    };
+
+    const openContactModal = () => {
+        if (!contactModal) {
+            return;
+        }
+
+        contactModal.hidden = false;
+        document.body.classList.add("modal-open");
+
+        const firstField = contactModal.querySelector("select, textarea, input, button");
+
+        if (firstField) {
+            firstField.focus();
+        }
+    };
+
+    document.querySelectorAll("[data-contact-modal-open]").forEach((button) => {
+        button.addEventListener("click", openContactModal);
+    });
+
+    document.querySelectorAll("[data-contact-modal-close]").forEach((button) => {
+        button.addEventListener("click", closeContactModal);
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && contactModal && !contactModal.hidden) {
+            closeContactModal();
+        }
+    });
+
+    if (contactForm) {
+        contactForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            const email = contactForm.dataset.contactEmail || "";
+            const formData = new FormData(contactForm);
+            const topic = String(formData.get("topic") || "Обращение по проекту");
+            const message = String(formData.get("message") || "");
+
+            const subject = encodeURIComponent(`[HR Document Checker] ${topic}`);
+            const body = encodeURIComponent(message);
+
+            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+
+            closeContactModal();
+        });
+    }
 
     document.querySelectorAll("[data-storage-mode-toggle]").forEach((toggle) => {
         const form = toggle.closest("form");
@@ -116,6 +231,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 rows.forEach((row, index) => {
                     const start = (currentPage - 1) * pageSize;
                     const end = start + pageSize;
+
                     row.hidden = index < start || index >= end;
                 });
 

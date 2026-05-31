@@ -87,6 +87,7 @@ def test_report_endpoint_includes_semantic_issues_and_vacancy_relevance(tmp_path
     document.add_paragraph("Backend developer, 2023-2024")
     document.add_paragraph("Занимался разработкой backend.")
     document.add_paragraph("Образование: Южный федеральный университет")
+    document.add_paragraph("Командный игрок.")
     document.save(file_path)
 
     with file_path.open("rb") as file:

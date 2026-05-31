@@ -415,7 +415,10 @@ def export_saved_report_to_docx(
         )
 
     exporter = DocxReportExporter()
-    file_stream = exporter.export(report)
+    file_stream = exporter.export(
+        report=report,
+        include_technical=current_user.role == "admin",
+    )
 
     safe_filename = f"report_{report.report_id}.docx"
 

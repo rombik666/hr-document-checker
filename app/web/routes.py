@@ -65,6 +65,23 @@ def _format_display_datetime(value) -> str:
 
     return local_value.strftime("%d.%m.%Y, %H:%M")
 
+def _datetime_iso(value) -> str:
+    if value is None:
+        return ""
+
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return ""
+
+    if not isinstance(value, datetime):
+        return ""
+
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+
+    return value.astimezone(timezone.utc).isoformat()
 
 def _report_status_label(value) -> str:
     value = str(_value(value))
@@ -103,6 +120,7 @@ templates.env.filters["display_datetime"] = _format_display_datetime
 templates.env.filters["report_status_label"] = _report_status_label
 templates.env.filters["source_type_label"] = _source_type_label
 templates.env.filters["role_label"] = _role_label
+templates.env.filters["datetime_iso"] = _datetime_iso
 
 def _localize_web_error(error: Exception) -> str:
     message = str(error)

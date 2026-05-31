@@ -85,10 +85,10 @@
 
             <div class="footer-column">
                 <h3>Контакты</h3>
-                <a class="footer-icon-link" href="#">
+                <button class="footer-link-button footer-icon-link" type="button" data-contact-modal-open>
                     <img src="/static/icons/envelope.svg" alt="">
                     Email
-                </a>
+                </button>
                 <a class="footer-icon-link" href="#">
                     <img src="/static/icons/telegram.svg" alt="">
                     Telegram
@@ -112,5 +112,43 @@
         </div>
     </div>
 </footer>
+<div class="contact-modal" data-contact-modal hidden>
+    <div class="contact-modal-backdrop" data-contact-modal-close></div>
+
+    <section class="contact-modal-card" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+        <div class="section-header">
+            <div>
+                <h2 id="contact-modal-title">Обращение по проекту</h2>
+                <p>Выберите тему и опишите вопрос. После отправки откроется почтовое приложение.</p>
+            </div>
+
+            <button class="button ghost contact-modal-close" type="button" data-contact-modal-close>
+                Закрыть
+            </button>
+        </div>
+
+        <form data-contact-form data-contact-email="YOUR_EMAIL@example.com">
+            <label for="contact-topic">Тема обращения</label>
+            <select id="contact-topic" name="topic" required>
+                <option value="Вопрос по работе сервиса">Вопрос по работе сервиса</option>
+                <option value="Ошибка при проверке документа">Ошибка при проверке документа</option>
+                <option value="Предложение по улучшению">Предложение по улучшению</option>
+                <option value="Другое">Другое</option>
+            </select>
+
+            <label for="contact-message">Описание</label>
+            <textarea
+                id="contact-message"
+                name="message"
+                placeholder="Опишите вопрос или проблему..."
+                required
+            ></textarea>
+
+            <div class="form-actions">
+                <button type="submit">Открыть письмо</button>
+            </div>
+        </form>
+    </section>
+</div>
 </body>
 </html>

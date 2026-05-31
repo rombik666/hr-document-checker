@@ -21,6 +21,7 @@ def test_saved_report_can_be_exported_to_docx(tmp_path: Path) -> None:
     document.add_paragraph("Навыки: Python, Git")
     document.add_paragraph("Опыт работы:")
     document.add_paragraph("Backend developer, 2023-2024")
+    document.add_paragraph("Командный игрок.")
     document.add_paragraph("Занимался разработкой backend.")
     document.add_paragraph("Образование: Южный федеральный университет")
     document.save(file_path)

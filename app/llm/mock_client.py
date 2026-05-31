@@ -4,7 +4,7 @@ from app.schemas.llm import LlmGenerateResponse
 
 
 class MockLlmClient:
-    
+
     provider = "mock"
 
     def __init__(self, model: str = "mock-llm") -> None:
@@ -17,9 +17,15 @@ class MockLlmClient:
         temperature: float = 0.1,
         max_tokens: int = 700,
     ) -> LlmGenerateResponse:
-        if "Return only valid JSON" in prompt or "Return only valid JSON" in (
-            system_prompt or ""
-        ):
+        prompt_text = f"{system_prompt or ''}\n{prompt}"
+
+        expects_json = (
+            "Return only valid JSON" in prompt_text
+            or "Верни только валидный JSON" in prompt_text
+            or "валидный JSON" in prompt_text
+        )
+
+        if expects_json:
             text = json.dumps(
                 {
                     "issues": [
@@ -27,13 +33,13 @@ class MockLlmClient:
                             "severity": "Minor",
                             "issue_type": "llm_style_recommendation",
                             "description": (
-                                "LLM detected that the document can be improved "
-                                "by adding more concrete achievements and measurable results."
+                                "LLM отметил, что описание опыта можно усилить "
+                                "конкретными достижениями и измеримыми результатами."
                             ),
                             "evidence_fragment": "Занимался разработкой backend.",
                             "recommendation": (
-                                "Replace vague descriptions with specific results, "
-                                "technologies and measurable impact."
+                                "Добавьте конкретный результат, использованные технологии "
+                                "и измеримый эффект работы."
                             ),
                             "confidence_score": 0.72,
                         }

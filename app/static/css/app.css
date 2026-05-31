@@ -1413,3 +1413,61 @@ summary {
         grid-template-columns: 1fr;
     }
 }
+
+.footer-link-button {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-weight: 700;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.footer-link-button:hover {
+    color: var(--primary-dark);
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.contact-modal[hidden] {
+    display: none;
+}
+
+.contact-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+}
+
+.contact-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.38);
+    backdrop-filter: blur(8px);
+}
+
+.contact-modal-card {
+    position: relative;
+    z-index: 1;
+    width: min(620px, 100%);
+    padding: clamp(20px, 3vw, 30px);
+    border: 1px solid rgba(219, 227, 239, 0.92);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: var(--shadow-md);
+}
+
+.contact-modal-close {
+    margin-top: 0;
+}
+
+.modal-open {
+    overflow: hidden;
+}

@@ -102,12 +102,14 @@ class LlmSemanticAgent:
     @staticmethod
     def _system_prompt() -> str:
         return (
-            "You are an HR document checking agent. "
-            "You analyze CVs, cover letters and candidate forms. "
-            "You must not invent facts. "
-            "Every issue must be based only on the provided document text. "
-            "If there is no evidence, do not create an issue. "
-            "Return only valid JSON."
+            "Ты — агент проверки качества HR-документов. "
+            "Ты анализируешь резюме, сопроводительные письма и анкеты кандидатов. "
+            "Отвечай только на русском языке. "
+            "Не выдумывай факты. "
+            "Каждое замечание должно опираться только на предоставленный текст документа. "
+            "Если доказательства нет, не создавай замечание. "
+            "Отсутствие текста вакансии само по себе не является ошибкой документа. "
+            "Верни только валидный JSON без Markdown и пояснений."
         )
 
     @staticmethod
@@ -123,45 +125,53 @@ class LlmSemanticAgent:
             for index, result in enumerate(rag_context.results[:2])
         )
 
-        vacancy_block = (vacancy_text or "No vacancy text provided.")[:1000]
+        vacancy_block = (
+            vacancy_text[:1000]
+            if vacancy_text
+            else "Текст вакансии не передан. Не создавай замечание об отсутствии вакансии."
+        )
 
         return f"""
-Return only valid JSON with the following structure:
+        Верни только валидный JSON следующей структуры:
 
-{{
-  "issues": [
     {{
-      "severity": "Critical | Major | Minor",
-      "issue_type": "short_snake_case_issue_type",
-      "description": "clear issue description",
-      "evidence_fragment": "exact fragment from the document",
-      "recommendation": "specific recommendation",
-      "confidence_score": 0.0
+    "issues": [
+        {{
+        "severity": "Critical | Major | Minor",
+        "issue_type": "short_snake_case_issue_type",
+        "description": "описание замечания на русском языке",
+        "evidence_fragment": "точный фрагмент из документа",
+        "recommendation": "конкретная рекомендация на русском языке",
+        "confidence_score": 0.0
+        }}
+    ]
     }}
-  ]
-}}
 
-Rules:
-- Use only these severities: Critical, Major, Minor.
-- Use evidence_fragment only if the fragment exists in the document.
-- Do not include personal data unless it is already masked.
-- Do not make hiring decisions.
-- Do not evaluate the candidate as a person.
-- Focus only on document quality, structure, clarity and relevance to vacancy.
-- If no issues are found, return {{"issues": []}}.
+    Правила:
+    - Значение severity оставь строго одним из: Critical, Major, Minor.
+    - Все остальные текстовые поля пиши на русском языке.
+    - evidence_fragment заполняй только если такой фрагмент реально есть в тексте документа.
+    - Не включай персональные данные, если они не были замаскированы.
+    - Не принимай решение о найме.
+    - Не оценивай кандидата как человека.
+    - Проверяй только качество документа: структуру, ясность, конкретность, логичность и соответствие вакансии.
+    - Если текст вакансии не передан, не создавай замечание об отсутствии вакансии.
+    - Фраза вида «работал с Python», «работал с PostgreSQL», «работал с клиентами» не является ошибкой сама по себе.
+    - Считай формулировку слабой только если она полностью общая и не содержит объекта, результата, технологии или контекста.
+    - Если замечаний нет, верни {{"issues": []}}.
 
-Document type:
-{document.metadata.document_type.value}
+    Тип документа:
+    {document.metadata.document_type.value}
 
-Document text:
-{document_text}
+    Текст документа:
+    {document_text}
 
-Vacancy text:
-{vacancy_block}
+    Текст вакансии:
+    {vacancy_block}
 
-RAG context:
-{rag_fragments}
-""".strip()
+    RAG-контекст:
+    {rag_fragments}
+    """.strip()
 
     def _parse_issues(self, parsed: dict) -> list[Issue]:
         raw_issues = parsed.get("issues", [])

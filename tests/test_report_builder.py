@@ -67,6 +67,7 @@ def test_report_builder_includes_semantic_results() -> None:
         raw_text=(
             "Backend developer. "
             "Занимался разработкой backend. "
+            "Командный игрок. "
             "Навыки: Python, Git."
         ),
         sections=[
@@ -74,7 +75,7 @@ def test_report_builder_includes_semantic_results() -> None:
                 section_id="section-1",
                 section_type="experience",
                 title=None,
-                text="Занимался разработкой backend.",
+                text="Занимался разработкой backend. Командный игрок.",
                 position_in_document=0,
             )
         ],

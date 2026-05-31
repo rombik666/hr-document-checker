@@ -91,7 +91,7 @@ class LlmSemanticAgent:
         response = client.generate(
             system_prompt=self._system_prompt(),
             prompt=prompt,
-            temperature=0.15,
+            temperature=0.25,
             max_tokens=350,
         )
 

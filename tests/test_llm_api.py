@@ -25,7 +25,7 @@ def test_llm_generate_endpoint_returns_text() -> None:
         json={
             "system_prompt": "You are an HR document checking agent.",
             "prompt": "Analyze this CV.",
-            "temperature": 0.1,
+            "temperature": 0.2,
             "max_tokens": 100,
         },
     )

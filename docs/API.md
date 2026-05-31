@@ -154,7 +154,7 @@ optional DB save
 {
   "system_prompt": "You are an HR document checking assistant.",
   "prompt": "Give one recommendation for improving a CV.",
-  "temperature": 0.1,
+  "temperature": 0.2,
   "max_tokens": 120
 }
 ```

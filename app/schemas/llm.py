@@ -9,8 +9,8 @@ class LlmMessage(BaseModel):
 class LlmGenerateRequest(BaseModel):
     prompt: str
     system_prompt: str | None = None
-    temperature: float = 0.1
-    max_tokens: int = 700
+    temperature: float = 0.25
+    max_tokens: int = 300
 
 
 class LlmGenerateResponse(BaseModel):

@@ -182,6 +182,17 @@ def test_web_saved_report_page_returns_html_report(tmp_path: Path) -> None:
         .split("/export/docx", 1)[0]
     )
 
+    history_response = client.get(
+        "/web/reports",
+        headers=headers,
+    )
+
+    assert history_response.status_code == 200
+    assert f'href="/web/reports/{report_id}"' in history_response.text
+    assert f'href="/api/v1/documents/reports/{report_id}/export/docx"' in history_response.text
+    assert "/web/reports/" in history_response.text
+    assert "/api/v1/documents/reports//export/docx" not in history_response.text
+
     assert report_id
 
     saved_response = client.get(

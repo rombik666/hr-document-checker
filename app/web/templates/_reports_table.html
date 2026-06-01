@@ -20,6 +20,7 @@
                      {% for item in reports %}
                         {% set item_status_class = "status-pill report-status-success" %}
                         {% set item_status_label = "Готов" %}
+                        {% set item_report_id = item.report_id | default(item.id, true) %}
 
                         {% if item.total_issues == 0 %}
                             {% set item_status_class = "status-pill report-status-success" %}
@@ -74,18 +75,18 @@
 
                         <td>
                             <div class="report-row-actions">
-                                <a class="button ghost report-action-button" href="/web/reports/{{ item.report_id }}">
+                                <a class="button ghost report-action-button" href="/web/reports/{{ item_report_id }}">
                                     <img src="/static/icons/reports/eye.svg" alt="">
                                     Открыть
                                 </a>
 
-                                <a class="button ghost report-action-button" href="/api/v1/documents/reports/{{ item.report_id }}/export/docx">
+                                <a class="button ghost report-action-button" href="/api/v1/documents/reports/{{ item_report_id }}/export/docx">
                                     <img src="/static/icons/reports/download.svg" alt="">
                                     DOCX
                                 </a>
 
                                 {% if user and user.role == "admin" %}
-                                    <a class="button ghost report-action-button" href="/api/v1/documents/reports/{{ item.report_id }}">
+                                    <a class="button ghost report-action-button" href="/api/v1/documents/reports/{{ item_report_id }}">
                                         JSON
                                     </a>
                                 {% endif %}
@@ -107,6 +108,7 @@
             {% for item in reports %}
                 {% set item_status_class = "status-pill report-status-success" %}
                 {% set item_status_label = "Готов" %}
+                {% set item_report_id = item.report_id | default(item.id, true) %}
 
                 {% if item.total_issues == 0 %}
                     {% set item_status_class = "status-pill report-status-success" %}
@@ -149,7 +151,7 @@
                             {% endif %}
                         </div>
 
-                        <a class="button ghost report-action-button" href="/web/reports/{{ item.report_id }}">
+                        <a class="button ghost report-action-button" href="/web/reports/{{ item_report_id }}">
                             Открыть отчёт
                         </a>
                     </div>

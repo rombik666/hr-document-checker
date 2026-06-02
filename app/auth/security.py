@@ -50,6 +50,18 @@ def verify_password(password: str, stored_hash: str) -> bool:
     return hmac.compare_digest(actual_hash, expected_hash)
 
 
+def generate_secure_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_security_token(token: str) -> str:
+    return hmac.new(
+        settings.auth_secret_key.encode("utf-8"),
+        token.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
 def _b64encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).decode("utf-8").rstrip("=")
 

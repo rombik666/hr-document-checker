@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     project_name: str = "HR Document Checker"
     app_env: str = "local"
     debug: bool = True
+    public_base_url: str | None = None
 
     database_url: str = "sqlite:///./data/app.db"
 
@@ -38,6 +39,7 @@ class Settings(BaseSettings):
 
     auth_secret_key: str = "change-this-secret-key"
     auth_token_ttl_minutes: int = 720
+    password_reset_token_ttl_minutes: int = 30
 
     admin_email: str = "admin@example.com"
     admin_password: str = "admin"

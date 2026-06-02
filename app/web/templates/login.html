@@ -34,6 +34,10 @@
             <div class="error">{{ error }}</div>
         {% endif %}
 
+        {% if success %}
+            <div class="success">{{ success }}</div>
+        {% endif %}
+
         <form method="post" action="/web/login">
             <label for="email">Email</label>
             <input id="email" type="email" name="email" autocomplete="email" required>
@@ -46,6 +50,10 @@
                 <a class="button ghost" href="/web/register">Создать аккаунт</a>
             </div>
         </form>
+
+        <p class="muted small auth-note">
+            <a href="/web/password-reset/request">Забыли пароль?</a>
+        </p>
 
         <p class="muted small auth-note">
             Роли candidate, HR и admin определяют доступ к отчётам, RAG-источникам и административным функциям.

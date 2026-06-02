@@ -28,9 +28,16 @@ from app.core.metrics import metrics
 from app.db.models import UserORM
 from app.db.session import get_db
 from app.reports.report_builder import ReportBuilder
-from app.schemas.auth import UserCreateRequest
+from app.schemas.auth import (
+    PasswordResetConfirmRequest,
+    PasswordResetRequest,
+    UserCreateRequest,
+)
 from app.schemas.common import StorageMode
 from app.services.document_processing_service import DocumentProcessingService
+from app.services.password_reset_email_service import PasswordResetEmailService
+from app.services.password_reset_link_service import build_password_reset_url
+from app.services.password_reset_service import PasswordResetService
 from app.services.report_storage_service import ReportStorageService
 from app.services.user_service import UserService
 from app.services.rag_index_service import RagIndexService
@@ -224,6 +231,30 @@ def _send_contact_email(
     ) as server:
         server.login(settings.smtp_username, settings.smtp_password)
         server.send_message(email)
+
+
+def _send_password_reset_link_if_possible(
+    request: Request,
+    recipient_email: str,
+    token: str,
+) -> None:
+    reset_url = build_password_reset_url(request, token)
+
+    try:
+        PasswordResetEmailService().send_reset_link(
+            recipient_email=recipient_email,
+            reset_url=reset_url,
+        )
+    except RuntimeError as error:
+        logger.warning(
+            "password_reset_email_not_configured email=%s error=%s reset_url=%s",
+            recipient_email,
+            error,
+            reset_url,
+        )
+    except Exception:
+        logger.exception("password_reset_email_send_failed email=%s", recipient_email)
+
 
 @router.post("/contact")
 async def submit_contact_form(
@@ -543,6 +574,7 @@ def web_index(
 @router.get("/login")
 def show_login_page(
     request: Request,
+    password_reset: str | None = None,
     db: Session = Depends(get_db),
 ):
     user = _get_current_web_user(request, db)
@@ -556,6 +588,11 @@ def show_login_page(
         context={
             "page_title": "Вход",
             "error": None,
+            "success": (
+                "Пароль обновлён. Теперь войдите с новым паролем."
+                if password_reset == "success"
+                else None
+            ),
         },
     )
 
@@ -579,11 +616,174 @@ def login_web_user(
             context={
                 "page_title": "Вход",
                 "error": "Неверный email или пароль.",
+                "success": None,
             },
             status_code=401,
         )
 
     return _create_login_response(user)
+
+
+@router.get("/password-reset/request")
+def show_password_reset_request_page(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = _get_current_web_user(request, db)
+
+    if user is not None:
+        return _redirect("/web/dashboard")
+
+    return _template(
+        request=request,
+        name="password_reset_request.html",
+        context={
+            "page_title": "Восстановление пароля",
+            "user": None,
+            "error": None,
+            "success": None,
+            "email": "",
+        },
+    )
+
+
+@router.post("/password-reset/request")
+def request_password_reset_web(
+    request: Request,
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    try:
+        reset_request = PasswordResetRequest(email=email)
+    except ValidationError:
+        return _template(
+            request=request,
+            name="password_reset_request.html",
+            context={
+                "page_title": "Восстановление пароля",
+                "user": None,
+                "error": "Введите корректный email.",
+                "success": None,
+                "email": email,
+            },
+            status_code=400,
+        )
+
+    token = PasswordResetService(db).create_reset_token(str(reset_request.email))
+
+    if token is not None:
+        _send_password_reset_link_if_possible(
+            request=request,
+            recipient_email=str(reset_request.email),
+            token=token,
+        )
+
+    return _template(
+        request=request,
+        name="password_reset_request.html",
+        context={
+            "page_title": "Восстановление пароля",
+            "user": None,
+            "error": None,
+            "success": (
+                "Если активный аккаунт с таким email существует, мы отправили "
+                "ссылку для восстановления пароля."
+            ),
+            "email": "",
+        },
+    )
+
+
+@router.get("/password-reset/confirm")
+def show_password_reset_confirm_page(
+    request: Request,
+    token: str = "",
+    db: Session = Depends(get_db),
+):
+    is_valid_token = bool(token) and PasswordResetService(db).is_token_valid(token)
+
+    return _template(
+        request=request,
+        name="password_reset_confirm.html",
+        context={
+            "page_title": "Новый пароль",
+            "user": None,
+            "token": token,
+            "is_valid_token": is_valid_token,
+            "error": (
+                None
+                if is_valid_token
+                else "Ссылка для восстановления пароля недействительна или истекла."
+            ),
+        },
+        status_code=200 if is_valid_token else 400,
+    )
+
+
+@router.post("/password-reset/confirm")
+def confirm_password_reset_web(
+    request: Request,
+    token: str = Form(...),
+    new_password: str = Form(...),
+    new_password_confirm: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    if new_password != new_password_confirm:
+        return _template(
+            request=request,
+            name="password_reset_confirm.html",
+            context={
+                "page_title": "Новый пароль",
+                "user": None,
+                "token": token,
+                "is_valid_token": True,
+                "error": "Пароли не совпадают.",
+            },
+            status_code=400,
+        )
+
+    try:
+        reset_request = PasswordResetConfirmRequest(
+            token=token,
+            new_password=new_password,
+        )
+    except ValidationError:
+        return _template(
+            request=request,
+            name="password_reset_confirm.html",
+            context={
+                "page_title": "Новый пароль",
+                "user": None,
+                "token": token,
+                "is_valid_token": True,
+                "error": "Пароль должен быть от 6 до 128 символов.",
+            },
+            status_code=400,
+        )
+
+    was_reset = PasswordResetService(db).reset_password(
+        token=reset_request.token,
+        new_password=reset_request.new_password,
+    )
+
+    if not was_reset:
+        return _template(
+            request=request,
+            name="password_reset_confirm.html",
+            context={
+                "page_title": "Новый пароль",
+                "user": None,
+                "token": token,
+                "is_valid_token": False,
+                "error": "Ссылка для восстановления пароля недействительна или истекла.",
+            },
+            status_code=400,
+        )
+
+    response = _redirect("/web/login?password_reset=success")
+    response.delete_cookie(AUTH_COOKIE_NAME)
+
+    return response
 
 
 @router.get("/register")

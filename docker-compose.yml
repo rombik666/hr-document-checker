@@ -31,6 +31,8 @@ services:
       APP_ENV: "docker"
       DEBUG: "true"
       DATABASE_URL: "postgresql+psycopg://hr_user:hr_password@postgres:5432/hr_doc_checker"
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      PASSWORD_RESET_TOKEN_TTL_MINUTES: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:-30}
       LOG_DIR: "/app/logs"
       LOG_FILE: "app.log"
       RAG_RETRIEVER_TYPE: "faiss"

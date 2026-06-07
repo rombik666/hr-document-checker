@@ -1,7 +1,9 @@
+from io import BytesIO
 from pathlib import Path
 
 from docx import Document
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from app.main import app
 from tests.auth_helpers import auth_headers
@@ -55,6 +57,45 @@ def test_web_dashboard_returns_candidate_dashboard_for_authenticated_user() -> N
     assert 'href="/web/reports"' in response.text
     assert "/web/rag/sources" not in response.text
     assert "/web/admin" not in response.text
+
+
+def test_profile_supports_avatar_upload_and_serving() -> None:
+    headers = auth_headers(client, "candidate")
+    image_buffer = BytesIO()
+    Image.new("RGB", (2, 2), color="#2563eb").save(image_buffer, format="PNG")
+    image_bytes = image_buffer.getvalue()
+
+    upload_response = client.post(
+        "/web/profile/avatar",
+        headers=headers,
+        files={"avatar": ("avatar.png", image_bytes, "image/png")},
+        follow_redirects=False,
+    )
+
+    assert upload_response.status_code == 303
+    assert upload_response.headers["location"] == "/web/profile?avatar=updated"
+
+    avatar_response = client.get("/web/profile/avatar", headers=headers)
+
+    assert avatar_response.status_code == 200
+    assert avatar_response.headers["content-type"] == "image/png"
+    assert avatar_response.content == image_bytes
+
+    profile_response = client.get("/web/profile", headers=headers)
+
+    assert 'src="/web/profile/avatar"' in profile_response.text
+    assert 'class="profile-logout-link"' in profile_response.text
+
+
+def test_profile_rejects_non_image_avatar() -> None:
+    response = client.post(
+        "/web/profile/avatar",
+        headers=auth_headers(client, "candidate"),
+        files={"avatar": ("avatar.png", b"not-an-image", "image/png")},
+    )
+
+    assert response.status_code == 400
+    assert "Поддерживаются только изображения PNG, JPEG и WebP." in response.text
 
 
 def test_web_report_page_returns_html_report(tmp_path: Path) -> None:

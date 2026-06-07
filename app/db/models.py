@@ -1,7 +1,17 @@
 from datetime import datetime, timezone
 from enum import StrEnum
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    JSON,
+    LargeBinary,
+    String,
+    Text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -67,6 +77,16 @@ class UserORM(Base):
         Boolean,
         nullable=False,
         default=True,
+    )
+
+    avatar_data: Mapped[bytes | None] = mapped_column(
+        LargeBinary,
+        nullable=True,
+    )
+
+    avatar_content_type: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(

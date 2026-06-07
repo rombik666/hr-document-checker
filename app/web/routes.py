@@ -2,6 +2,7 @@ import smtplib
 import ssl
 
 from email.message import EmailMessage
+from io import BytesIO
 
 from pathlib import Path
 
@@ -10,11 +11,12 @@ from tempfile import NamedTemporaryFile
 from time import perf_counter
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.templating import Jinja2Templates
 
 from pydantic import ValidationError
+from PIL import Image, UnidentifiedImageError
 
 from sqlalchemy.orm import Session
 
@@ -362,6 +364,32 @@ def _validate_file_suffix(filename: str) -> str:
         )
 
     return suffix
+
+
+MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024
+AVATAR_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+
+
+def _detect_avatar_content_type(content: bytes) -> str | None:
+    format_content_types = {
+        "JPEG": "image/jpeg",
+        "PNG": "image/png",
+        "WEBP": "image/webp",
+    }
+
+    try:
+        with Image.open(BytesIO(content)) as image:
+            if image.width > 4096 or image.height > 4096:
+                return None
+
+            image.verify()
+            return format_content_types.get(image.format or "")
+    except (OSError, SyntaxError, UnidentifiedImageError):
+        return None
 
 
 async def _save_upload_to_temp_file(file: UploadFile, suffix: str) -> Path:
@@ -878,6 +906,7 @@ def show_dashboard(
 @router.get("/profile")
 def show_profile(
     request: Request,
+    avatar: str | None = None,
     db: Session = Depends(get_db),
 ):
     user = _get_current_web_user(request, db)
@@ -899,8 +928,81 @@ def show_profile(
             "page_title": "Личный кабинет",
             "user": user,
             "reports": reports,
+            "success": (
+                "Аватар успешно обновлён."
+                if avatar == "updated"
+                else None
+            ),
+            "error": None,
         },
     )
+
+
+@router.get("/profile/avatar")
+def get_profile_avatar(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = _require_web_user(request, db)
+
+    if not user.avatar_data or not user.avatar_content_type:
+        raise HTTPException(status_code=404, detail="Avatar not found.")
+
+    return Response(
+        content=user.avatar_data,
+        media_type=user.avatar_content_type,
+        headers={
+            "Cache-Control": "private, max-age=300",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@router.post("/profile/avatar")
+async def upload_profile_avatar(
+    request: Request,
+    avatar: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    user = _require_web_user(request, db)
+    content = await avatar.read(MAX_AVATAR_SIZE_BYTES + 1)
+
+    if not content:
+        error = "Выберите изображение для загрузки."
+    elif len(content) > MAX_AVATAR_SIZE_BYTES:
+        error = "Размер аватара не должен превышать 2 МБ."
+    else:
+        detected_content_type = _detect_avatar_content_type(content)
+        declared_content_type = (avatar.content_type or "").lower()
+
+        if (
+            detected_content_type is None
+            or detected_content_type not in AVATAR_CONTENT_TYPES
+            or (
+                declared_content_type
+                and declared_content_type not in AVATAR_CONTENT_TYPES
+            )
+        ):
+            error = "Поддерживаются только изображения PNG, JPEG и WebP."
+        else:
+            user.avatar_data = content
+            user.avatar_content_type = detected_content_type
+            db.commit()
+            return _redirect("/web/profile?avatar=updated")
+
+    return _template(
+        request=request,
+        name="profile.html",
+        context={
+            "page_title": "Личный кабинет",
+            "user": user,
+            "reports": [],
+            "success": None,
+            "error": error,
+        },
+        status_code=400,
+    )
+
 
 @router.get("/reports")
 def show_reports_history(

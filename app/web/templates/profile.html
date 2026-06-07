@@ -15,6 +15,14 @@
 </section>
 
 <section class="card">
+    {% if success %}
+        <div class="success">{{ success }}</div>
+    {% endif %}
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
     <div class="section-header">
         <div>
             <h2>Учётная запись</h2>
@@ -23,6 +31,41 @@
             </p>
         </div>
         <span class="badge">{{ user.role | role_label }}</span>
+    </div>
+
+    <div class="profile-avatar-panel">
+        <div class="user-avatar user-avatar-profile">
+            {% if user.avatar_data %}
+                <img src="/web/profile/avatar" alt="Аватар пользователя">
+            {% else %}
+                <span>{{ user.full_name[:1] | upper }}</span>
+            {% endif %}
+        </div>
+
+        <form
+            class="profile-avatar-form"
+            action="/web/profile/avatar"
+            method="post"
+            enctype="multipart/form-data"
+        >
+            <div>
+                <h3>Аватар</h3>
+                <p class="muted small">PNG, JPEG или WebP, не более 2 МБ.</p>
+            </div>
+            <input
+                id="profile-avatar"
+                class="avatar-file-input"
+                type="file"
+                name="avatar"
+                accept="image/png,image/jpeg,image/webp"
+                required
+            >
+            <label class="button ghost avatar-file-label" for="profile-avatar">
+                Выбрать изображение
+            </label>
+            <span class="muted small" data-avatar-file-name>Файл не выбран</span>
+            <button type="submit">Загрузить</button>
+        </form>
     </div>
 
     <div class="profile-details">
@@ -48,7 +91,10 @@
     </div>
 
     <div class="profile-logout">
-        <a class="button danger full-width" href="/web/logout">Выйти из аккаунта</a>
+        <a class="profile-logout-link" href="/web/logout">
+            <img src="/static/icons/log-out.svg" alt="">
+            <span>Выйти из аккаунта</span>
+        </a>
     </div>
 </section>
 {% endblock %}

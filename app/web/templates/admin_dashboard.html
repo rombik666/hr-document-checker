@@ -4,6 +4,22 @@
 {% set external_host = request.url.hostname or "127.0.0.1" %}
 {% set monitoring_scheme = "http" %}
 
+<div class="admin-dashboard">
+<div class="grid three admin-metrics">
+    <div class="metric-card">
+        <strong>PostgreSQL</strong>
+        <span>основная БД стенда</span>
+    </div>
+    <div class="metric-card">
+        <strong>FAISS</strong>
+        <span>персональные RAG-индексы</span>
+    </div>
+    <div class="metric-card">
+        <strong>Ollama</strong>
+        <span>локальный LLM-провайдер</span>
+    </div>
+</div>
+
 <section class="hero">
     <span class="badge">Панель администратора</span>
     <h1>Администрирование и диагностика системы</h1>
@@ -18,21 +34,6 @@
         <a class="button ghost" href="/docs" target="_blank" rel="noopener noreferrer">Swagger API</a>
     </div>
 </section>
-
-<div class="grid three">
-    <div class="metric-card">
-        <strong>PostgreSQL</strong>
-        <span>основная БД стенда</span>
-    </div>
-    <div class="metric-card">
-        <strong>FAISS</strong>
-        <span>персональные RAG-индексы</span>
-    </div>
-    <div class="metric-card">
-        <strong>Ollama</strong>
-        <span>локальный LLM-провайдер</span>
-    </div>
-</div>
 
 <section class="grid three">
     <div class="card">
@@ -155,4 +156,5 @@
 
     {% include "_reports_table.html" %}
 </section>
+</div>
 {% endblock %}

@@ -29,17 +29,11 @@
             </a>
         </div>
 
-        <button
-            class="nav-toggle"
-            type="button"
-            data-nav-toggle
-            aria-controls="main-navigation"
-            aria-expanded="false"
+        <div
+            class="nav-links {% if not user %}nav-links-public{% endif %}"
+            id="main-navigation"
+            data-nav-links
         >
-            Меню
-        </button>
-
-        <div class="nav-links" id="main-navigation" data-nav-links>
             {% if user %}
                 <a href="/web/profile">Личный кабинет</a>
                 <a href="/web/reports">История</a>
@@ -51,13 +45,31 @@
                 {% if user.role == "admin" %}
                     <a href="/web/admin">Администрирование</a>
                 {% endif %}
-
-                <span class="badge">{{ user.role }}</span>
             {% else %}
                 <a class="nav-auth-link nav-signin" href="/web/login">Войти</a>
                 <a class="nav-auth-link nav-register" href="/web/register">Зарегистрироваться</a>
             {% endif %}
         </div>
+
+        {% if user %}
+            <button
+                class="nav-toggle user-menu-toggle"
+                type="button"
+                data-nav-toggle
+                aria-controls="main-navigation"
+                aria-expanded="false"
+                aria-label="Открыть меню пользователя"
+            >
+                <span class="user-avatar user-avatar-header">
+                    {% if user.avatar_data %}
+                        <img src="/web/profile/avatar" alt="">
+                    {% else %}
+                        <span>{{ user.full_name[:1] | upper }}</span>
+                    {% endif %}
+                </span>
+                <span class="user-role-label">{{ user.role }}</span>
+            </button>
+        {% endif %}
     </nav>
 </header>
 

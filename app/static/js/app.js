@@ -3,25 +3,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const links = document.querySelector("[data-nav-links]");
 
     if (toggle && links) {
-        const backdrop = document.createElement("div");
-        backdrop.className = "mobile-nav-backdrop";
-        backdrop.setAttribute("data-nav-backdrop", "");
-        document.body.appendChild(backdrop);
-
         const openMenu = () => {
             links.classList.add("is-open");
             toggle.setAttribute("aria-expanded", "true");
-            toggle.textContent = "Меню";
-            document.body.classList.add("mobile-nav-open");
             links.setAttribute("aria-hidden", "false");
         };
 
         const closeMenu = () => {
             links.classList.remove("is-open");
             toggle.setAttribute("aria-expanded", "false");
-            toggle.textContent = "Меню";
-            document.body.classList.remove("mobile-nav-open");
-            links.setAttribute("aria-hidden", "true");
+            links.setAttribute(
+                "aria-hidden",
+                window.innerWidth <= 860 ? "true" : "false"
+            );
         };
 
         const toggleMenu = () => {
@@ -32,13 +26,25 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
 
-        links.setAttribute("aria-hidden", "true");
+        links.setAttribute(
+            "aria-hidden",
+            window.innerWidth <= 860 ? "true" : "false"
+        );
 
         toggle.addEventListener("click", toggleMenu);
-        backdrop.addEventListener("click", closeMenu);
 
         links.querySelectorAll("a").forEach((link) => {
             link.addEventListener("click", closeMenu);
+        });
+
+        document.addEventListener("click", (event) => {
+            if (
+                window.innerWidth <= 860
+                && !links.contains(event.target)
+                && !toggle.contains(event.target)
+            ) {
+                closeMenu();
+            }
         });
 
         document.addEventListener("keydown", (event) => {
@@ -51,6 +57,18 @@ document.addEventListener("DOMContentLoaded", () => {
             if (window.innerWidth > 860) {
                 closeMenu();
             }
+        });
+    }
+
+    const avatarInput = document.querySelector(".avatar-file-input");
+    const avatarFileName = document.querySelector("[data-avatar-file-name]");
+
+    if (avatarInput && avatarFileName) {
+        avatarInput.addEventListener("change", () => {
+            avatarFileName.textContent =
+                avatarInput.files && avatarInput.files.length
+                    ? avatarInput.files[0].name
+                    : "Файл не выбран";
         });
     }
 

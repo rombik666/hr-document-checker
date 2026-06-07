@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password, verify_password
 from app.db.models import UserORM, UserRole
-from app.schemas.auth import AuthUserRole, UserCreateRequest
+from app.schemas.auth import AuthUserRole, ProfileUpdateRequest, UserCreateRequest
 
 
 class UserService:
@@ -58,6 +58,24 @@ class UserService:
 
         if not verify_password(password, user.password_hash):
             return None
+
+        return user
+
+    def update_profile(
+        self,
+        user: UserORM,
+        request: ProfileUpdateRequest,
+    ) -> UserORM:
+        normalized_email = request.email.lower()
+        existing_user = self.get_by_email(normalized_email)
+
+        if existing_user is not None and existing_user.id != user.id:
+            raise ValueError("User with this email already exists.")
+
+        user.email = normalized_email
+        user.full_name = request.full_name.strip()
+        self.db.commit()
+        self.db.refresh(user)
 
         return user
 

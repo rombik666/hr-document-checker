@@ -30,7 +30,12 @@
                 Данные текущего пользователя и его роль в системе.
             </p>
         </div>
-        <span class="badge">{{ user.role | role_label }}</span>
+        <div class="profile-header-actions">
+            <span class="badge">{{ user.role | role_label }}</span>
+            <a class="button ghost profile-edit-button" href="/web/profile/edit">
+                Редактировать профиль
+            </a>
+        </div>
     </div>
 
     <div class="profile-avatar-panel">
@@ -42,30 +47,11 @@
             {% endif %}
         </div>
 
-        <form
-            class="profile-avatar-form"
-            action="/web/profile/avatar"
-            method="post"
-            enctype="multipart/form-data"
-        >
-            <div>
-                <h3>Аватар</h3>
-                <p class="muted small">PNG, JPEG или WebP, не более 2 МБ.</p>
-            </div>
-            <input
-                id="profile-avatar"
-                class="avatar-file-input"
-                type="file"
-                name="avatar"
-                accept="image/png,image/jpeg,image/webp"
-                required
-            >
-            <label class="button ghost avatar-file-label" for="profile-avatar">
-                Выбрать изображение
-            </label>
-            <span class="muted small" data-avatar-file-name>Файл не выбран</span>
-            <button type="submit">Загрузить</button>
-        </form>
+        <div class="profile-avatar-summary">
+            <h3>{{ user.full_name }}</h3>
+            <p class="muted">{{ user.email }}</p>
+            <p class="small muted">Изменить фото и контактные данные можно в режиме редактирования.</p>
+        </div>
     </div>
 
     <div class="profile-details">

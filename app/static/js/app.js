@@ -12,10 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const closeMenu = () => {
             links.classList.remove("is-open");
             toggle.setAttribute("aria-expanded", "false");
-            links.setAttribute(
-                "aria-hidden",
-                window.innerWidth <= 860 ? "true" : "false"
-            );
+            links.setAttribute("aria-hidden", "true");
         };
 
         const toggleMenu = () => {
@@ -26,10 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
 
-        links.setAttribute(
-            "aria-hidden",
-            window.innerWidth <= 860 ? "true" : "false"
-        );
+        links.setAttribute("aria-hidden", "true");
 
         toggle.addEventListener("click", toggleMenu);
 
@@ -39,8 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.addEventListener("click", (event) => {
             if (
-                window.innerWidth <= 860
-                && !links.contains(event.target)
+                !links.contains(event.target)
                 && !toggle.contains(event.target)
             ) {
                 closeMenu();
@@ -62,13 +55,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const avatarInput = document.querySelector(".avatar-file-input");
     const avatarFileName = document.querySelector("[data-avatar-file-name]");
+    const avatarPreview = document.querySelector("[data-avatar-preview]");
+    const avatarInitial = document.querySelector("[data-avatar-initial]");
 
     if (avatarInput && avatarFileName) {
         avatarInput.addEventListener("change", () => {
-            avatarFileName.textContent =
+            const selectedFile =
                 avatarInput.files && avatarInput.files.length
-                    ? avatarInput.files[0].name
-                    : "Файл не выбран";
+                    ? avatarInput.files[0]
+                    : null;
+
+            avatarFileName.textContent = selectedFile
+                ? selectedFile.name
+                : "Фото не выбрано";
+
+            if (selectedFile && avatarPreview) {
+                avatarPreview.src = URL.createObjectURL(selectedFile);
+                avatarPreview.hidden = false;
+
+                if (avatarInitial) {
+                    avatarInitial.hidden = true;
+                }
+            }
         });
     }
 
@@ -280,6 +288,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 const data = await response.json();
+
+                if (response.status === 401 && data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                    return;
+                }
 
                 if (!response.ok || !data.success) {
                     throw new Error(data.message || "Не удалось отправить письмо.");

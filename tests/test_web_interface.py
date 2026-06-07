@@ -18,7 +18,7 @@ client = TestClient(app)
 
 
 def test_web_index_returns_landing_page_for_anonymous_user() -> None:
-    response = client.get("/web/")
+    response = TestClient(app).get("/web/")
 
     assert response.status_code == 200
     assert "HR Document Checker" in response.text
@@ -55,25 +55,31 @@ def test_web_dashboard_returns_candidate_dashboard_for_authenticated_user() -> N
     assert 'name="vacancy_text"' in response.text
     assert 'name="storage_mode"' in response.text
     assert 'href="/web/reports"' in response.text
+    assert 'class="user-dropdown-logout"' in response.text
+    assert 'src="/static/icons/log-out.svg"' in response.text
     assert "/web/rag/sources" not in response.text
     assert "/web/admin" not in response.text
 
 
-def test_profile_supports_avatar_upload_and_serving() -> None:
+def test_profile_edit_updates_account_and_avatar() -> None:
     headers = auth_headers(client, "candidate")
     image_buffer = BytesIO()
     Image.new("RGB", (2, 2), color="#2563eb").save(image_buffer, format="PNG")
     image_bytes = image_buffer.getvalue()
 
     upload_response = client.post(
-        "/web/profile/avatar",
+        "/web/profile/edit",
         headers=headers,
+        data={
+            "full_name": "Обновлённый Пользователь",
+            "email": f"updated-{id(headers)}@example.com",
+        },
         files={"avatar": ("avatar.png", image_bytes, "image/png")},
         follow_redirects=False,
     )
 
     assert upload_response.status_code == 303
-    assert upload_response.headers["location"] == "/web/profile?avatar=updated"
+    assert upload_response.headers["location"] == "/web/profile?updated=true"
 
     avatar_response = client.get("/web/profile/avatar", headers=headers)
 
@@ -84,18 +90,40 @@ def test_profile_supports_avatar_upload_and_serving() -> None:
     profile_response = client.get("/web/profile", headers=headers)
 
     assert 'src="/web/profile/avatar"' in profile_response.text
+    assert "Обновлённый Пользователь" in profile_response.text
+    assert 'href="/web/profile/edit"' in profile_response.text
     assert 'class="profile-logout-link"' in profile_response.text
 
 
 def test_profile_rejects_non_image_avatar() -> None:
     response = client.post(
-        "/web/profile/avatar",
+        "/web/profile/edit",
         headers=auth_headers(client, "candidate"),
+        data={
+            "full_name": "Candidate Test User",
+            "email": f"avatar-error-{id(client)}@example.com",
+        },
         files={"avatar": ("avatar.png", b"not-an-image", "image/png")},
     )
 
     assert response.status_code == 400
     assert "Поддерживаются только изображения PNG, JPEG и WebP." in response.text
+
+
+def test_anonymous_contact_form_redirects_to_registration() -> None:
+    anonymous_client = TestClient(app)
+    page_response = anonymous_client.get("/web/")
+
+    assert "Зарегистрируйтесь, чтобы написать нам" in page_response.text
+    assert 'data-contact-form' not in page_response.text
+
+    response = anonymous_client.post(
+        "/web/contact",
+        data={"topic": "Вопрос", "message": "Сообщение"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["redirect_url"] == "/web/register"
 
 
 def test_web_report_page_returns_html_report(tmp_path: Path) -> None:

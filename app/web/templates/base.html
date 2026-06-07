@@ -32,7 +32,6 @@
         <div
             class="nav-links {% if not user %}nav-links-public{% endif %}"
             id="main-navigation"
-            data-nav-links
         >
             {% if user %}
                 <a href="/web/profile">Личный кабинет</a>
@@ -52,23 +51,49 @@
         </div>
 
         {% if user %}
-            <button
-                class="nav-toggle user-menu-toggle"
-                type="button"
-                data-nav-toggle
-                aria-controls="main-navigation"
-                aria-expanded="false"
-                aria-label="Открыть меню пользователя"
-            >
-                <span class="user-avatar user-avatar-header">
-                    {% if user.avatar_data %}
-                        <img src="/web/profile/avatar" alt="">
-                    {% else %}
-                        <span>{{ user.full_name[:1] | upper }}</span>
-                    {% endif %}
-                </span>
-                <span class="user-role-label">{{ user.role }}</span>
-            </button>
+            <div class="user-menu">
+                <button
+                    class="nav-toggle user-menu-toggle"
+                    type="button"
+                    data-nav-toggle
+                    aria-controls="user-navigation"
+                    aria-expanded="false"
+                    aria-label="Открыть меню пользователя"
+                >
+                    <span class="user-avatar user-avatar-header">
+                        {% if user.avatar_data %}
+                            <img src="/web/profile/avatar" alt="">
+                        {% else %}
+                            <span>{{ user.full_name[:1] | upper }}</span>
+                        {% endif %}
+                    </span>
+                    <span class="user-role-label">{{ user.role }}</span>
+                </button>
+
+                <div class="user-dropdown" id="user-navigation" data-nav-links aria-hidden="true">
+                    <div class="user-dropdown-heading">
+                        <strong>{{ user.full_name }}</strong>
+                        <span>{{ user.email }}</span>
+                    </div>
+
+                    <div class="user-dropdown-mobile-nav">
+                        <a href="/web/profile">Личный кабинет</a>
+                        <a href="/web/reports">История</a>
+                        {% if user.role in ["hr", "admin"] %}
+                            <a href="/web/rag/sources">RAG-источники</a>
+                        {% endif %}
+                        {% if user.role == "admin" %}
+                            <a href="/web/admin">Администрирование</a>
+                        {% endif %}
+                    </div>
+
+                    <a href="/web/profile/edit">Редактировать профиль</a>
+                    <a class="user-dropdown-logout" href="/web/logout">
+                        <img src="/static/icons/log-out.svg" alt="">
+                        Выйти
+                    </a>
+                </div>
+            </div>
         {% endif %}
     </nav>
 </header>
@@ -129,25 +154,6 @@
         </div>
 
         <div class="footer-bottom">
-            <div class="footer-socials">
-                <button
-                    class="footer-social-button"
-                    type="button"
-                    aria-label="Email"
-                    data-contact-modal-open
-                >
-                    <img src="/static/icons/envelope.svg" alt="">
-                </button>
-                <a
-                    href="https://t.me/MaximKudinovJob"
-                    aria-label="Telegram"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    <img src="/static/icons/telegram.svg" alt="">
-                </a>
-            </div>
-
             <div class="footer-copy">
                 © 2026 HR Document Checker | Privacy Policy | Terms
             </div>
@@ -167,36 +173,50 @@
             ×
         </button>
 
-        <div class="section-header">
-            <div>
-                <h2 id="contact-modal-title">Обращение по проекту</h2>
-                <p>Выберите тему и подробно опишите ситуацию. Ответим вам как можно скорее.</p>
-            </div>
-        </div>
-
-        <form data-contact-form action="/web/contact" method="post">
-            <label for="contact-topic">Тема обращения</label>
-            <select id="contact-topic" name="topic" required>
-                <option value="Вопрос по работе сервиса">Вопрос по работе сервиса</option>
-                <option value="Ошибка при проверке документа">Ошибка при проверке документа</option>
-                <option value="Предложение по улучшению">Предложение по улучшению</option>
-                <option value="Другое">Другое</option>
-            </select>
-
-            <label for="contact-message">Описание</label>
-            <textarea
-                id="contact-message"
-                name="message"
-                placeholder="Опишите вопрос или проблему..."
-                required
-            ></textarea>
-
-            <div class="form-actions">
-                <button type="submit">Отправить письмо</button>
+        {% if user %}
+            <div class="section-header">
+                <div>
+                    <h2 id="contact-modal-title">Обращение по проекту</h2>
+                    <p>Выберите тему и подробно опишите ситуацию. Ответим вам как можно скорее.</p>
+                </div>
             </div>
 
-            <p class="contact-form-status" data-contact-status hidden></p>
-        </form>
+            <form data-contact-form action="/web/contact" method="post">
+                <label for="contact-topic">Тема обращения</label>
+                <select id="contact-topic" name="topic" required>
+                    <option value="Вопрос по работе сервиса">Вопрос по работе сервиса</option>
+                    <option value="Ошибка при проверке документа">Ошибка при проверке документа</option>
+                    <option value="Предложение по улучшению">Предложение по улучшению</option>
+                    <option value="Другое">Другое</option>
+                </select>
+
+                <label for="contact-message">Описание</label>
+                <textarea
+                    id="contact-message"
+                    name="message"
+                    placeholder="Опишите вопрос или проблему..."
+                    required
+                ></textarea>
+
+                <div class="form-actions">
+                    <button type="submit">Отправить письмо</button>
+                </div>
+
+                <p class="contact-form-status" data-contact-status hidden></p>
+            </form>
+        {% else %}
+            <div class="contact-auth-required">
+                <span class="badge">Требуется аккаунт</span>
+                <h2 id="contact-modal-title">Зарегистрируйтесь, чтобы написать нам</h2>
+                <p class="muted">
+                    Обращения принимаются только от авторизованных пользователей.
+                </p>
+                <div class="form-actions">
+                    <a class="button" href="/web/register">Зарегистрироваться</a>
+                    <a class="button ghost" href="/web/login">Войти</a>
+                </div>
+            </div>
+        {% endif %}
     </section>
 </div>
 </body>

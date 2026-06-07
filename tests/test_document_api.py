@@ -88,7 +88,23 @@ def test_parse_endpoint_rejects_unsupported_file_format(tmp_path: Path) -> None:
         )
 
     assert response.status_code == 400
-
     data = response.json()
 
     assert "Поддерживаются только файлы .docx и .pdf" in data["detail"]
+
+
+def test_parse_endpoint_rejects_document_larger_than_three_mb() -> None:
+    response = client.post(
+        "/api/v1/documents/parse",
+        headers=auth_headers(client, "candidate"),
+        files={
+            "file": (
+                "resume.pdf",
+                b"x" * (3 * 1024 * 1024 + 1),
+                "application/pdf",
+            )
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "Размер документа не должен превышать 3 МБ."

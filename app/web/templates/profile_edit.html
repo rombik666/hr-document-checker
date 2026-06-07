@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="profile-edit-shell">
+    <div class="profile-edit-heading">
+        <div>
+            <span class="badge">Настройки аккаунта</span>
+            <h1>Редактирование профиля</h1>
+            <p class="muted">Обновите фотографию и основные данные учётной записи.</p>
+        </div>
+        <a class="button ghost" href="/web/profile">Вернуться в профиль</a>
+    </div>
+
+    <form
+        class="card profile-edit-card"
+        action="/web/profile/edit"
+        method="post"
+        enctype="multipart/form-data"
+    >
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <div class="profile-edit-avatar">
+            <div class="user-avatar user-avatar-profile user-avatar-edit">
+                {% if user.avatar_data %}
+                    <img src="/web/profile/avatar" alt="Текущий аватар" data-avatar-preview>
+                {% else %}
+                    <span data-avatar-initial>{{ user.full_name[:1] | upper }}</span>
+                    <img src="" alt="Предпросмотр аватара" data-avatar-preview hidden>
+                {% endif %}
+            </div>
+
+            <div class="profile-edit-avatar-copy">
+                <h2>Фотография профиля</h2>
+                <p class="muted">PNG, JPEG или WebP. Максимальный размер 2 МБ.</p>
+                <input
+                    id="profile-avatar"
+                    class="avatar-file-input"
+                    type="file"
+                    name="avatar"
+                    accept="image/png,image/jpeg,image/webp"
+                >
+                <label class="button ghost avatar-file-label" for="profile-avatar">
+                    Выбрать новое фото
+                </label>
+                <span class="muted small" data-avatar-file-name>Фото не выбрано</span>
+            </div>
+        </div>
+
+        <div class="profile-edit-fields grid two">
+            <div>
+                <label for="profile-full-name">ФИО</label>
+                <input
+                    id="profile-full-name"
+                    type="text"
+                    name="full_name"
+                    value="{{ user.full_name }}"
+                    minlength="2"
+                    maxlength="255"
+                    required
+                >
+            </div>
+
+            <div>
+                <label for="profile-email">Email</label>
+                <input
+                    id="profile-email"
+                    type="email"
+                    name="email"
+                    value="{{ user.email }}"
+                    maxlength="255"
+                    required
+                >
+            </div>
+        </div>
+
+        <div class="profile-edit-actions">
+            <a class="button ghost" href="/web/profile">Отмена</a>
+            <button type="submit">Сохранить изменения</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

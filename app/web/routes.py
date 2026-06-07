@@ -27,12 +27,14 @@ from app.coordinator.formal_check_coordinator import FormalCheckCoordinator
 from app.coordinator.semantic_check_coordinator import SemanticCheckCoordinator
 from app.core.logging import get_logger
 from app.core.metrics import metrics
+from app.core.uploads import read_document_upload
 from app.db.models import UserORM
 from app.db.session import get_db
 from app.reports.report_builder import ReportBuilder
 from app.schemas.auth import (
     PasswordResetConfirmRequest,
     PasswordResetRequest,
+    ProfileUpdateRequest,
     UserCreateRequest,
 )
 from app.schemas.common import StorageMode
@@ -263,6 +265,18 @@ async def submit_contact_form(
     request: Request,
     db: Session = Depends(get_db),
 ) -> JSONResponse:
+    user = _get_current_web_user(request, db)
+
+    if user is None:
+        return JSONResponse(
+            {
+                "success": False,
+                "message": "Отправка обращений доступна после регистрации.",
+                "redirect_url": "/web/register",
+            },
+            status_code=401,
+        )
+
     form = await request.form()
 
     topic = str(form.get("topic") or "").strip()
@@ -289,8 +303,6 @@ async def submit_contact_form(
             status_code=400,
         )
     
-    user = _get_optional_user_from_request(request, db)
-
     try:
         await run_in_threadpool(
             _send_contact_email,
@@ -394,7 +406,7 @@ def _detect_avatar_content_type(content: bytes) -> str | None:
 
 async def _save_upload_to_temp_file(file: UploadFile, suffix: str) -> Path:
     with NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
-        content = await file.read()
+        content = await read_document_upload(file)
         temporary_file.write(content)
         return Path(temporary_file.name)
     
@@ -906,7 +918,7 @@ def show_dashboard(
 @router.get("/profile")
 def show_profile(
     request: Request,
-    avatar: str | None = None,
+    updated: str | None = None,
     db: Session = Depends(get_db),
 ):
     user = _get_current_web_user(request, db)
@@ -929,10 +941,31 @@ def show_profile(
             "user": user,
             "reports": reports,
             "success": (
-                "Аватар успешно обновлён."
-                if avatar == "updated"
+                "Профиль успешно обновлён."
+                if updated == "true"
                 else None
             ),
+            "error": None,
+        },
+    )
+
+
+@router.get("/profile/edit")
+def show_profile_edit(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = _get_current_web_user(request, db)
+
+    if user is None:
+        return _redirect("/web/login")
+
+    return _template(
+        request=request,
+        name="profile_edit.html",
+        context={
+            "page_title": "Редактирование профиля",
+            "user": user,
             "error": None,
         },
     )
@@ -952,52 +985,67 @@ def get_profile_avatar(
         content=user.avatar_data,
         media_type=user.avatar_content_type,
         headers={
-            "Cache-Control": "private, max-age=300",
+            "Cache-Control": "private, no-cache",
             "X-Content-Type-Options": "nosniff",
         },
     )
 
 
-@router.post("/profile/avatar")
-async def upload_profile_avatar(
+@router.post("/profile/edit")
+async def update_profile(
     request: Request,
-    avatar: UploadFile = File(...),
+    full_name: str = Form(...),
+    email: str = Form(...),
+    avatar: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
     user = _require_web_user(request, db)
-    content = await avatar.read(MAX_AVATAR_SIZE_BYTES + 1)
+    error: str | None = None
 
-    if not content:
-        error = "Выберите изображение для загрузки."
-    elif len(content) > MAX_AVATAR_SIZE_BYTES:
-        error = "Размер аватара не должен превышать 2 МБ."
-    else:
-        detected_content_type = _detect_avatar_content_type(content)
-        declared_content_type = (avatar.content_type or "").lower()
+    try:
+        profile_request = ProfileUpdateRequest(
+            full_name=full_name,
+            email=email,
+        )
+    except ValidationError:
+        error = "Проверьте ФИО и корректность email."
 
-        if (
-            detected_content_type is None
-            or detected_content_type not in AVATAR_CONTENT_TYPES
-            or (
-                declared_content_type
-                and declared_content_type not in AVATAR_CONTENT_TYPES
-            )
-        ):
-            error = "Поддерживаются только изображения PNG, JPEG и WebP."
+    if error is None and avatar is not None and avatar.filename:
+        content = await avatar.read(MAX_AVATAR_SIZE_BYTES + 1)
+
+        if len(content) > MAX_AVATAR_SIZE_BYTES:
+            error = "Размер аватара не должен превышать 2 МБ."
         else:
-            user.avatar_data = content
-            user.avatar_content_type = detected_content_type
-            db.commit()
-            return _redirect("/web/profile?avatar=updated")
+            detected_content_type = _detect_avatar_content_type(content)
+            declared_content_type = (avatar.content_type or "").lower()
+
+            if (
+                not content
+                or detected_content_type is None
+                or detected_content_type not in AVATAR_CONTENT_TYPES
+                or (
+                    declared_content_type
+                    and declared_content_type not in AVATAR_CONTENT_TYPES
+                )
+            ):
+                error = "Поддерживаются только изображения PNG, JPEG и WebP."
+            else:
+                user.avatar_data = content
+                user.avatar_content_type = detected_content_type
+
+    if error is None:
+        try:
+            UserService(db).update_profile(user, profile_request)
+            return _redirect("/web/profile?updated=true")
+        except ValueError as update_error:
+            error = _localize_web_error(update_error)
 
     return _template(
         request=request,
-        name="profile.html",
+        name="profile_edit.html",
         context={
-            "page_title": "Личный кабинет",
+            "page_title": "Редактирование профиля",
             "user": user,
-            "reports": [],
-            "success": None,
             "error": error,
         },
         status_code=400,

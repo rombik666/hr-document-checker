@@ -1,3 +1,5 @@
+import re
+
 from uuid import uuid4
 
 from app.agents.semantic.base import BaseSemanticAgent
@@ -22,7 +24,6 @@ class TextQualityAgent(BaseSemanticAgent):
     WEAK_PHRASES = [
         "уверенный пользователь компьютера",
         "без вредных привычек",
-        "активная жизненная позиция",
         "командный игрок",
         "легко обучаюсь",
     ]
@@ -48,7 +49,9 @@ class TextQualityAgent(BaseSemanticAgent):
         text_lower = document.raw_text.lower()
 
         for phrase in self.WEAK_PHRASES:
-            if phrase in text_lower:
+            evidence = self._find_unsupported_phrase(text_lower, phrase)
+
+            if evidence:
                 issues.append(
                     self._make_issue(
                         severity=Severity.MINOR,
@@ -61,13 +64,15 @@ class TextQualityAgent(BaseSemanticAgent):
                             "Замените общую формулировку на конкретное описание результата: "
                             "что именно было сделано, с помощью каких технологий и какой эффект получен."
                         ),
-                        evidence_fragment=phrase,
+                        evidence_fragment=evidence,
                         rag_context=rag_context,
                     )
                 )
 
         for phrase in self.WATER_PHRASES:
-            if phrase in text_lower:
+            evidence = self._find_unsupported_phrase(text_lower, phrase)
+
+            if evidence:
                 issues.append(
                     self._make_issue(
                         severity=Severity.MINOR,
@@ -79,12 +84,54 @@ class TextQualityAgent(BaseSemanticAgent):
                         recommendation_text=(
                             "Замените шаблонную характеристику на конкретный пример из опыта."
                         ),
-                        evidence_fragment=phrase,
+                        evidence_fragment=evidence,
                         rag_context=rag_context,
                     )
                 )
 
         return self._deduplicate(issues)
+
+    @classmethod
+    def _find_unsupported_phrase(
+        cls,
+        text: str,
+        phrase: str,
+    ) -> str | None:
+        contexts = re.split(r"(?<=[.!?;])\s+|\n+", text)
+
+        for context in contexts:
+            normalized = re.sub(r"^[\s•\-–—*\d.)]+", "", context).strip()
+
+            if not re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", normalized):
+                continue
+
+            if cls._has_concrete_evidence(normalized, phrase):
+                continue
+
+            return phrase
+
+        return None
+
+    @staticmethod
+    def _has_concrete_evidence(context: str, phrase: str) -> bool:
+        remainder = context.replace(phrase, "", 1).strip(" ,:.-")
+
+        if not remainder:
+            return False
+
+        if len(remainder) > 24:
+            return True
+
+        concrete_markers = (
+            r"\d",
+            r"\b(?:python|java|javascript|typescript|sql|excel|1c|1с|"
+            r"fastapi|django|react|docker|git|postgresql|crm|erp)\b",
+            r"\b(?:например|в частности|за счёт|благодаря|что позволило|"
+            r"результат|увеличил|сократил|разработал|внедрил|настроил|"
+            r"автоматизировал|руководил|координировал)\b",
+        )
+
+        return any(re.search(marker, context) for marker in concrete_markers)
 
     def _make_issue(
         self,

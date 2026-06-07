@@ -39,4 +39,26 @@ def test_text_quality_agent_detects_water_phrase() -> None:
 
     issue_types = {issue.issue_type for issue in result.issues}
 
-    assert "weak_phrase" in issue_types
+    assert "water_phrase" in issue_types
+
+
+def test_text_quality_agent_ignores_phrase_supported_by_specific_result() -> None:
+    document = make_document(
+        "Командный игрок: координировал команду из 6 человек "
+        "и сократил срок выпуска релиза на 20%."
+    )
+
+    result = TextQualityAgent().run(document)
+
+    assert not result.issues
+
+
+def test_text_quality_agent_ignores_phrase_inside_meaningful_description() -> None:
+    document = make_document(
+        "Командный игрок в кросс-функциональной продуктовой команде, "
+        "регулярно участвую в ревью и планировании."
+    )
+
+    result = TextQualityAgent().run(document)
+
+    assert not result.issues

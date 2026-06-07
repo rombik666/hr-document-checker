@@ -11,6 +11,7 @@ from app.coordinator.formal_check_coordinator import FormalCheckCoordinator
 from app.coordinator.semantic_check_coordinator import SemanticCheckCoordinator
 from app.core.logging import get_logger
 from app.core.metrics import metrics
+from app.core.uploads import read_document_upload
 from app.db.models import UserORM
 from app.db.session import get_db
 from app.reports.docx_exporter import DocxReportExporter
@@ -42,7 +43,7 @@ def _validate_file_suffix(filename: str) -> str:
 
 async def _save_upload_to_temp_file(file: UploadFile, suffix: str) -> Path:
     with NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
-        content = await file.read()
+        content = await read_document_upload(file)
         temporary_file.write(content)
         return Path(temporary_file.name)
 

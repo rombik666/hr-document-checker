@@ -21,6 +21,11 @@ class UserLoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class ProfileUpdateRequest(BaseModel):
+    email: EmailStr
+    full_name: str = Field(min_length=2, max_length=255)
+
+
 class PasswordResetRequest(BaseModel):
     email: EmailStr
 

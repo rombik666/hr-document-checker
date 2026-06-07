@@ -57,6 +57,7 @@ def test_web_dashboard_returns_candidate_dashboard_for_authenticated_user() -> N
     assert 'href="/web/reports"' in response.text
     assert 'class="user-dropdown-logout"' in response.text
     assert 'src="/static/icons/log-out.svg"' in response.text
+    assert '<a href="/web/profile/edit">Редактировать профиль</a>' not in response.text
     assert "/web/rag/sources" not in response.text
     assert "/web/admin" not in response.text
 

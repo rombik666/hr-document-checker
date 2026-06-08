@@ -2611,7 +2611,7 @@ body.mobile-nav-open {
 
 @media (max-width: 860px) {
     .brand-subtitle {
-        display: none;
+        display: block;
     }
 
     .brand-title {
@@ -3418,7 +3418,21 @@ body.mobile-nav-open {
 
 @media (max-width: 560px) {
     .brand-copy {
-        display: none;
+        display: grid;
+        min-width: 0;
+    }
+
+    .brand-title {
+        overflow: hidden;
+        font-size: 14px;
+        text-overflow: ellipsis;
+    }
+
+    .brand-subtitle {
+        overflow: hidden;
+        font-size: 10px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .profile-avatar-panel,

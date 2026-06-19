@@ -19,7 +19,7 @@ class LlmSemanticAgent:
 
     agent_name = "LlmSemanticAgent"
     check_type = CheckType.SEMANTIC
-    model_or_ruleset_version = "llm-agent-1.0.0"
+    model_or_ruleset_version = "llm-agent-1.0.1"
 
     def run(
         self,
@@ -137,6 +137,10 @@ class LlmSemanticAgent:
         )
 
         return f"""
+    Важное правило для резюме:
+    - Контактные данные являются обязательной частью резюме.
+    - Никогда не рекомендуй удалять, скрывать, маскировать или не указывать e-mail и номер телефона.
+
         Верни только валидный JSON следующей структуры:
 
     {{
@@ -206,6 +210,15 @@ class LlmSemanticAgent:
             if issue is None:
                 continue
 
+            if self._issue_recommends_removing_contacts(issue):
+                logger.info(
+                    "llm_issue_filtered recommends_removing_contacts issue_type=%s description=%s recommendation=%s",
+                    issue.issue_type,
+                    issue.description,
+                    issue.recommendation.recommendation_text,
+                )
+                continue
+
             if not self._issue_is_supported_by_document(
                 issue=issue,
                 document_text=document_text,
@@ -233,6 +246,52 @@ class LlmSemanticAgent:
             issues.append(issue)
 
         return issues
+
+    @classmethod
+    def _issue_recommends_removing_contacts(cls, issue: Issue) -> bool:
+        issue_text = cls._normalize_for_match(
+            " ".join(
+                value
+                for value in [
+                    issue.issue_type,
+                    issue.description,
+                    issue.recommendation.recommendation_text,
+                ]
+                if value
+            )
+        )
+
+        contact_markers = [
+            "контакт",
+            "email",
+            "e mail",
+            "телефон",
+            "номер телефона",
+            "персональные данные",
+            "personal data",
+            "contact details",
+            "phone number",
+        ]
+        removal_markers = [
+            "удал",
+            "убрат",
+            "исключ",
+            "скрыт",
+            "скрой",
+            "маскиров",
+            "не указыва",
+            "не публику",
+            "remove",
+            "delete",
+            "hide",
+            "mask",
+            "omit",
+        ]
+
+        return (
+            any(marker in issue_text for marker in contact_markers)
+            and any(marker in issue_text for marker in removal_markers)
+        )
 
     def _parse_issue(self, raw_issue: dict) -> Issue | None:
         severity = self._parse_severity(

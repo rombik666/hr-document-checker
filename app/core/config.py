@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     llm_api_key: str | None = None
     llm_timeout_seconds: int = 60
     llm_enabled: bool = True
-    llm_semantic_agent_enabled: bool = False
+    llm_semantic_agent_enabled: bool = True
 
     auth_secret_key: str = "change-this-secret-key"
     auth_token_ttl_minutes: int = 720
